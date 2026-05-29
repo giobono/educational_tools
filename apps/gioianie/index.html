@@ -354,29 +354,43 @@ function repairJSON(raw) {
   throw new Error('Could not parse or repair JSON response from API');
 }
 
-// ── Consolidation pass (server-side as of v0.9.3) ─────────────────────
+// ── Consolidation prompt ─────────────────────────────────────────────
 async function consolidateTerms(termsByDoc) {
-  const body = {
-    per_document_terms: termsByDoc.map(d => ({
-      doc_name: d.docName,
-      terms: d.terms
-    }))
-  };
+  const system = `You are a research assistant applying the Correlating Resonance methodology.
 
-  const result = await callAppAPI('gioianie', 'phase1/consolidate', body);
+You have received candidate term lists extracted independently from ${termsByDoc.length} documents. Your task is to consolidate these into a single unified candidate term list.
 
-  // Reproducibility metadata — log for now, surface in exports in v0.10.0.
-  // Academic citation will need these values; logging gives the user a
-  // place to retrieve them from the browser console if they need to record
-  // them manually before export-bar integration ships.
-  console.info('Phase 1 consolidation:', {
-    model_used:     result.model_used,
-    prompt_version: result.prompt_version,
-    request_id:     result.request_id,
-    typology_size:  result.typology.length
-  });
+CONSOLIDATION RULES:
+1. Merge clear duplicates — terms that refer to the same concept under different labels. Use the most precise or neutral label.
+2. Retain near-duplicates as separate entries if there is any analytical doubt about whether they are the same concept. Flag them as ambiguous with a note explaining the potential overlap.
+3. Do NOT delete terms because they appear in only one document — all terms are candidates at this stage.
+4. Write a single neutral definition for each consolidated term, synthesising across the source definitions.
+5. If a term was flagged as ambiguous in any source document, carry that flag forward. Add or synthesise the ambiguity note.
+6. Record which source documents each term appeared in using the document names provided.
+7. The output must remain flat and non-hierarchical.
+8. Exclude proper nouns unless analytically significant as a category.
 
-  return result.typology;
+CRITICAL JSON RULE: Do not use double quote characters (") within any string value. Use single quotes or rephrase to avoid them entirely.
+
+Return ONLY a valid JSON array:
+[
+  {
+    "term": "term name in lowercase",
+    "definition": "neutral coding rule",
+    "ambiguous": false,
+    "ambiguity_note": "",
+    "source_docs": ["doc1.pdf", "doc2.txt"]
+  }
+]`;
+
+  const docSummaries = termsByDoc.map(d =>
+    `SOURCE: ${d.docName}\n${JSON.stringify(d.terms, null, 2)}`
+  ).join('\n\n---\n\n');
+
+  const user = `Consolidate these term lists into a single unified candidate term list:\n\n${docSummaries}`;
+
+  const response = await callAPI(system, user, 4096);
+  return repairJSON(response);
 }
 
 
