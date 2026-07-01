@@ -45,7 +45,7 @@
 
 // Pinned model identifier. Will become a fallback / explicit-pin escape hatch
 // once the registry ships (contract §6, paragraph on identifier pinning).
-window.CR_MODEL = 'claude-sonnet-4-20250514';
+window.CR_MODEL = 'claude-sonnet-5';
 
 /**
  * Call the platform LLM endpoint and return the response text.
