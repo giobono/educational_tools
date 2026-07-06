@@ -155,7 +155,7 @@ function parseTypologyCSV(text) {
         // Accept "neutral,directional" or "neutral, directional"
         colMap.directional = lower.findIndex(c => c.replace(/\s/g,'').startsWith('neutral,directional'));
         colMap.source_docs = lower.indexOf('source_documents');
-        colMap.scaffolding = lower.indexOf('scaffolding_category');
+        colMap.data_type   = lower.indexOf('data_type');
         headerFound = true;
       }
       continue;
@@ -171,7 +171,7 @@ function parseTypologyCSV(text) {
       ambiguity_note: (cells[colMap.ambig_note]  || '').trim(),
       directional:    (colMap.directional >= 0 ? cells[colMap.directional] || 'neutral' : 'neutral').trim(),
       source_docs:    (colMap.source_docs >= 0 ? cells[colMap.source_docs] || '' : '').trim(),
-      scaffolding:    (colMap.scaffolding >= 0 ? cells[colMap.scaffolding] || '' : '').trim()
+      data_type:      (colMap.data_type >= 0 ? cells[colMap.data_type] || '' : '').trim()
     });
   }
   return concepts;
@@ -591,7 +591,7 @@ function exportNewConcepts(newConcepts) {
     '#      before re-uploading.',
     '#   5. Save the updated CSV and run Phase 2 again with a fresh document batch.',
     '#',
-    '"Term","Definition: including synonyms","Ambiguous","Ambiguity_Note","Neutral,directional","Source_Documents","Scaffolding_Category"'
+    '"Term","Definition: including synonyms","Ambiguous","Ambiguity_Note","Neutral,directional","Source_Documents","Data_Type"'
   ];
   newConcepts.forEach(c => {
     lines.push([

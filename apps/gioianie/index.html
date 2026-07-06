@@ -537,8 +537,10 @@ function exportCSV(terms) {
     '#    Leave as neutral unless you have a specific reason to treat a concept',
     '#    as directional. This is a deferred extension — neutral is the safe default.',
     '#',
-    '# 8. SCAFFOLDING: The Scaffolding_Category column is for your orientation only',
-    '#    (e.g. Who / Why / What / How / Barriers). It does not affect the analysis.',
+    '# 8. DATA_TYPE: Leave the Data_Type column blank for analytical concepts.',
+    '#    For real-world descriptive/metadata rows (e.g. demographic, bureaucratic,',
+    '#    bibliographic categories), enter a concrete type label',
+    '#    (e.g. age, country, industry classification).',
     '#',
     '# 9. ADDITIONS: Add any concepts you believe are present in the documents',
     '#    but missing from this list. Write a neutral definition.',
@@ -546,7 +548,7 @@ function exportCSV(terms) {
     '# Save this file as CSV and upload it to begin Phase 2.',
     '# ─────────────────────────────────────────────────────────────────────────────',
     '',
-    '"Term","Definition: including synonyms","Ambiguous","Ambiguity_Note","Neutral,directional","Source_Documents","Scaffolding_Category"'
+    '"Term","Definition: including synonyms","Ambiguous","Ambiguity_Note","Neutral,directional","Source_Documents","Data_Type"'
   ];
 
   terms.forEach(t => {
