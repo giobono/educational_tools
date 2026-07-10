@@ -39,13 +39,46 @@
  *      passing pinned_model (or in addition to it for academic reproduction).
  *   2. callAPI returns parsed objects rather than raw text once the platform
  *      structured-output parsing layer ships (retires §E below).
- *   3. The endpoint path changes per app (/v1/gioiaie/, /v1/sanzognie/, etc.)
+ *   3. The endpoint path changes per app (/v1/gioianie/, /v1/sanzognie/, etc.)
  *      once the four-app split is provisioned.
  * ============================================================================ */
 
 // Pinned model identifier. Will become a fallback / explicit-pin escape hatch
 // once the registry ships (contract §6, paragraph on identifier pinning).
 window.CR_MODEL = 'claude-sonnet-5';
+
+// Single-sourced graceful copy for structured errors the platform's LLM
+// abstraction can return (billing ceiling brief v1.1 §2.2/§2.4:
+// SpendCeilingReached / RateLimitExceeded, surfaced as
+// artie_platform.llm.errors.AT_CAPACITY_ERROR / rate_limit_error()). Lives
+// here, once, rather than per-page: every existing `catch (err) {
+// showError(err.message) }` call site across the four apps gets this text
+// automatically, with no page-level changes — the CL19 single-sourcing
+// the brief asks for. Codes not in this map fall through to the raw
+// technical detail unchanged (this only softens the two capacity-related
+// cases, not general error UX).
+const CR_FRIENDLY_ERROR_MESSAGES = {
+  service_at_capacity: 'The service is temporarily at capacity. Please try again in a few minutes.',
+  rate_limit_exceeded: 'Too many requests right now — please wait a moment and try again.',
+};
+
+// Shared response-error parsing for callAPI/callAppAPI — one implementation,
+// not two copies of the same detail/code extraction logic.
+async function _crParseApiError(res) {
+  let detail = res.statusText;
+  let code = `http_${res.status}`;
+  try {
+    const err = await res.json();
+    code = err?.detail?.code || err?.error?.code || code;
+    detail = err?.detail?.message || err?.error?.message || detail;
+  } catch (_) { /* keep statusText */ }
+
+  const friendly = CR_FRIENDLY_ERROR_MESSAGES[code];
+  const error = new Error(friendly || `API error ${res.status}: ${detail}`);
+  error.code = code;
+  error.status = res.status;
+  return error;
+}
 
 /**
  * Call the platform LLM endpoint and return the response text.
@@ -80,12 +113,7 @@ window.callAPI = async function callAPI(system, user, maxTokens = 4096) {
   });
 
   if (!res.ok) {
-    let detail = res.statusText;
-    try {
-      const err = await res.json();
-      detail = err?.detail?.message || err?.error?.message || detail;
-    } catch (_) { /* keep statusText */ }
-    throw new Error(`API error ${res.status}: ${detail}`);
+    throw await _crParseApiError(res);
   }
 
   const data = await res.json();
@@ -119,21 +147,30 @@ async function callAppAPI(appId, path, body) {
   });
 
   if (!res.ok) {
-    let detail = res.statusText;
-    let code = `http_${res.status}`;
-    try {
-      const err = await res.json();
-      detail = err?.detail?.message || detail;
-      code = err?.detail?.code || code;
-    } catch (_) { /* keep statusText */ }
-    const error = new Error(`API error ${res.status}: ${detail}`);
-    error.code = code;
-    error.status = res.status;
-    throw error;
+    throw await _crParseApiError(res);
   }
 
   return res.json();
 }
+
+// §A — Task-polling error translation
+//
+// The task/workflow endpoints (POST returns 202 + task_id; caller polls
+// GET .../tasks/{id} until state is terminal) surface SpendCeilingReached /
+// RateLimitExceeded inside the polled body's `error.code`/`error.message`
+// once state === "failed" — never as an HTTP status on the POST itself,
+// since the POST already returned before the workflow ran. Callers that
+// poll should pass the task's `error` object here before calling
+// showError(), so a spend-ceiling or rate-limit failure reads the same
+// graceful way regardless of which path (direct endpoint vs task polling)
+// produced it. Not yet wired into any page — no page polls a task endpoint
+// yet (the front end still calls callAPI/callAppAPI directly per Stage 3's
+// current state) — provided now so the single-sourcing is in place before
+// that wiring lands, rather than duplicated per page when it does.
+window.friendlyTaskError = function friendlyTaskError(taskError) {
+  if (!taskError) return 'An unknown error occurred.';
+  return CR_FRIENDLY_ERROR_MESSAGES[taskError.code] || taskError.detail || taskError.message || 'An unknown error occurred.';
+};
 
 
 
