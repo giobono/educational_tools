@@ -144,8 +144,6 @@
 </div>
 </div>
 <script>
-const MODEL   = 'claude-sonnet-5';
-
 // ── State ─────────────────────────────────────────────────────────────
 let dtmData       = null;  // {mode, docs:[{id,name}], concepts:[str], matrix:[[num]]}
 let binaryMatrix  = null;  // [[0|1]] rows=docs, cols=concepts
@@ -1053,42 +1051,6 @@ function parseCSVRow(line) {
     else cur += ch;
   }
   cells.push(cur); return cells;
-}
-
-async function callAPI(system, user, maxTokens = 2048) {
-  const cfg = window.CORRES_CONFIG;
-  if (!cfg || !cfg.apiBase) {
-    throw new Error('CORRES_CONFIG not loaded — check config.js is deployed');
-  }
-
-  const requestId = (crypto.randomUUID && crypto.randomUUID()) ||
-                    (Date.now() + '-' + Math.random().toString(36).slice(2));
-
-  const res = await fetch(`${cfg.apiBase}/v1/corres/llm/messages`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Request-Id': requestId,
-    },
-    body: JSON.stringify({
-      system,
-      user,
-      max_tokens:    maxTokens,
-      pinned_model:  MODEL,
-    }),
-  });
-
-  if (!res.ok) {
-    let detail = res.statusText;
-    try {
-      const err = await res.json();
-      detail = err?.detail?.message || err?.error?.message || detail;
-    } catch (_) { /* keep statusText */ }
-    throw new Error(`API error ${res.status}: ${detail}`);
-  }
-
-  const data = await res.json();
-  return data.text;
 }
 
 
