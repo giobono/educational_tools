@@ -145,15 +145,22 @@
 </div>
 <script>
 // ── State ─────────────────────────────────────────────────────────────
-let dtmData       = null;  // {mode, docs:[{id,name}], concepts:[str], matrix:[[num]]}
-let binaryMatrix  = null;  // [[0|1]] rows=docs, cols=concepts
-let ttmData       = null;  // {concepts:[str], matrix:[[num]], sorted:[idx], totals:[num]}
-let clusterResult = null;  // {assignments:[int], n_clusters, explained_variance, concept_clusters}
+let dtmData       = null;  // {mode, docs:[{id,name}], concepts:[str], conceptIds:[int], matrix:[[num]]}
+let binaryMatrix  = null;  // [[0|1]] rows=docs, cols=concepts — live slider preview, then the server-confirmed matrix after Step 4.1
+let ttmData       = null;  // {concepts:[str], matrix:[[num]], sorted:[idx], totals:[num]} — reconstructed from serverTtm for the existing display code
+let clusterResult = null;  // {assignments:[int], n_clusters, explained_variance, concept_clusters} — reconstructed from serverTtm.clustering
+let serverTtm     = null;  // the actual TTMArtefact returned by /build, then re-submitted and re-assigned by /cluster and /name-frames in turn (chained, per api/ttm.py)
 let pyodideReady  = false;
 let pyodide       = null;
 let nClusters     = 4;
 
 // ── Load Pyodide ──────────────────────────────────────────────────────
+// SUPERSEDED (13 Jul 2026 wiring pass): clustering now runs server-side
+// (/v1/corres/ttm/cluster — apps/corres/workflows/cluster_concepts.py is a
+// byte-for-byte port of runMCA()'s Python snippet below). No longer called
+// automatically on page load — left in place, unused, pending Hosting's
+// live confirmation, same disposition as the other superseded functions
+// in gioianie/sanzognie's pages this session.
 async function initPyodide() {
   try {
     setStatus('loading', 'Loading Python environment…');
@@ -174,7 +181,8 @@ function setStatus(state, msg) {
   document.getElementById('pyodide-msg').textContent = msg;
 }
 
-initPyodide();
+setStatus('ready', 'Clustering runs server-side (MCA via TruncatedSVD + KMeans) — no local Python environment needed.');
+document.getElementById('py-spinner').style.display = 'none';
 
 // ── DTM upload ────────────────────────────────────────────────────────
 const dtmZone = document.getElementById('dtm-zone');
@@ -222,12 +230,19 @@ function parseDTMCSV(text) {
   let headers = null, colDocId = -1, colFilename = -1, colMethod = -1;
   const docs = [], matrix = [];
   let mode = 'rating';
+  let conceptIdsLine = null;
 
   for (const rawLine of text.split('\n')) {
     const line = rawLine.trim();
     if (!line) continue;
     if (line.startsWith('#')) {
       if (line.toLowerCase().includes('frequency')) mode = 'frequency';
+      // sanzognie's exportDTM (13 Jul 2026 wiring pass) writes concept_ids
+      // in column order as "# Concept_IDs: 1,2,3,..." — this is how corres
+      // recovers the backend's required identifier without a separate
+      // typology upload (this page only ever uploads the DTM CSV).
+      const idsMatch = line.match(/^#\s*Concept_IDs:\s*(.+)$/i);
+      if (idsMatch) conceptIdsLine = idsMatch[1].split(',').map(s => s.trim()).filter(Boolean);
       continue;
     }
     const cells = parseCSVRow(line);
@@ -258,7 +273,27 @@ function parseDTMCSV(text) {
   const skipCols = new Set([colDocId, colFilename, colMethod].filter(c => c >= 0));
   const concepts = headers.filter((_, i) => !skipCols.has(i));
 
-  return { mode, docs, concepts, matrix };
+  // concept_id per concept, same column order — real IDs from the
+  // Concept_IDs comment line when present and the right length, synthetic
+  // sequential IDs otherwise (older DTM exports predate that comment line).
+  let conceptIds;
+  if (conceptIdsLine && conceptIdsLine.length === concepts.length) {
+    conceptIds = conceptIdsLine.map(id => parseInt(id, 10));
+  } else {
+    if (conceptIdsLine) {
+      console.warn('parseDTMCSV: Concept_IDs comment line length did not match the concept column count — assigning synthetic IDs instead.');
+    }
+    conceptIds = assignConceptIds(concepts.map(term => ({ term }))).items.map(c => c.concept_id);
+  }
+
+  return { mode, docs, concepts, conceptIds, matrix };
+}
+
+// A document's identifier for the backend request/response — Doc_ID when
+// the CSV had one, falling back to filename (matches the uniqueness the
+// original CSV export always guaranteed one way or the other).
+function docKey(doc) {
+  return doc.id || doc.name;
 }
 
 // ── Step 4.1: Binarisation ────────────────────────────────────────────
@@ -487,12 +522,81 @@ function renderHeatmap(t) {
   });
 }
 
-function confirmBinarisation() {
+async function confirmBinarisation() {
+  clearError();
   markStepDone('41');
-  buildTTM();
+  await buildTTMServer();
 }
 
 // ── Step 4.2: TTM construction ────────────────────────────────────────
+async function buildTTMServer() {
+  const thresholdMode = document.querySelector('input[name="tmode"]:checked').value;
+  const t = getCurrentThreshold();
+
+  const rows = dtmData.docs.map((doc, di) => ({
+    doc_id: docKey(doc),
+    extraction_method: 'text',
+    scores: Object.fromEntries(
+      dtmData.conceptIds.map((cid, ci) => [String(cid), { value: dtmData.matrix[di][ci] || 0 }])
+    ),
+  }));
+
+  const dtm = {
+    schema_version: '0.1',
+    corpus_id: `corres-${Date.now()}`,
+    provenance: { concept_ids_scored: dtmData.conceptIds.map(Number) },
+    rows,
+  };
+  const params = {
+    threshold_mode: thresholdMode,
+    manual_threshold: thresholdMode === 'manual' ? t : null,
+  };
+
+  document.getElementById('ttm-body').innerHTML =
+    `<p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Building term-term matrix on the server…</p>`;
+
+  try {
+    const created = await callAppAPI('corres', 'ttm/build', { dtm, params });
+    serverTtm = await pollTask('corres', created.task_id);
+
+    // Authoritative binarisation from the server replaces the interactive
+    // slider preview now that the threshold is confirmed — everything
+    // downstream (clustering, representative documents) works from this,
+    // not the live-preview binaryMatrix computed while the slider moved.
+    binaryMatrix = dtmData.docs.map(doc =>
+      dtmData.conceptIds.map(cid => (serverTtm.binary_matrix[docKey(doc)] || {})[String(cid)] || 0)
+    );
+    ttmData = reconstructTtmDataFromServer(serverTtm);
+
+    renderTTM();
+    markStepDone('42');
+    renderClusterControls();
+  } catch (err) {
+    showError(`Error building TTM: ${err.message}`);
+  }
+}
+
+// Maps serverTtm's concept_id-keyed dict fields back into the position-
+// indexed arrays (matching dtmData.concepts/conceptIds order) that
+// renderTTM() and every downstream display function were written for.
+function reconstructTtmDataFromServer(ttm) {
+  const ids = dtmData.conceptIds;
+  const matrix = ids.map(i => ids.map(j => (ttm.matrix[String(i)] || {})[String(j)] || 0));
+  const totals = ids.map(i => ttm.totals[String(i)] || 0);
+
+  const positionById = {};
+  ids.forEach((id, pos) => { positionById[String(id)] = pos; });
+  const sorted = (ttm.concept_order || [])
+    .map(id => positionById[String(id)])
+    .filter(pos => pos !== undefined);
+
+  return { concepts: dtmData.concepts, matrix, sorted, totals };
+}
+
+// SUPERSEDED (13 Jul 2026 wiring pass): confirmBinarisation() now calls
+// buildTTMServer() above — apps/corres/workflows/build_ttm.py is a
+// byte-for-byte port of this function's co-occurrence computation. Left in
+// place, unused, pending Hosting's live confirmation.
 function buildTTM() {
   const nConcepts = dtmData.concepts.length;
   const nDocs     = binaryMatrix.length;
@@ -643,6 +747,47 @@ function adjustClusters(delta) {
 }
 
 async function runMCA() {
+  clearError();
+  document.getElementById('run-mca-btn').disabled = true;
+  document.getElementById('mca-running').style.display = 'block';
+  document.getElementById('cluster-results').innerHTML = '';
+
+  try {
+    const created = await callAppAPI('corres', 'ttm/cluster', {
+      ttm: serverTtm,
+      params: { n_clusters: nClusters },
+    });
+    serverTtm = await pollTask('corres', created.task_id);
+
+    // clustering.assignments/coords are concept_id-keyed dicts — map back
+    // to position-indexed arrays (dtmData.concepts/conceptIds order) for
+    // renderClusterResults()/findRepresentativeDocuments()/etc, unchanged
+    // below.
+    const clustering = serverTtm.clustering;
+    clusterResult = {
+      assignments:        dtmData.conceptIds.map(cid => clustering.assignments[String(cid)]),
+      n_clusters:          clustering.n_clusters,
+      explained_variance:  clustering.explained_variance,
+      inertia:             clustering.inertia,
+      coords:              dtmData.conceptIds.map(cid => clustering.coords[String(cid)]),
+    };
+
+    renderClusterResults();
+    markStepActive('43');
+
+  } catch (err) {
+    showError('MCA failed: ' + err.message);
+  } finally {
+    document.getElementById('run-mca-btn').disabled = false;
+    document.getElementById('mca-running').style.display = 'none';
+  }
+}
+
+// SUPERSEDED (13 Jul 2026 wiring pass): runMCA() above now calls
+// /v1/corres/ttm/cluster — apps/corres/workflows/cluster_concepts.py is a
+// byte-for-byte port of the Pyodide Python snippet that used to run here.
+// Left in place, unused, pending Hosting's live confirmation.
+async function runMCAViaPyodide() {
   if (!pyodideReady) { showError('Python environment not ready yet — please wait'); return; }
   clearError();
   document.getElementById('run-mca-btn').disabled = true;
@@ -827,16 +972,53 @@ async function renderFrameNaming() {
 
   const { assignments } = clusterResult;
   const concepts = dtmData.concepts;
-  const { matrix, totals } = ttmData;
+  const { totals } = ttmData;
 
-  // Build cluster summaries for the LLM
+  // Cluster grouping and representative-document lookup are pure display
+  // prep over already-server-confirmed data (clusterResult/binaryMatrix) —
+  // stays client-side per PSI §2, same as the heatmap/slider preview.
   const clusters = {};
   assignments.forEach((c, i) => {
     if (!clusters[c]) clusters[c] = [];
     clusters[c].push({ concept: concepts[i], total: totals[i] });
   });
 
-  // Find representative documents for each cluster
+  const repDocs = findRepresentativeDocuments(clusters, assignments);
+
+  const conceptTerms = Object.fromEntries(
+    dtmData.conceptIds.map((cid, i) => [String(cid), dtmData.concepts[i]])
+  );
+
+  try {
+    const created = await callAppAPI('corres', 'ttm/name-frames', {
+      ttm: serverTtm,
+      params: { concept_terms: conceptTerms },
+    });
+    serverTtm = await pollTask('corres', created.task_id);
+
+    renderNamingInterface(clusters, serverTtm.frames, repDocs);
+
+  } catch (err) {
+    renderNamingInterface(clusters, null, repDocs);
+    showError('Frame naming API call failed: ' + err.message + ' — you can still enter names manually below');
+  }
+}
+
+// SUPERSEDED (13 Jul 2026 wiring pass): renderFrameNaming() above now
+// calls /v1/corres/ttm/name-frames — apps/corres/workflows/name_frames.py
+// is a byte-for-byte port of the prompt below. Left in place, unused,
+// pending Hosting's live confirmation.
+async function renderFrameNamingViaClientLLM() {
+  const { assignments } = clusterResult;
+  const concepts = dtmData.concepts;
+  const { totals } = ttmData;
+
+  const clusters = {};
+  assignments.forEach((c, i) => {
+    if (!clusters[c]) clusters[c] = [];
+    clusters[c].push({ concept: concepts[i], total: totals[i] });
+  });
+
   const repDocs = findRepresentativeDocuments(clusters, assignments);
 
   const clusterSummary = Object.entries(clusters)
@@ -1024,7 +1206,7 @@ function markStepActive(id) {
   document.getElementById(`num-${id}`).classList.add('active');
 }
 function resetAll() {
-  dtmData = binaryMatrix = ttmData = clusterResult = null;
+  dtmData = binaryMatrix = ttmData = clusterResult = serverTtm = null;
   ['41','42','43','44'].forEach(id => {
     document.getElementById(`num-${id}`).className = 'step-num';
   });

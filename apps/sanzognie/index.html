@@ -44,8 +44,8 @@
 <div class="config-card-title">Processing settings</div>
 <div class="field">
 <label>Batch size</label>
-<input id="batch-size" max="100" min="1" type="number" value="20"/>
-<div class="field-hint">Documents processed before each automatic DTM checkpoint export.</div>
+<input disabled="" id="batch-size" max="100" min="1" type="number" value="20"/>
+<div class="field-hint">Not currently active — coding now runs server-side as one task, so the DTM checkpoint exports once the whole run finishes rather than mid-run. Mid-run batch checkpointing is a planned platform capability, not built yet.</div>
 </div>
 <div class="field">
 <label>Text extract limit (characters)</label>
@@ -212,7 +212,7 @@ function parseCheckpointCSV(text) {
   // Matches on Full_Filename column so it works regardless of Doc_ID regeneration
   const rows = {};
   let headers = null;
-  let colDocId = -1, colFilename = -1;
+  let colDocId = -1, colFilename = -1, colMethod = -1;
 
   for (const rawLine of text.split('\n')) {
     const line = rawLine.trim();
@@ -224,6 +224,7 @@ function parseCheckpointCSV(text) {
       colDocId    = headers.indexOf('doc_id');
       colFilename = headers.indexOf('full_filename');
       if (colFilename === -1) colFilename = headers.indexOf('filename');
+      colMethod   = headers.indexOf('extraction_method');
       continue;
     }
 
@@ -231,17 +232,21 @@ function parseCheckpointCSV(text) {
     const docId    = (cells[colDocId]    || '').trim();
     if (!filename) continue;
 
-    // Rebuild scores object from remaining columns
+    // Rebuild scores object from remaining columns. Header is
+    // [Doc_ID, Full_Filename, Extraction_Method, ...concept columns] —
+    // concept scores start at index 3, not 2 (2 is Extraction_Method
+    // itself; a prior version of this loop miscounted it as a concept).
     const scores = {};
     const lowConf = [];
-    for (let i = 2; i < headers.length; i++) {
+    for (let i = 3; i < headers.length; i++) {
       const concept = headers[i];
       const raw     = (cells[i] || '0').replace('[?]', '').trim();
       scores[concept] = parseFloat(raw) || 0;
       if ((cells[i] || '').includes('[?]')) lowConf.push(concept);
     }
 
-    rows[filename] = { docId, docName: filename, scores, lowConf };
+    const method = colMethod >= 0 ? (cells[colMethod] || 'text').trim() : 'text';
+    rows[filename] = { docId, docName: filename, scores, lowConf, method };
   }
   return rows;
 }
@@ -304,6 +309,7 @@ function parseTypologyCSV(text) {
     if (!headerFound) {
       const lower = cells.map(c => c.toLowerCase().trim());
       if (lower.includes('term')) {
+        colMap.concept_id = lower.indexOf('concept_id');
         colMap.term       = lower.indexOf('term');
         colMap.definition = lower.findIndex(c => c.startsWith('definition'));
         headerFound = true;
@@ -312,7 +318,11 @@ function parseTypologyCSV(text) {
     }
     const term = (cells[colMap.term] || '').trim();
     if (!term) continue;
-    concepts.push({ term, definition: (cells[colMap.definition] || '').trim() });
+    concepts.push({
+      concept_id: (colMap.concept_id >= 0 ? (cells[colMap.concept_id] || '').trim() : ''),
+      term,
+      definition: (cells[colMap.definition] || '').trim()
+    });
   }
   return concepts;
 }
@@ -417,13 +427,23 @@ async function runCoding() {
   checkReady();
 
   const mode             = document.querySelector('input[name="mode"]:checked').value;
-  const batchSize        = Math.max(1, parseInt(document.getElementById('batch-size').value) || 20);
   const textLimit        = Math.max(3000, parseInt(document.getElementById('text-limit').value) || 15000);
   const visionThreshold  = Math.max(100, parseInt(document.getElementById('vision-threshold').value) || 500);
 
-  // Seed dtmRows from checkpoint — preserve prior results in original order
-  const priorCount = Object.keys(priorRows).length;
-  dtmRows = Object.values(priorRows);
+  if (mode === 'frequency') {
+    // Schema-level option, not a proven pathway — the backend stops
+    // cleanly on this rather than running it (code_documents.py). No
+    // point round-tripping to the server to learn that.
+    showError('Frequency count mode is not yet available — contact the Academic Director. Please use Rating (0–3) mode.');
+    isRunning = false;
+    checkReady();
+    return;
+  }
+
+  const { items: typologyWithIds, idsAreSynthetic } = assignConceptIds(typology);
+  if (idsAreSynthetic) {
+    console.warn('runCoding: typology had no Concept_ID column — synthetic IDs assigned this run. A later re-scoring run against a different or reordered typology CSV may not align cleanly with this DTM.');
+  }
 
   // Identify which corpus docs still need coding
   const pending = corpusDocs.filter(d => !priorRows[d.name]);
@@ -442,17 +462,22 @@ async function runCoding() {
     addBatchDivider(0, 0, `${skipped.length} document${skipped.length > 1 ? 's' : ''} already coded — skipped from checkpoint`);
   }
 
+  const existingDtm = buildExistingDtmRows(priorRows, typologyWithIds);
+
   if (pending.length === 0) {
     isRunning = false;
     checkReady();
     document.getElementById('progress-bar').classList.add('done');
     setProgress(0, 0);
-    exportDTM(dtmRows, typology, mode, false);
-    renderDTMPreview(dtmRows, typology, mode);
+    dtmRows = Object.values(priorRows);
+    exportDTM(dtmRows, typologyWithIds, mode, false);
+    renderDTMPreview(dtmRows, typologyWithIds, mode);
     return;
   }
 
-  // Extract text for pending documents
+  // Extract text for pending documents — client-side pdf.js extraction
+  // stays here (CL31 standing exception); only the coding itself moves
+  // server-side below.
   for (let i = 0; i < pending.length; i++) {
     if (pending[i].text === null) {
       try {
@@ -464,60 +489,174 @@ async function runCoding() {
     }
   }
 
-  // Process pending documents in batches
-  let batchCount = 0;
+  // Build the request corpus. Vision-mode payload is populated only where
+  // pdf.js's own extraction-quality judgement (isExtractionPoor) says the
+  // extracted text is too poor to code from — that judgement stays
+  // client-side (schemas.py's own ruling); the workflow just trusts
+  // pdf_base64 being populated rather than re-deriving it.
+  const documents = [];
   for (let i = 0; i < pending.length; i++) {
-    const doc = pending[i];
-    addProgressItem(i, doc.id, doc.name, 'processing', '…');
-
-    try {
-      const isPoor   = isExtractionPoor(doc.text, visionThreshold);
-      const useVision = isPoor && doc.file && doc.name.toLowerCase().endsWith('.pdf');
-      let result;
-
-      if (useVision) {
-        updateProgressItem(i, 'processing', 'poor extraction — switching to vision…');
-        result = await codeDocumentVision(doc, mode, i + 1, pending.length);
-      } else {
-        result = await codeDocument(doc, mode, i + 1, pending.length);
-      }
-
-      const importantCount = Object.values(result.scores).filter(s => s >= 2).length;
-      dtmRows.push({
-        docId: doc.id, docName: doc.name,
-        scores: result.scores, lowConf: result.lowConf || [],
-        method: useVision ? 'vision' : 'text'
-      });
-      updateProgressItem(i, useVision ? 'vision' : 'done',
-        `${importantCount} important${useVision ? ' [vision]' : ''}`);
-    } catch (err) {
-      dtmRows.push({ docId: doc.id, docName: doc.name, scores: {}, lowConf: [], error: err.message });
-      updateProgressItem(i, 'error', err.message.substring(0, 40));
+    const doc       = pending[i];
+    const isPoor    = isExtractionPoor(doc.text, visionThreshold);
+    const useVision = isPoor && doc.file && doc.name.toLowerCase().endsWith('.pdf');
+    if (!document.getElementById(`pdoc-${i}`)) {
+      addProgressItem(i, doc.id, doc.name, 'processing', useVision ? 'poor extraction — sending as PDF for vision coding…' : 'queued');
     }
-
-    setProgress(i + 1, pending.length);
-    batchCount++;
-
-    // Batch checkpoint
-    if (batchCount % batchSize === 0 && i + 1 < pending.length) {
-      addBatchDivider(dtmRows.length, batchSize);
-      exportDTM(dtmRows, typology, mode, true);
-      flashCheckpoint();
-      await sleep(400);
-    }
+    documents.push({
+      doc_id: doc.id,
+      title: doc.name,
+      text: doc.text || '',
+      meta: {},
+      pdf_base64: useVision ? await pdfToBase64(doc.file) : null,
+    });
   }
 
-  isRunning = false;
-  checkReady();
-  document.getElementById('progress-bar').classList.add('done');
+  const corpus = {
+    corpus_id: `sanzognie-${Date.now()}`,
+    documents,
+  };
+  const params = {
+    typology: {
+      schema_version: '0.1',
+      concepts: typologyWithIds.map(c => ({
+        concept_id: c.concept_id,
+        term: c.term,
+        definition: c.definition || '',
+      })),
+    },
+    mode,
+    existing_dtm: existingDtm.length ? existingDtm : null,
+  };
 
-  // Final export and display
-  exportDTM(dtmRows, typology, mode, true);
-  flashCheckpoint();
-  renderDTMPreview(dtmRows, typology, mode);
+  try {
+    const created = await callAppAPI('sanzognie', 'phase3/code-documents', { corpus, params });
+    const dtm = await pollTask('sanzognie', created.task_id, {
+      onProgress: (progress) => updateCodingProgressFromTask(progress, pending),
+    });
+
+    dtmRows = reconstructDtmRows(dtm, typologyWithIds);
+
+    pending.forEach((doc, i) => {
+      const row = dtmRows.find(r => r.docId === doc.id);
+      if (row && !row.error) {
+        const importantCount = Object.values(row.scores).filter(s => s >= 2).length;
+        updateProgressItem(i, row.method === 'vision' ? 'vision' : 'done',
+          `${importantCount} important${row.method === 'vision' ? ' [vision]' : ''}`);
+      } else {
+        updateProgressItem(i, 'error', 'coding failed — see excluded_documents in DTM provenance');
+      }
+    });
+
+    isRunning = false;
+    checkReady();
+    document.getElementById('progress-bar').classList.add('done');
+    setProgress(pending.length, pending.length);
+
+    exportDTM(dtmRows, typologyWithIds, mode, true);
+    flashCheckpoint();
+    renderDTMPreview(dtmRows, typologyWithIds, mode);
+  } catch (err) {
+    showError(`Error during document coding: ${err.message}`);
+    isRunning = false;
+    checkReady();
+    document.getElementById('progress-bar').classList.add('done');
+  }
+}
+
+// ── Resume: convert priorRows (term-keyed, from a checkpoint CSV) into the
+// concept_id-keyed rows the backend's existing_dtm expects. Best-effort —
+// a term present in the checkpoint but no longer in the current typology
+// is dropped with a console.warn rather than failing the run, since a
+// researcher may have legitimately revised the typology since that
+// checkpoint was made.
+function buildExistingDtmRows(priorRowsMap, typologyWithIds) {
+  const termToId = {};
+  typologyWithIds.forEach(c => { termToId[c.term] = c.concept_id; });
+
+  const droppedTerms = new Set();
+  const rows = Object.values(priorRowsMap).map(r => {
+    const scores = {};
+    Object.entries(r.scores || {}).forEach(([term, val]) => {
+      const id = termToId[term];
+      if (id === undefined) { droppedTerms.add(term); return; }
+      scores[String(id)] = { value: val, low_confidence: (r.lowConf || []).includes(term) };
+    });
+    return {
+      doc_id: r.docId,
+      extraction_method: (r.method === 'vision' ? 'vision' : 'text'),
+      scores,
+    };
+  });
+
+  if (droppedTerms.size) {
+    console.warn(`buildExistingDtmRows: checkpoint scores for ${[...droppedTerms].join(', ')} were dropped — not present in the current typology.`);
+  }
+  return rows;
+}
+
+// ── Reconstruct sanzognie's own term-keyed dtmRows shape from the
+// concept_id-keyed DTMArtefact the backend returns, so the existing
+// exportDTM()/renderDTMPreview() display code (written for the old
+// client-side flow) needs no further changes.
+function reconstructDtmRows(dtm, typologyWithIds) {
+  const idToTerm = {};
+  typologyWithIds.forEach(c => { idToTerm[String(c.concept_id)] = c.term; });
+
+  const rows = (dtm.rows || []).map(r => {
+    const scores = {};
+    const lowConf = [];
+    Object.entries(r.scores || {}).forEach(([id, s]) => {
+      const term = idToTerm[id];
+      if (!term) return;
+      scores[term] = s.value;
+      if (s.low_confidence) lowConf.push(term);
+    });
+    const known = corpusDocs.find(d => d.id === r.doc_id);
+    const priorMatch = Object.values(priorRows).find(pr => pr.docId === r.doc_id);
+    const docName = known ? known.name : (priorMatch ? priorMatch.docName : r.doc_id);
+    return { docId: r.doc_id, docName, scores, lowConf, method: r.extraction_method };
+  });
+
+  const excludedIds = (dtm.provenance && dtm.provenance.excluded_documents) || [];
+  excludedIds.forEach(docId => {
+    if (rows.some(r => r.docId === docId)) return;
+    const known = corpusDocs.find(d => d.id === docId);
+    rows.push({ docId, docName: known ? known.name : docId, scores: {}, lowConf: [], error: 'coding failed' });
+  });
+
+  return rows;
+}
+
+// ── Progress: the task only reports counts (items_done/items_failed/
+// failed_items), not per-document detail — mark items sequentially as the
+// count advances, matching the order documents were submitted in. Final
+// per-document status (vision vs. text, important-concept counts) is
+// filled in from the real result once the task completes, above.
+function updateCodingProgressFromTask(progress, pendingDocs) {
+  if (!progress) return;
+  const doneCount = (progress.items_done || 0) + (progress.items_failed || 0);
+  setProgress(doneCount, pendingDocs.length);
+
+  const failedIds = new Set((progress.failed_items || []).map(f => f.ref));
+  for (let i = 0; i < doneCount && i < pendingDocs.length; i++) {
+    const doc = pendingDocs[i];
+    if (failedIds.has(doc.id)) {
+      const failure = progress.failed_items.find(f => f.ref === doc.id);
+      updateProgressItem(i, 'error', (failure && failure.error && failure.error.detail) || 'coding failed');
+    } else {
+      updateProgressItem(i, 'done', '…');
+    }
+  }
 }
 
 // ── Document coding prompt ────────────────────────────────────────────
+// SUPERSEDED (13 Jul 2026 wiring pass): runCoding() now calls
+// /phase3/code-documents via callAppAPI/pollTask — apps/sanzognie/
+// workflows/code_documents.py is a byte-for-byte port of codeDocument()/
+// codeDocumentVision() below. Left in place, unused, pending Hosting's
+// live confirmation against api-local (Development has no way to execute
+// this page's JS to verify directly) — remove once that confirmation
+// lands, per dev_handoff_processing_separation_wiring_v0_1.md §1 item 3.
 async function codeDocument(doc, mode, docNum, total) {
   const typologyText = typology.map(c => `- ${c.term}: ${c.definition}`).join('\n');
 
@@ -605,6 +744,16 @@ function exportDTM(rows, concepts, mode, isCheckpoint = false) {
     `# Proceed to Phase 3.2 to set thresholds and binarise this matrix.`,
     `#`
   ];
+
+  // Concept_IDs comment line — one ID per concept column below, in the same
+  // order, so corres's Phase 4 upload can key scores by concept_id (the
+  // backend's required identifier) instead of re-matching by term text.
+  const { items: idConcepts, idsAreSynthetic } = assignConceptIds(concepts);
+  if (idsAreSynthetic) {
+    console.warn('exportDTM: one or more concepts had no concept_id — synthetic IDs assigned.');
+  }
+  lines.push(`# Concept_IDs: ${idConcepts.map(c => c.concept_id).join(',')}`);
+  lines.push('#');
 
   // Header row
   const header = ['Doc_ID', 'Full_Filename', 'Extraction_Method', ...concepts.map(c => csvCell(c.term))];
@@ -797,6 +946,7 @@ async function pdfToBase64(file) {
 // ── Vision-based document coding ─────────────────────────────────────
 // Sends the PDF directly to the API as a base64-encoded document.
 // Claude reads the PDF visually rather than from extracted text.
+// SUPERSEDED — see codeDocument()'s note above; same disposition.
 async function codeDocumentVision(doc, mode, docNum, total) {
   const typologyText = typology.map(c => `- ${c.term}: ${c.definition}`).join('\n');
   const isRating     = mode === 'rating';

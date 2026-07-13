@@ -145,6 +145,7 @@ function parseTypologyCSV(text) {
     if (!headerFound) {
       const lower = cells.map(c => c.toLowerCase().trim());
       if (lower.includes('term')) {
+        colMap.concept_id  = lower.indexOf('concept_id');
         colMap.term        = lower.indexOf('term');
         // Accept both old "definition" and new "definition: including synonyms"
         colMap.definition  = lower.findIndex(c => c.startsWith('definition'));
@@ -163,6 +164,7 @@ function parseTypologyCSV(text) {
     if (!term) continue;
 
     concepts.push({
+      concept_id:     (colMap.concept_id >= 0 ? (cells[colMap.concept_id] || '').trim() : ''),
       term,
       definition:     (cells[colMap.definition]  || '').trim(),
       ambiguous:      (cells[colMap.ambiguous]   || '').trim().toUpperCase() === 'YES',

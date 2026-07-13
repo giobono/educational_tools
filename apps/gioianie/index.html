@@ -217,6 +217,16 @@ function setPipeDone(i) {
 // ── Main run ────────────────────────────────────────────────────────
 document.getElementById('run-btn').addEventListener('click', runPhase1);
 
+// Server-side wiring (processing separation, PSI v0.5 §3 step 3/4): the
+// per-document extraction and consolidation prompts now run in
+// apps/gioianie/workflows/consolidate.py via POST /phase1/consolidate,
+// not in this browser session. pdf.js text extraction itself stays
+// client-side (CL31 standing exception) — everything downstream of it
+// (open coding, consolidation, concept-ID assignment) goes over the API.
+// extractTermsFromDoc/consolidateTerms/repairJSON below are the
+// superseded originals, left in place pending Hosting's live
+// confirmation of this wiring against api-local (dev trace note, 13 Jul) —
+// not called from here any more.
 async function runPhase1() {
   clearError();
   allTerms = [];
@@ -226,36 +236,69 @@ async function runPhase1() {
   buildPipeline(activeDocs.map(d => d.name));
 
   document.getElementById('run-btn').disabled = true;
-  const termsByDoc = [];
 
-  // ── Sequential per-document extraction ──
-  for (let i = 0; i < activeDocs.length; i++) {
-    setPipeActive(i);
-
-    try {
-      const terms = await extractTermsFromDoc(activeDocs[i], i + 1, activeDocs.length);
-      termsByDoc.push({ docName: activeDocs[i].name, terms });
-      setPipeDone(i);
-    } catch (err) {
-      showError(`Error processing document ${i+1} (${activeDocs[i].name}): ${err.message}`);
-      document.getElementById('run-btn').disabled = false;
-      return;
-    }
-  }
-
-  // ── Consolidation pass ──
-  const consolidateIdx = activeDocs.length;
-  setPipeActive(consolidateIdx);
+  // doc_id is a synthetic, order-based identifier — CorpusIn only requires
+  // uniqueness, and filenames aren't guaranteed unique across slots (two
+  // slots could hold same-named files). docIdToName maps back to what the
+  // researcher actually uploaded, for display purposes (e.g. excluded_documents).
+  const docIdToName = {};
+  const corpus = {
+    corpus_id: `gioianie-${Date.now()}`,
+    documents: activeDocs.map((doc, i) => {
+      const docId = `doc-${i + 1}`;
+      docIdToName[docId] = doc.name;
+      return { doc_id: docId, title: doc.name, text: doc.text, meta: {} };
+    }),
+  };
+  // salience_scale/coding_rounds_max are accepted by ConsolidateParams but
+  // not yet read by the workflow (apps/gioianie/workflows/consolidate.py's
+  // own docstring flags coding_rounds_max as unaddressed; coding_rounds is
+  // hardcoded to 1 regardless). Values here are honest placeholders, not
+  // load-bearing — salience_scale matches the DTM rating-scale convention
+  // used elsewhere for consistency, coding_rounds_max reflects what
+  // actually happens rather than implying a knob that does nothing yet.
+  const params = {
+    salience_scale: [0, 3],
+    coding_rounds_max: 1,
+  };
 
   try {
-    allTerms = await consolidateTerms(termsByDoc);
-    setPipeDone(consolidateIdx);
-    showResults(allTerms);
+    const created = await callAppAPI('gioianie', 'phase1/consolidate', { corpus, params });
+    const typology = await pollTask('gioianie', created.task_id, {
+      onProgress: (progress) => updatePipelineFromProgress(progress, activeDocs.length),
+    });
+
+    activeDocs.forEach((_, i) => setPipeDone(i));
+    setPipeDone(activeDocs.length);
+
+    allTerms = typology.concepts;
+    const excludedIds = (typology.provenance && typology.provenance.excluded_documents) || [];
+    const excludedNames = excludedIds.map(id => docIdToName[id] || id);
+    showResults(allTerms, excludedNames);
   } catch (err) {
-    showError(`Error during consolidation: ${err.message}`);
+    showError(`Error during Phase 1 processing: ${err.message}`);
   }
 
   document.getElementById('run-btn').disabled = false;
+}
+
+// Maps ConsolidateProgress (apps/gioianie/schemas.py) onto the existing
+// per-document pipeline dots. phase "coding": items_done dots complete,
+// the next one active. phase "consolidating": all doc dots complete, the
+// consolidate dot active. setPipeActive/setPipeDone are idempotent
+// (classList.add), safe to call repeatedly across polls.
+function updatePipelineFromProgress(progress, totalDocs) {
+  if (!progress || !progress.phase) return;
+  if (progress.phase === 'coding') {
+    const done = progress.items_done || 0;
+    for (let i = 0; i < totalDocs; i++) {
+      if (i < done) setPipeDone(i);
+      else if (i === done) setPipeActive(i);
+    }
+  } else if (progress.phase === 'consolidating') {
+    for (let i = 0; i < totalDocs; i++) setPipeDone(i);
+    setPipeActive(totalDocs);
+  }
 }
 
 
@@ -395,7 +438,7 @@ Return ONLY a valid JSON array:
 
 
 // ── Results display ─────────────────────────────────────────────────
-function showResults(terms) {
+function showResults(terms, excludedDocuments) {
   const total  = terms.length;
   const ambig  = terms.filter(t => t.ambiguous).length;
 
@@ -408,6 +451,18 @@ function showResults(terms) {
   renderTable();
 
   document.getElementById('export-btn').onclick = () => exportCSV(terms);
+
+  // Per-document extraction failures don't fail the whole task (the
+  // workflow continues with whatever documents succeeded — see
+  // apps/gioianie/workflows/consolidate.py) — surface which were
+  // excluded rather than silently dropping them from view.
+  if (excludedDocuments && excludedDocuments.length > 0) {
+    showError(
+      `Note: ${excludedDocuments.length} document${excludedDocuments.length > 1 ? 's' : ''} ` +
+      `could not be processed and ${excludedDocuments.length > 1 ? 'were' : 'was'} excluded from ` +
+      `this result: ${excludedDocuments.join(', ')}. The term list above reflects the remaining documents.`
+    );
+  }
 }
 
 function setFilter(f) {
@@ -510,11 +565,22 @@ function exportCSV(terms) {
     '# Save this file as CSV and upload it to begin Phase 2.',
     '# ─────────────────────────────────────────────────────────────────────────────',
     '',
-    '"Term","Definition: including synonyms","Ambiguous","Ambiguity_Note","Neutral,directional","Source_Documents","Data_Type"'
+    '"Concept_ID","Term","Definition: including synonyms","Ambiguous","Ambiguity_Note","Neutral,directional","Source_Documents","Data_Type"'
   ];
 
-  terms.forEach(t => {
+  // Concept_ID round-trips the backend's required identifier (minimum
+  // column set per concept_schema_note_v0_1.md) through the CSV handoff to
+  // sanzognie/corres. Real IDs come from the Phase 1 API response; a
+  // synthetic sequential fallback covers terms added by hand in the CSV
+  // review step, which won't carry one.
+  const { items: idTerms, idsAreSynthetic } = assignConceptIds(terms);
+  if (idsAreSynthetic) {
+    console.warn('exportCSV: one or more terms had no concept_id — synthetic IDs assigned.');
+  }
+
+  idTerms.forEach(t => {
     const row = [
+      csvCell(t.concept_id),
       csvCell(t.term),
       csvCell(t.definition || ''),
       t.ambiguous ? 'YES' : 'NO',
@@ -536,31 +602,6 @@ function exportCSV(terms) {
   URL.revokeObjectURL(url);
 }
 
-function csvCell(val) {
-  const s = String(val || '');
-  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
-    return '"' + s.replace(/"/g, '""') + '"';
-  }
-  return s;
-}
-
-// ── Error ───────────────────────────────────────────────────────────
-function showError(msg) {
-  document.getElementById('error-display').innerHTML =
-    `<div class="error-box"><strong>Error</strong>${escHtml(msg)}</div>`;
-}
-
-function clearError() {
-  document.getElementById('error-display').innerHTML = '';
-}
-
-function escHtml(str) {
-  return String(str || '')
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;');
-}
   document.addEventListener('DOMContentLoaded', async () => {
     await loadFragment('edu-header', '/edu_header.html');
     markActiveNav();

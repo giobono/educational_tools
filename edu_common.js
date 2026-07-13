@@ -16,7 +16,8 @@
  *                                     disappears when platform parsing ships
  *
  * Globals introduced by this file (intentional, used by page scripts):
- *   CR_MODEL, callAPI, readFile, csvCell, downloadBlob, today, formatBytes,
+ *   CR_MODEL, callAPI, pollTask, friendlyTaskError, readFile, sanitiseText,
+ *   csvCell, downloadBlob, today, assignConceptIds, formatBytes,
  *   escHtml, showError, clearError
  *
  * Globals expected to exist before this script runs:
@@ -136,12 +137,19 @@ async function callAppAPI(appId, path, body) {
 
   const requestId = (crypto.randomUUID && crypto.randomUUID()) ||
                     (Date.now() + '-' + Math.random().toString(36).slice(2));
+  // One idempotency key per call, matching the platform's
+  // UNIQUE(tenant_id, app_id, idempotency_key) task-creation contract —
+  // protects against a double-submit (e.g. a stray double-click before
+  // the button disables) creating two tasks for the same logical request.
+  const idempotencyKey = (crypto.randomUUID && crypto.randomUUID()) ||
+                          (Date.now() + '-' + Math.random().toString(36).slice(2));
 
   const res = await fetch(`${cfg.apiBase}/v1/${appId}/${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-Request-Id': requestId,
+      'Idempotency-Key': idempotencyKey,
     },
     body: JSON.stringify(body),
   });
@@ -153,20 +161,68 @@ async function callAppAPI(appId, path, body) {
   return res.json();
 }
 
+// §A — Task polling
+//
+// Every task/workflow endpoint (POST returns 202 + task_id) follows the
+// same completion shape: GET /v1/<appId>/tasks/<taskId> until state is
+// terminal. One implementation, shared across gioianie/sanzognie/corres,
+// rather than each page re-deriving its own poll loop — the same
+// single-sourcing reasoning as callAPI/callAppAPI, applied before the
+// duplication has a chance to happen this time.
+//
+// @param {string} appId
+// @param {string} taskId
+// @param {Object} [opts]
+// @param {(progress: any) => void} [opts.onProgress] called with the
+//        task's progress object on every poll (app-defined shape, §6.2.4)
+// @param {number} [opts.intervalMs=1000]
+// @returns {Promise<any>} the task's result on success
+// @throws {Error} with .code set, via friendlyTaskError() for the message,
+//         on failure or cancellation
+window.pollTask = async function pollTask(appId, taskId, opts = {}) {
+  const cfg = window.CORRES_CONFIG;
+  if (!cfg || !cfg.apiBase) {
+    throw new Error('CORRES_CONFIG not loaded — check config.js is deployed');
+  }
+  const intervalMs = opts.intervalMs || 1000;
+
+  while (true) {
+    const res = await fetch(`${cfg.apiBase}/v1/${appId}/tasks/${taskId}`);
+    if (!res.ok) {
+      throw await _crParseApiError(res);
+    }
+    const task = await res.json();
+
+    if (opts.onProgress) opts.onProgress(task.progress);
+
+    if (task.state === 'succeeded') return task.result;
+
+    if (task.state === 'failed') {
+      const error = new Error(window.friendlyTaskError(task.error));
+      error.code = task.error && task.error.code;
+      throw error;
+    }
+
+    if (task.state === 'cancelled') {
+      const error = new Error('Processing was cancelled.');
+      error.code = 'cancelled';
+      throw error;
+    }
+
+    await new Promise(resolve => setTimeout(resolve, intervalMs));
+  }
+};
+
 // §A — Task-polling error translation
 //
 // The task/workflow endpoints (POST returns 202 + task_id; caller polls
 // GET .../tasks/{id} until state is terminal) surface SpendCeilingReached /
 // RateLimitExceeded inside the polled body's `error.code`/`error.message`
 // once state === "failed" — never as an HTTP status on the POST itself,
-// since the POST already returned before the workflow ran. Callers that
-// poll should pass the task's `error` object here before calling
-// showError(), so a spend-ceiling or rate-limit failure reads the same
-// graceful way regardless of which path (direct endpoint vs task polling)
-// produced it. Not yet wired into any page — no page polls a task endpoint
-// yet (the front end still calls callAPI/callAppAPI directly per Stage 3's
-// current state) — provided now so the single-sourcing is in place before
-// that wiring lands, rather than duplicated per page when it does.
+// since the POST already returned before the workflow ran. pollTask()
+// (below) calls this directly when translating a failed task into the
+// Error it throws, so every caller gets the same graceful text
+// regardless of which path (direct endpoint vs task polling) produced it.
 window.friendlyTaskError = function friendlyTaskError(taskError) {
   if (!taskError) return 'An unknown error occurred.';
   return CR_FRIENDLY_ERROR_MESSAGES[taskError.code] || taskError.detail || taskError.message || 'An unknown error occurred.';
@@ -287,6 +343,50 @@ window.downloadBlob = function downloadBlob(filename, content, type = 'text/csv'
 /** ISO date stamp for filenames: YYYY-MM-DD. */
 window.today = function today() {
   return new Date().toISOString().slice(0, 10);
+};
+
+/**
+ * Assign concept_id to a list of typology items ({term, ...}), the minimum
+ * column set the backend's TypologyArtefact/Concept schema requires
+ * (concept_schema_note_v0_1.md — {concept_id, term, data_type}). The
+ * CSV-based typology handoff between gioianie → sanzognie → corres predates
+ * that requirement and carries no ID column of its own, so this is the
+ * single place that closes the gap: keep each item's real .concept_id where
+ * present (e.g. read from a CSV's Concept_ID column by the caller), and
+ * assign a synthetic ID only to items that lack one.
+ *
+ * Deliberately per-item rather than all-or-nothing: gioianie Phase 2's own
+ * "export new concept candidates" CSV (see exportNewConcepts in
+ * gioianie_iterate.html) tells researchers to hand-append new rows to an
+ * existing, already-ID'd typology CSV. Those appended rows have no
+ * Concept_ID. An all-or-nothing rule would treat that one missing value as
+ * license to renumber the whole typology, silently discarding the real
+ * backend-assigned IDs that any already-scored DTM data is keyed to.
+ * Synthetic IDs are chosen above the highest real ID seen (or from 1, if
+ * none) so they can never collide with a real one.
+ *
+ * @param {Array<Object>} items Typology items, each with at least .term
+ * @returns {{items: Array<Object>, idsAreSynthetic: boolean}}
+ *          items are shallow copies with .concept_id set (int); idsAreSynthetic
+ *          is true if any item lacked a real ID and had one assigned —
+ *          callers should console.warn on this so a partial re-numbering
+ *          doesn't go unnoticed.
+ */
+window.assignConceptIds = function assignConceptIds(items) {
+  const hasReal = it => it.concept_id !== undefined && it.concept_id !== null && it.concept_id !== '';
+  const realIds = items.filter(hasReal).map(it => parseInt(it.concept_id, 10));
+  let nextSynthetic = (realIds.length ? Math.max(...realIds) : 0) + 1;
+  let idsAreSynthetic = false;
+
+  const out = items.map(it => {
+    if (hasReal(it)) {
+      return { ...it, concept_id: parseInt(it.concept_id, 10) };
+    }
+    idsAreSynthetic = true;
+    return { ...it, concept_id: nextSynthetic++ };
+  });
+
+  return { items: out, idsAreSynthetic };
 };
 
 
