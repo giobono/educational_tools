@@ -218,15 +218,15 @@ function setPipeDone(i) {
 document.getElementById('run-btn').addEventListener('click', runPhase1);
 
 // Server-side wiring (processing separation, PSI v0.5 §3 step 3/4): the
-// per-document extraction and consolidation prompts now run in
+// per-document extraction and consolidation prompts run in
 // apps/gioianie/workflows/consolidate.py via POST /phase1/consolidate,
 // not in this browser session. pdf.js text extraction itself stays
 // client-side (CL31 standing exception) — everything downstream of it
 // (open coding, consolidation, concept-ID assignment) goes over the API.
-// extractTermsFromDoc/consolidateTerms/repairJSON below are the
-// superseded originals, left in place pending Hosting's live
-// confirmation of this wiring against api-local (dev trace note, 13 Jul) —
-// not called from here any more.
+// The client-side originals (extractTermsFromDoc/consolidateTerms/
+// repairJSON) were removed 14 Jul 2026 after Hosting's live confirmation
+// of this wiring against api-local (item 6 re-run — see
+// processing_separation_acceptance_test_evidence_v0_2.md).
 async function runPhase1() {
   clearError();
   allTerms = [];
@@ -300,141 +300,6 @@ function updatePipelineFromProgress(progress, totalDocs) {
     setPipeActive(totalDocs);
   }
 }
-
-
-// ── Per-document extraction prompt ──────────────────────────────────
-async function extractTermsFromDoc(doc, docNum, totalDocs) {
-  const system = `You are a research assistant applying the Correlating Resonance methodology for frame analysis in contested policy spaces.
-
-Your task is to perform open coding on a single document — extracting candidate concepts as a flat, non-hierarchical list. This is document ${docNum} of ${totalDocs} and is processed in complete isolation. You have no knowledge of what other documents contain.
-
-OPEN CODING RULES:
-1. Extract every substantive concept present in the document — do not filter for relevance at this stage. Include it if it is present.
-2. Write a neutral definition for each term as a coding rule — describe what to look for when coding, not what the concept means theoretically. The definition must be neutral: it should not presuppose how the concept is being used (positively, negatively, as a barrier, as a goal, etc.).
-3. Do NOT organise terms into categories or hierarchies. The list must be flat.
-4. Flag any term that appears to carry multiple possible meanings or roles in this document — for example, a term that appears both as a goal and as a barrier, or that could mean different things in different contexts. Set ambiguous to true and write a brief ambiguity note.
-5. Be inclusive rather than exclusive. Near-duplicates are acceptable at this stage — consolidation happens later.
-6. Exclude proper nouns (names of specific people, organisations, or places) unless they represent a category of actor that is analytically significant.
-
-CRITICAL JSON RULE: Do not use double quote characters (") within any string value. Use single quotes or rephrase to avoid them entirely. Unescaped double quotes inside strings will break the JSON.
-
-Return ONLY a valid JSON array — no preamble, no explanation, no markdown fences:
-[
-  {
-    "term": "term name in lowercase",
-    "definition": "neutral coding rule: include all references to X regardless of...",
-    "ambiguous": false,
-    "ambiguity_note": ""
-  }
-]`;
-
-  const safeText = sanitiseText(doc.text);
-
-  const user = `DOCUMENT: ${doc.name}
-
-${safeText}
-
-Extract all candidate concepts from this document as a flat JSON array. Every string value in the JSON must use only plain straight double quotes. Do not use smart quotes, apostrophes inside values, or any special punctuation that would break JSON parsing.`;
-
-  // First attempt — 4096 tokens to avoid truncation
-  let response = await callAPI(system, user, 4096);
-  try {
-    return repairJSON(response);
-  } catch (_) {}
-
-  // Retry with explicit JSON-safety warning and shorter document
-  console.warn(`JSON parse failed for doc ${docNum}, retrying with stricter prompt and shorter text…`);
-  const shorterUser = `DOCUMENT: ${doc.name}
-
-${sanitiseText(doc.text.substring(0, 6000))}
-
-Extract all candidate concepts from this document as a flat JSON array. Every string value must use only plain straight double quotes. Do not use apostrophes or special punctuation inside JSON string values — rephrase to avoid them. Aim for concise definitions (under 20 words each). Return no more than 40 terms.`;
-
-  response = await callAPI(system, shorterUser, 4096);
-  return repairJSON(response);
-}
-
-function repairJSON(raw) {
-  // Strategy 1: fix string-internal control chars, then parse
-  const clean = fixJSONStrings(raw.replace(/```json|```/g, '').trim());
-  try { return JSON.parse(clean); } catch (_) {}
-
-  // Strategy 2: extract outermost array
-  const start = clean.indexOf('[');
-  const end   = clean.lastIndexOf(']');
-  if (start !== -1 && end !== -1 && end > start) {
-    try { return JSON.parse(clean.slice(start, end + 1)); } catch (_) {}
-  }
-
-  // Strategy 3: response truncated mid-stream — try closing the array
-  // Find the last complete object (ends with }) and close the array there
-  const lastBrace = clean.lastIndexOf('}');
-  if (lastBrace !== -1 && start !== -1) {
-    const truncationFix = clean.slice(start, lastBrace + 1) + ']';
-    try {
-      const result = JSON.parse(truncationFix);
-      console.warn(`JSON repair recovered truncated response: ${result.length} objects`);
-      return result;
-    } catch (_) {}
-  }
-
-  // Strategy 4: extract individual complete objects
-  const objects = [];
-  const objRe = /\{[^{}]*\}/g;
-  let match;
-  while ((match = objRe.exec(clean)) !== null) {
-    try {
-      const obj = JSON.parse(match[0]);
-      if (obj.term) objects.push(obj);
-    } catch (_) {}
-  }
-  if (objects.length > 0) {
-    console.warn(`JSON repair recovered ${objects.length} objects via object extraction`);
-    return objects;
-  }
-
-  throw new Error('Could not parse or repair JSON response from API');
-}
-
-// ── Consolidation prompt ─────────────────────────────────────────────
-async function consolidateTerms(termsByDoc) {
-  const system = `You are a research assistant applying the Correlating Resonance methodology.
-
-You have received candidate term lists extracted independently from ${termsByDoc.length} documents. Your task is to consolidate these into a single unified candidate term list.
-
-CONSOLIDATION RULES:
-1. Merge clear duplicates — terms that refer to the same concept under different labels. Use the most precise or neutral label.
-2. Retain near-duplicates as separate entries if there is any analytical doubt about whether they are the same concept. Flag them as ambiguous with a note explaining the potential overlap.
-3. Do NOT delete terms because they appear in only one document — all terms are candidates at this stage.
-4. Write a single neutral definition for each consolidated term, synthesising across the source definitions.
-5. If a term was flagged as ambiguous in any source document, carry that flag forward. Add or synthesise the ambiguity note.
-6. Record which source documents each term appeared in using the document names provided.
-7. The output must remain flat and non-hierarchical.
-8. Exclude proper nouns unless analytically significant as a category.
-
-CRITICAL JSON RULE: Do not use double quote characters (") within any string value. Use single quotes or rephrase to avoid them entirely.
-
-Return ONLY a valid JSON array:
-[
-  {
-    "term": "term name in lowercase",
-    "definition": "neutral coding rule",
-    "ambiguous": false,
-    "ambiguity_note": "",
-    "source_docs": ["doc1.pdf", "doc2.txt"]
-  }
-]`;
-
-  const docSummaries = termsByDoc.map(d =>
-    `SOURCE: ${d.docName}\n${JSON.stringify(d.terms, null, 2)}`
-  ).join('\n\n---\n\n');
-
-  const user = `Consolidate these term lists into a single unified candidate term list:\n\n${docSummaries}`;
-
-  const response = await callAPI(system, user, 4096);
-  return repairJSON(response);
-}
-
 
 
 // ── Results display ─────────────────────────────────────────────────

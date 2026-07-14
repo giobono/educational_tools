@@ -6,7 +6,6 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Correlating Resonance — Phase 4: Cluster Analysis</title>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&amp;family=JetBrains+Mono:wght@400;500&amp;family=Barlow:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
 <script src="config.js"></script>
 <script src="/edu_common.js"></script>
 <link href="/edu_common.css" rel="stylesheet"/>
@@ -150,30 +149,7 @@ let binaryMatrix  = null;  // [[0|1]] rows=docs, cols=concepts — live slider p
 let ttmData       = null;  // {concepts:[str], matrix:[[num]], sorted:[idx], totals:[num]} — reconstructed from serverTtm for the existing display code
 let clusterResult = null;  // {assignments:[int], n_clusters, explained_variance, concept_clusters} — reconstructed from serverTtm.clustering
 let serverTtm     = null;  // the actual TTMArtefact returned by /build, then re-submitted and re-assigned by /cluster and /name-frames in turn (chained, per api/ttm.py)
-let pyodideReady  = false;
-let pyodide       = null;
 let nClusters     = 4;
-
-// ── Load Pyodide ──────────────────────────────────────────────────────
-// SUPERSEDED (13 Jul 2026 wiring pass): clustering now runs server-side
-// (/v1/corres/ttm/cluster — apps/corres/workflows/cluster_concepts.py is a
-// byte-for-byte port of runMCA()'s Python snippet below). No longer called
-// automatically on page load — left in place, unused, pending Hosting's
-// live confirmation, same disposition as the other superseded functions
-// in gioianie/sanzognie's pages this session.
-async function initPyodide() {
-  try {
-    setStatus('loading', 'Loading Python environment…');
-    pyodide = await loadPyodide();
-    setStatus('loading', 'Installing analysis packages (numpy, scipy, scikit-learn)…');
-    await pyodide.loadPackage(['numpy', 'scipy', 'scikit-learn']);
-    pyodideReady = true;
-    setStatus('ready', 'Python environment ready — MCA via TruncatedSVD (scikit-learn)');
-    document.getElementById('py-spinner').style.display = 'none';
-  } catch (err) {
-    setStatus('error', 'Could not load Python environment: ' + err.message);
-  }
-}
 
 function setStatus(state, msg) {
   const el = document.getElementById('pyodide-status');
@@ -593,41 +569,6 @@ function reconstructTtmDataFromServer(ttm) {
   return { concepts: dtmData.concepts, matrix, sorted, totals };
 }
 
-// SUPERSEDED (13 Jul 2026 wiring pass): confirmBinarisation() now calls
-// buildTTMServer() above — apps/corres/workflows/build_ttm.py is a
-// byte-for-byte port of this function's co-occurrence computation. Left in
-// place, unused, pending Hosting's live confirmation.
-function buildTTM() {
-  const nConcepts = dtmData.concepts.length;
-  const nDocs     = binaryMatrix.length;
-
-  // Co-occurrence matrix
-  const matrix = Array.from({ length: nConcepts }, () => new Array(nConcepts).fill(0));
-  for (let d = 0; d < nDocs; d++) {
-    for (let i = 0; i < nConcepts; i++) {
-      if (!binaryMatrix[d][i]) continue;
-      for (let j = i; j < nConcepts; j++) {
-        if (!binaryMatrix[d][j]) continue;
-        matrix[i][j]++;
-        if (i !== j) matrix[j][i]++;
-      }
-    }
-  }
-
-  // Sort by total co-occurrence descending
-  const totals = matrix.map(row => row.reduce((a, b) => a + b, 0));
-  const sorted = totals
-    .map((t, i) => ({ i, t }))
-    .sort((a, b) => b.t - a.t)
-    .map(x => x.i);
-
-  ttmData = { concepts: dtmData.concepts, matrix, sorted, totals };
-
-  renderTTM();
-  markStepDone('42');
-  renderClusterControls();
-}
-
 function renderTTM() {
   const body    = document.getElementById('ttm-body');
   const actions = document.getElementById('ttm-actions');
@@ -783,98 +724,6 @@ async function runMCA() {
   }
 }
 
-// SUPERSEDED (13 Jul 2026 wiring pass): runMCA() above now calls
-// /v1/corres/ttm/cluster — apps/corres/workflows/cluster_concepts.py is a
-// byte-for-byte port of the Pyodide Python snippet that used to run here.
-// Left in place, unused, pending Hosting's live confirmation.
-async function runMCAViaPyodide() {
-  if (!pyodideReady) { showError('Python environment not ready yet — please wait'); return; }
-  clearError();
-  document.getElementById('run-mca-btn').disabled = true;
-  document.getElementById('mca-running').style.display = 'block';
-  document.getElementById('cluster-results').innerHTML = '';
-
-  try {
-    // Build binary indicator matrix from binaryMatrix (docs × concepts)
-    const binaryFlat   = binaryMatrix.flat();
-    const nDocs        = binaryMatrix.length;
-    const nConceptsN   = dtmData.concepts.length;
-
-    // Pass data to Python
-    pyodide.globals.set('binary_flat',   binaryFlat);
-    pyodide.globals.set('n_docs',        nDocs);
-    pyodide.globals.set('n_concepts',    nConceptsN);
-    pyodide.globals.set('n_clusters',    nClusters);
-
-    const result = await pyodide.runPythonAsync(`
-import numpy as np
-from sklearn.decomposition import TruncatedSVD
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import normalize
-import json
-
-# Reconstruct binary matrix
-X = np.array(binary_flat, dtype=float).reshape(n_docs, n_concepts)
-
-# Build indicator matrix for MCA (one-hot encoding of 0/1 values)
-# For binary data this is equivalent to [1-X, X] column-wise
-Z = np.hstack([1 - X, X])
-
-# Chi-square normalisation
-row_mass = Z.sum(axis=1, keepdims=True)
-col_mass = Z.sum(axis=0, keepdims=True)
-total    = Z.sum()
-row_mass = np.where(row_mass == 0, 1, row_mass)
-col_mass = np.where(col_mass == 0, 1, col_mass)
-Z_norm   = (Z / total) / np.sqrt((row_mass / total) * (col_mass / total))
-
-# TruncatedSVD for dimensionality reduction
-n_components = min(n_clusters + 2, min(Z_norm.shape) - 1)
-svd = TruncatedSVD(n_components=n_components, random_state=42)
-
-# We cluster the CONCEPT coordinates (lower half of Z)
-# Concept coordinates are the column coordinates in MCA
-Z_concept = Z_norm[:, n_concepts:]   # The "important=1" half
-coords = svd.fit_transform(Z_concept.T)   # shape: n_concepts × n_components
-
-# K-means clustering on concept coordinates
-kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=20)
-assignments = kmeans.fit_predict(coords).tolist()
-
-# Explained variance ratio
-explained = float(svd.explained_variance_ratio_.sum())
-
-# Cluster distances — inertia normalised
-inertia = float(kmeans.inertia_)
-
-json.dumps({
-    "assignments": assignments,
-    "explained_variance": round(explained, 4),
-    "inertia": round(inertia, 2),
-    "coords": coords.tolist()
-})
-`);
-
-    const parsed     = JSON.parse(result);
-    clusterResult    = {
-      assignments:        parsed.assignments,
-      n_clusters:         nClusters,
-      explained_variance: parsed.explained_variance,
-      inertia:            parsed.inertia,
-      coords:             parsed.coords
-    };
-
-    renderClusterResults();
-    markStepActive('43');
-
-  } catch (err) {
-    showError('MCA failed: ' + err.message);
-  } finally {
-    document.getElementById('run-mca-btn').disabled = false;
-    document.getElementById('mca-running').style.display = 'none';
-  }
-}
-
 function renderClusterResults() {
   const { assignments, explained_variance, inertia } = clusterResult;
   const concepts = dtmData.concepts;
@@ -1002,69 +851,6 @@ async function renderFrameNaming() {
     renderNamingInterface(clusters, null, repDocs);
     showError('Frame naming API call failed: ' + err.message + ' — you can still enter names manually below');
   }
-}
-
-// SUPERSEDED (13 Jul 2026 wiring pass): renderFrameNaming() above now
-// calls /v1/corres/ttm/name-frames — apps/corres/workflows/name_frames.py
-// is a byte-for-byte port of the prompt below. Left in place, unused,
-// pending Hosting's live confirmation.
-async function renderFrameNamingViaClientLLM() {
-  const { assignments } = clusterResult;
-  const concepts = dtmData.concepts;
-  const { totals } = ttmData;
-
-  const clusters = {};
-  assignments.forEach((c, i) => {
-    if (!clusters[c]) clusters[c] = [];
-    clusters[c].push({ concept: concepts[i], total: totals[i] });
-  });
-
-  const repDocs = findRepresentativeDocuments(clusters, assignments);
-
-  const clusterSummary = Object.entries(clusters)
-    .sort((a,b) => parseInt(a[0]) - parseInt(b[0]))
-    .map(([cId, items]) => {
-      const top = items.sort((a,b) => b.total - a.total).slice(0, 8);
-      return `Cluster ${parseInt(cId)+1}: ${top.map(x => x.concept).join(', ')}`;
-    }).join('\n');
-
-  try {
-    const response = await callAPI(
-      `You are a research assistant helping to name frames of reference identified through Correlating Resonance frame analysis — a methodology that identifies conceptual configurations underpinning conflicting positions in contested policy spaces.
-
-Each cluster represents a frame of reference: a configuration of concepts that co-occur across the documents in the corpus. Your task is to propose a concise working name for each frame based on the concepts it contains.
-
-NAMING RULES:
-- Names should be 2–5 words, descriptive, and analytically neutral
-- Names should capture what unifies the cluster's concepts, not just list them
-- Avoid value-laden framing — these are analytical labels, not judgements
-- Also provide a one-sentence description of what this frame of reference represents
-
-Return ONLY valid JSON — no preamble, no markdown:
-[
-  { "cluster": 1, "name": "proposed frame name", "description": "one sentence description" }
-]`,
-      `Here are the concept clusters identified in the corpus. Propose working names for each frame:\n\n${clusterSummary}`,
-      2048
-    );
-
-    const names = repairJSON(response);
-    renderNamingInterface(clusters, names, repDocs);
-
-  } catch (err) {
-    renderNamingInterface(clusters, null, repDocs);
-    showError('Frame naming API call failed: ' + err.message + ' — you can still enter names manually below');
-  }
-}
-
-function repairJSON(raw) {
-  const clean = fixJSONStrings(raw.replace(/```json|```/g, '').trim());
-  try { return JSON.parse(clean); } catch (_) {}
-  const s = clean.indexOf('['), e = clean.lastIndexOf(']');
-  if (s !== -1 && e !== -1 && e > s) { try { return JSON.parse(clean.slice(s, e+1)); } catch (_) {} }
-  const s2 = clean.indexOf('{'), e2 = clean.lastIndexOf('}');
-  if (s2 !== -1 && e2 !== -1 && e2 > s2) { try { return JSON.parse(clean.slice(s2, e2+1)); } catch (_) {} }
-  throw new Error('Could not parse JSON response');
 }
 
 function findRepresentativeDocuments(clusters, assignments) {
