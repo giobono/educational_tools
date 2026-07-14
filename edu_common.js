@@ -178,12 +178,29 @@ async function callAppAPI(appId, path, body) {
 // single-sourcing reasoning as callAPI/callAppAPI, applied before the
 // duplication has a chance to happen this time.
 //
+// Task routes normally live directly under /v1/<appId>/tasks/... (true
+// for gioianie and sanzognie). corres's are one level deeper —
+// /v1/corres/ttm/tasks/... — because its three task-creating endpoints
+// (build/cluster/name-frames) share one TTM-scoped router
+// (apps/corres/api/ttm.py declares its own full "/v1/corres/ttm" prefix
+// directly, rather than getting "/v1/corres" applied at mount time the
+// way gioianie/sanzognie's routers do) rather than living at the bare
+// app root. Pass opts.routeSegment ('ttm') when polling those. Found
+// live, 14 Jul 2026: callAppAPI's own `path` argument already threads
+// this extra segment through correctly for the create call
+// (callAppAPI('corres', 'ttm/build', ...)); pollTask had no equivalent,
+// so a corres task was created successfully (202) but its poll request
+// 404'd — the task existed server-side with no way for the front end to
+// ever retrieve it.
+//
 // @param {string} appId
 // @param {string} taskId
 // @param {Object} [opts]
 // @param {(progress: any) => void} [opts.onProgress] called with the
 //        task's progress object on every poll (app-defined shape, §6.2.4)
 // @param {number} [opts.intervalMs=1000]
+// @param {string} [opts.routeSegment] extra path segment between appId
+//        and "tasks", if this app's task routes aren't at the bare root
 // @returns {Promise<any>} the task's result on success
 // @throws {Error} with .code set, via friendlyTaskError() for the message,
 //         on failure or cancellation
@@ -193,9 +210,10 @@ window.pollTask = async function pollTask(appId, taskId, opts = {}) {
     throw new Error('CORRES_CONFIG not loaded — check config.js is deployed');
   }
   const intervalMs = opts.intervalMs || 1000;
+  const segment = opts.routeSegment ? `${opts.routeSegment}/` : '';
 
   while (true) {
-    const res = await fetch(`${cfg.apiBase}/v1/${appId}/tasks/${taskId}`);
+    const res = await fetch(`${cfg.apiBase}/v1/${appId}/${segment}tasks/${taskId}`);
     if (!res.ok) {
       throw await _crParseApiError(res);
     }

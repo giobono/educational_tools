@@ -557,7 +557,7 @@ async function buildTTMServer() {
 
   try {
     const created = await callAppAPI('corres', 'ttm/build', { dtm, params });
-    serverTtm = await pollTask('corres', created.task_id);
+    serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
 
     // Authoritative binarisation from the server replaces the interactive
     // slider preview now that the threshold is confirmed — everything
@@ -757,7 +757,7 @@ async function runMCA() {
       ttm: serverTtm,
       params: { n_clusters: nClusters },
     });
-    serverTtm = await pollTask('corres', created.task_id);
+    serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
 
     // clustering.assignments/coords are concept_id-keyed dicts — map back
     // to position-indexed arrays (dtmData.concepts/conceptIds order) for
@@ -994,7 +994,7 @@ async function renderFrameNaming() {
       ttm: serverTtm,
       params: { concept_terms: conceptTerms },
     });
-    serverTtm = await pollTask('corres', created.task_id);
+    serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
 
     renderNamingInterface(clusters, serverTtm.frames, repDocs);
 
