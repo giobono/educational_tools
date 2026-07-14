@@ -58,9 +58,17 @@ window.CR_MODEL = 'claude-sonnet-5';
 // the brief asks for. Codes not in this map fall through to the raw
 // technical detail unchanged (this only softens the two capacity-related
 // cases, not general error UX).
+//
+// response_truncated added 14 Jul 2026 (artie_platform.llm.errors.
+// ResponseTruncated / response_truncated_error()) — a live finding that a
+// model response cut off mid-generation could previously look like a
+// generic parse failure, or worse, silently produce an incomplete-but-
+// valid-looking result. Now raised loudly with its own code; this is the
+// researcher-facing translation of it.
 const CR_FRIENDLY_ERROR_MESSAGES = {
   service_at_capacity: 'The service is temporarily at capacity. Please try again in a few minutes.',
   rate_limit_exceeded: 'Too many requests right now — please wait a moment and try again.',
+  response_truncated: 'The response was too large to complete in one step. This usually means the corpus or document set is too large for the current limits — try a smaller batch, or flag this to the project team.',
 };
 
 // Shared response-error parsing for callAPI/callAppAPI — one implementation,
