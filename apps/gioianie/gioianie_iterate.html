@@ -347,6 +347,7 @@ function setPipeState(i, state) {
   step.className = `pipe-step ${state}`;
   if (state === 'done') step.querySelector('.pipe-dot').textContent = '✓';
   if (state === 'has-new') step.querySelector('.pipe-dot').textContent = '!';
+  if (state === 'error') step.querySelector('.pipe-dot').textContent = '✕';
 }
 
 
@@ -361,28 +362,95 @@ async function runPhase2() {
 
   const activeDocs = docSlots.filter(Boolean);
   buildPipeline(activeDocs);
+  activeDocs.forEach((_, i) => setPipeState(i, 'active'));
 
-  for (let i = 0; i < activeDocs.length; i++) {
-    setPipeState(i, 'active');
-    const slot = document.getElementById(`doc-slot-${i < docSlots.length ? docSlots.indexOf(activeDocs[i]) : i}`);
-
-    try {
-      const result = await codeDocumentAgainstTypology(activeDocs[i], i + 1, activeDocs.length);
-      allResults.push({ docName: activeDocs[i].name, ...result });
-      const hasNew = result.newConcepts && result.newConcepts.length > 0;
-      setPipeState(i, hasNew ? 'has-new' : 'done');
-    } catch (err) {
-      showError(`Error processing document ${i + 1} (${activeDocs[i].name}): ${err.message}`);
-      document.getElementById('run-btn').disabled = false;
-      return;
-    }
+  const { items: typologyWithIds, idsAreSynthetic } = assignConceptIds(typology);
+  if (idsAreSynthetic) {
+    console.warn('runPhase2: typology had no Concept_ID column — synthetic IDs assigned this run.');
   }
 
-  document.getElementById('run-btn').disabled = false;
-  showResults();
+  const docIdToName = {};
+  const corpus = {
+    corpus_id: `gioianie-iterate-${Date.now()}`,
+    documents: activeDocs.map((doc, i) => {
+      const docId = `doc-${i + 1}`;
+      docIdToName[docId] = doc.name;
+      return { doc_id: docId, title: doc.name, text: doc.text, meta: {} };
+    }),
+  };
+  const params = {
+    typology: {
+      schema_version: '0.1',
+      concepts: typologyWithIds.map(c => ({
+        concept_id: c.concept_id,
+        term: c.term,
+        definition: c.definition || '',
+      })),
+    },
+  };
+
+  try {
+    const created = await callAppAPI('gioianie', 'phase2/saturation-check', { corpus, params });
+    const artefact = await pollTask('gioianie', created.task_id, {
+      onProgress: (progress) => updateSaturationProgressFromTask(progress, activeDocs),
+    });
+
+    allResults = artefact.results.map(r => ({
+      docName: docIdToName[r.doc_id] || r.doc_id,
+      matchedConcepts: (r.matched_concepts || []).map(c => ({ concept: c.concept, score: c.score, label: c.label })),
+      newConcepts: (r.new_concepts || []).map(c => ({ term: c.term, definition: c.definition, rationale: c.rationale })),
+    }));
+
+    // Per-document failures don't fail the whole task (§5.4 isolation,
+    // apps/gioianie/workflows/saturation.py) — reflect that in the
+    // pipeline UI rather than silently dropping the excluded document.
+    const excludedIds = new Set((artefact.provenance && artefact.provenance.excluded_documents) || []);
+    activeDocs.forEach((doc, i) => {
+      const docId = `doc-${i + 1}`;
+      if (excludedIds.has(docId)) {
+        setPipeState(i, 'error');
+        return;
+      }
+      const result = allResults.find(r => r.docName === doc.name);
+      const hasNew = result && result.newConcepts && result.newConcepts.length > 0;
+      setPipeState(i, hasNew ? 'has-new' : 'done');
+    });
+
+    document.getElementById('run-btn').disabled = false;
+    const excludedNames = [...excludedIds].map(id => docIdToName[id] || id);
+    showResults(excludedNames);
+  } catch (err) {
+    showError(`Error during saturation check: ${err.message}`);
+    document.getElementById('run-btn').disabled = false;
+  }
+}
+
+// The task only reports counts (items_done/items_failed/failed_items),
+// not per-document detail — advance pipeline dots as the count grows,
+// matching submission order. Final per-document state (has-new vs. done
+// vs. error) is set from the real result once the task completes, above.
+function updateSaturationProgressFromTask(progress, activeDocs) {
+  if (!progress) return;
+  const doneCount = (progress.items_done || 0) + (progress.items_failed || 0);
+  const failedIds = new Set((progress.failed_items || []).map(f => f.ref));
+  for (let i = 0; i < doneCount && i < activeDocs.length; i++) {
+    const docId = `doc-${i + 1}`;
+    setPipeState(i, failedIds.has(docId) ? 'error' : 'done');
+  }
 }
 
 // ── Phase 2 coding prompt ─────────────────────────────────────────────
+// SUPERSEDED (14 Jul 2026): runPhase2() now calls /phase2/saturation-check
+// via callAppAPI/pollTask — apps/gioianie/workflows/saturation.py is a
+// port of this function (with two corrections: per-document failure
+// isolation, and object-shaped JSON repair — see that module's docstring
+// for why). This was the last active call site anywhere in the suite
+// still using the shared, corres-tagged window.callAPI() proxy instead of
+// a properly gioianie-tagged endpoint — see
+// dev_trace_note_v0_7_gioianie_iterate_alignment.md for the full account
+// of why Phase 2 was excluded from the original wiring pass and what
+// changed. Left in place, unused, pending Hosting's live confirmation,
+// same disposition as every other superseded function this session.
 async function codeDocumentAgainstTypology(doc, docNum, totalDocs) {
   const typologyText = typology
     .map(c => `- ${c.term}: ${c.definition}`)
@@ -451,7 +519,7 @@ function repairJSON(raw) {
 
 
 // ── Show results ──────────────────────────────────────────────────────
-function showResults() {
+function showResults(excludedDocuments) {
   const allNew = allResults.flatMap(r => (r.newConcepts || []).map(c => ({ ...c, sourceDoc: r.docName })));
   const hasSaturated = allNew.length === 0;
 
@@ -537,6 +605,19 @@ function showResults() {
   exportBar.appendChild(exportFullBtn);
 
   document.getElementById('results-area').classList.add('active');
+
+  // Per-document saturation-check failures don't fail the whole task (the
+  // workflow continues with whatever documents succeeded — see
+  // apps/gioianie/workflows/saturation.py) — surface which were excluded
+  // rather than silently dropping them from view, same treatment as
+  // Phase 1's showResults().
+  if (excludedDocuments && excludedDocuments.length > 0) {
+    showError(
+      `Note: ${excludedDocuments.length} document${excludedDocuments.length > 1 ? 's' : ''} ` +
+      `could not be processed and ${excludedDocuments.length > 1 ? 'were' : 'was'} excluded from ` +
+      `this result: ${excludedDocuments.join(', ')}. The results above reflect the remaining documents.`
+    );
+  }
 }
 
 function exportNewConcepts(newConcepts) {
