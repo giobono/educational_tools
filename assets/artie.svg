@@ -1,0 +1,38 @@
+<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="artieBg" cx="50%" cy="45%" r="75%">
+      <stop offset="0%" stop-color="#10161d"/>
+      <stop offset="100%" stop-color="#03050a"/>
+    </radialGradient>
+    <linearGradient id="artieLine" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9fb8c4"/>
+      <stop offset="100%" stop-color="#aee3f2"/>
+    </linearGradient>
+    <filter id="artieGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="400" height="400" fill="url(#artieBg)"/>
+  <g stroke="url(#artieLine)" stroke-width="1" opacity="0.55" fill="none">
+    <path d="M60 320 L150 210 L200 150 L340 90"/>
+    <path d="M60 320 L120 120 L200 150"/>
+    <path d="M200 150 L270 250 L340 300"/>
+    <path d="M150 210 L270 250"/>
+    <path d="M120 120 L340 90"/>
+    <path d="M270 250 L340 300 L340 90"/>
+  </g>
+  <g filter="url(#artieGlow)">
+    <circle cx="60" cy="320" r="5" fill="#aee3f2"/>
+    <circle cx="150" cy="210" r="4" fill="#c9d4d8"/>
+    <circle cx="200" cy="150" r="7" fill="#aee3f2"/>
+    <circle cx="340" cy="90" r="5" fill="#c9d4d8"/>
+    <circle cx="120" cy="120" r="4" fill="#aee3f2"/>
+    <circle cx="270" cy="250" r="5" fill="#c9d4d8"/>
+    <circle cx="340" cy="300" r="4" fill="#aee3f2"/>
+  </g>
+  <text x="200" y="376" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="12" letter-spacing="3" fill="#7f9aa6">ARTIE — APPLIED INTELLIGENCE</text>
+</svg>

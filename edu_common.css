@@ -95,6 +95,32 @@ header {
 
 .logo em { font-style: italic; color: var(--accent); }
 
+/* Brand mark + entity link, shared header (CD input v0.1 Part A/B).
+   Site background here varies (dark landing hero vs paper app pages),
+   so this stays a small neutral chip rather than assuming either ground. */
+.cr-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+}
+
+.cr-nav-mark { height: 28px; width: auto; }
+.cr-nav-strand-mark { height: 20px; width: auto; }
+
+/* .cr-nav-logo previously had no matching rule — fell back to default
+   link styling. Reuses .logo's intended look. */
+.cr-nav-logo {
+  font-family: var(--serif);
+  font-weight: 300;
+  font-size: 1.4rem;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.cr-nav-logo em { font-style: italic; color: var(--accent); }
+
 .phase-tag {
   font-family: var(--mono);
   font-size: 0.68rem;
@@ -340,66 +366,153 @@ header {
   margin-bottom: 1.2rem;
   max-width: 60ch;
 }
-  .nav-body {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 4rem 4rem 3rem;
-    position: relative;
-    z-index: 2;
-    max-width: 900px;
-  }
+/* Removed here (D1Win, brand alignment pass): .nav-body/.nav-eyebrow/
+   .nav-title/.nav-subtitle/.nav-description — styled a headline block
+   that edu_header.html no longer injects (see that file's changelog
+   note). Confirmed dead: no other file referenced these classes. */
 
-  .nav-eyebrow {
-    font-family: var(--mono);
-    font-size: 0.68rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.1rem;
-  }
+/* ── Contact FAB/modal (CD input v0.1 Part A item 6) ─────────────────────
+   Deliberately self-contained dark surface, using its own hardcoded
+   values rather than each page's --ink/--paper tokens — it needs to
+   look identical whether opened from the dark landing hero or a light
+   paper-themed app page, as one consistent brand-facing popover.
+   Colours match ebono_au_site's component 1:1 (see ebono_brand/tokens.css
+   for the canonical values this was copied from). */
 
-  .nav-eyebrow::before {
-    content: '';
-    width: 2rem;
-    height: 1px;
-    color:#5a1010;
-    background: var(--accent);
-  }
+.contact-fab {
+  position: fixed;
+  right: clamp(16px, 4vw, 40px);
+  bottom: clamp(16px, 4vw, 40px);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid #16264a;
+  background: linear-gradient(135deg, #0c1424, #05070a);
+  color: #c7ccd1;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 8px 30px -10px rgba(0,0,0,0.7);
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  z-index: 40;
+}
 
-  .nav-title {
-    font-family: var(--cond);
-    font-weight: 300;
-    font-size: clamp(2.5rem, 6vw, 4rem);
-    line-height: 0.95;
-    letter-spacing: -0.02em;
-    color: var(--ink);
-    margin-bottom: 0.0em;
-  }
+.contact-fab:hover, .contact-fab:focus-visible {
+  border-color: #a9dcef;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 34px -8px rgba(169,220,239,0.25);
+}
 
-  .nav-title em {
-    font-style: italic;
-    font-weight: 300;
-    color: var(--accent);
-  }
+.contact-fab svg { width: 18px; height: 18px; flex-shrink: 0; }
 
-  .nav-subtitle {
-    font-family: var(--cond);
-    font-weight: 200;
-    font-size: clamp(1rem, 3vw, 1.4rem);
-    color: var(--ink-mid);
-    letter-spacing: 0.02em;
-    margin-bottom: 1rem;
-    font-style: italic;
-  }
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3,5,8,0.72);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5vh 5vw;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 50;
+}
 
-  .nav-description {
-    font-size: 1.05rem;
-    color: var(--ink-mid);
-    max-width: 640px;
-    line-height: 1.75;
-    margin-bottom: 3rem;
-  }
+.modal-overlay.is-open { opacity: 1; pointer-events: auto; }
+
+.modal {
+  width: 100%;
+  max-width: 460px;
+  background: #0c1424;
+  border: 1px solid #16264a;
+  border-radius: 4px;
+  padding: 2rem;
+  transform: translateY(12px);
+  transition: transform 0.35s ease;
+}
+
+.modal-overlay.is-open .modal { transform: translateY(0); }
+
+.modal h2 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 500;
+  font-size: 1.4rem;
+  margin: 0 0 0.4rem;
+  color: #ffffff;
+}
+
+.modal p.modal-sub { margin: 0 0 1.4rem; font-size: 0.85rem; color: #7c838b; }
+
+.modal label {
+  display: block;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #7c838b;
+  margin: 1rem 0 0.35rem;
+}
+
+.modal input, .modal textarea {
+  width: 100%;
+  background: #05070a;
+  border: 1px solid #16264a;
+  border-radius: 2px;
+  color: #ffffff;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  font-size: 0.9rem;
+  padding: 0.65rem 0.75rem;
+  resize: vertical;
+}
+
+.modal input:focus, .modal textarea:focus { outline: none; border-color: #a9dcef; }
+
+.modal-actions {
+  margin-top: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.modal-submit {
+  background: linear-gradient(135deg, #a9dcef, #c7ccd1);
+  color: #05070a;
+  border: none;
+  border-radius: 999px;
+  padding: 0.65rem 1.4rem;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.modal-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 20px -6px rgba(169,220,239,0.4); }
+
+.modal-close {
+  background: none;
+  border: none;
+  color: #7c838b;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.modal-close:hover { color: #c7ccd1; }
+
+.modal-status { margin-top: 1rem; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 0.75rem; min-height: 1em; }
+.modal-status[data-state="ok"]  { color: #9fe6b0; }
+.modal-status[data-state="err"] { color: #ff9d8a; }
+
+@media (prefers-reduced-motion: reduce) {
+  .contact-fab, .modal, .modal-overlay { transition: none; }
+}

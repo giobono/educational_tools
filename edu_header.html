@@ -1,5 +1,9 @@
-<!-- EDU HEADER v0.1 -->
+<!-- EDU HEADER v0.2 — brand alignment (CD input v0.1 Part A/B) -->
 <header class="cr-nav">
+  <a class="cr-nav-brand" href="https://ebono.au" title="The Ebono Institute">
+    <img class="cr-nav-mark" src="/assets/logo-mark.png" alt="The Ebono Institute">
+    <img class="cr-nav-strand-mark" src="/assets/artie.svg" alt="ArtIE">
+  </a>
   <a class="cr-nav-logo" href="/index.html"><em>Correlating Resonance</em></a>
   <div class="cr-phases">
     <a class="cr-nav-home" href="/">Home</a>
@@ -11,13 +15,37 @@
     </nav>
   </div>
 </header>
-  <div class="nav-body">
-    <div class="nav-eyebrow">Correlating resonance is Ebono's first acacemic intelligence app</div>
-    <h1 class="nav-title"><em>Ebono </em>Intelligence</h1>
-    <!-- <p class="nav-subtitle">Correlating resonance is Ebono's first acacemic intelligence app</p>
-    <p class="nav-description">
-      A structured methodology for revealing the conceptual configurations that underpin conflicting positions within complex or wicked problems. Apply it to any corpus of policy texts to map what different stakeholders agree on, what divides them, and where common ground exists.
-    </p> -->
+
+<!-- Contact FAB/modal — mirrors ebono_au_site's component (CD input v0.1
+     Part A item 6). Wiring: initContactModal() in edu_common.js, invoked
+     automatically once this fragment loads. Endpoint flagged, see there. -->
+<button type="button" class="contact-fab" id="contactOpen" aria-haspopup="dialog" aria-controls="contactModal">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/></svg>
+  <span>Contact</span>
+</button>
+
+<div class="modal-overlay" id="contactModal" role="dialog" aria-modal="true" aria-labelledby="contactTitle">
+  <div class="modal">
+    <h2 id="contactTitle">Apply Intelligence to help your organisation thrive</h2>
+    <p class="modal-sub">Tell us how we can best help you.</p>
+    <form id="contactForm" action="https://ebono.au/contact.php" method="POST">
+      <label for="contact-name">Name</label>
+      <input type="text" id="contact-name" name="name" required>
+
+      <label for="contact-email">Email</label>
+      <input type="email" id="contact-email" name="email" required>
+
+      <label for="contact-message">Describe your challenge</label>
+      <textarea id="contact-message" name="message" rows="4" required></textarea>
+
+      <!-- honeypot field, hidden from real users -->
+      <input type="text" name="website" id="contact-website" style="position:absolute; left:-9999px;" tabindex="-1" autocomplete="off">
+
+      <div class="modal-actions">
+        <button type="button" class="modal-close" id="contactClose">Close</button>
+        <button type="submit" class="modal-submit">Send message</button>
+      </div>
+      <p class="modal-status" id="contactStatus"></p>
+    </form>
   </div>
-
-
+</div>

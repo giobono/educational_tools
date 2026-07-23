@@ -475,9 +475,93 @@ window.loadFragment = async function loadFragment(id, path) {
     const html = await res.text();
     const el = document.getElementById(id);
     if (el) el.innerHTML = html;
+
+    // The contact FAB/modal ships inside the edu-header fragment (CD input
+    // v0.1 Part A item 6) so every page gets it from one include, rather
+    // than duplicating the markup/wiring per page. Init only runs once the
+    // fragment's actual DOM nodes exist.
+    if (id === 'edu-header') window.initContactModal();
   } catch (err) {
     console.warn(err.message);
   }
+};
+
+// ── Contact modal (CD input v0.1 Part A item 6) ─────────────────────
+//
+// Mirrors ebono_au_site's floating contact FAB/modal component and
+// script.js wiring (same fetch-with-JSON-reply pattern, same honeypot).
+// FLAGGED, not fully wired: the form posts to https://ebono.au/contact.php
+// — that endpoint's fetch()-based submission (X-Requested-With header)
+// is subject to CORS cross-origin, and ebono.au does not currently send
+// Access-Control-Allow-Origin for edu.ebono.au/beta.ebono.au. Submission
+// will likely fail until Hosting adds that allowance (or another
+// endpoint is provisioned) — raising rather than improvising a fix,
+// per the brief's own instruction on this exact point.
+window.initContactModal = function initContactModal() {
+  const openBtn = document.getElementById('contactOpen');
+  const closeBtn = document.getElementById('contactClose');
+  const overlay = document.getElementById('contactModal');
+  const form = document.getElementById('contactForm');
+  const status = document.getElementById('contactStatus');
+  if (!openBtn || !overlay || !form) return; // fragment not present on this page
+
+  let lastFocused = null;
+
+  function openModal() {
+    lastFocused = document.activeElement;
+    overlay.classList.add('is-open');
+    document.getElementById('contact-name').focus();
+    document.addEventListener('keydown', onKeydown);
+  }
+
+  function closeModal() {
+    overlay.classList.remove('is-open');
+    document.removeEventListener('keydown', onKeydown);
+    if (lastFocused) lastFocused.focus();
+  }
+
+  function onKeydown(e) {
+    if (e.key === 'Escape') closeModal();
+  }
+
+  openBtn.addEventListener('click', openModal);
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const honeypot = document.getElementById('contact-website');
+    if (honeypot && honeypot.value) {
+      status.textContent = 'Message sent — thank you.';
+      status.setAttribute('data-state', 'ok');
+      form.reset();
+      return;
+    }
+
+    status.textContent = 'Sending…';
+    status.removeAttribute('data-state');
+
+    fetch(form.getAttribute('action'), {
+      method: 'POST',
+      body: new FormData(form),
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+      .then((res) => res.json().catch(() => ({ ok: res.ok })))
+      .then((json) => {
+        if (json && json.ok) {
+          status.textContent = "Message sent — thank you. We'll be in touch.";
+          status.setAttribute('data-state', 'ok');
+          form.reset();
+        } else {
+          throw new Error((json && json.error) || 'Send failed');
+        }
+      })
+      .catch(() => {
+        status.textContent = 'Something went wrong — please email us directly instead.';
+        status.setAttribute('data-state', 'err');
+      });
+  });
 };
 
 
