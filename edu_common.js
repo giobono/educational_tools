@@ -490,13 +490,9 @@ window.loadFragment = async function loadFragment(id, path) {
 //
 // Mirrors ebono_au_site's floating contact FAB/modal component and
 // script.js wiring (same fetch-with-JSON-reply pattern, same honeypot).
-// FLAGGED, not fully wired: the form posts to https://ebono.au/contact.php
-// — that endpoint's fetch()-based submission (X-Requested-With header)
-// is subject to CORS cross-origin, and ebono.au does not currently send
-// Access-Control-Allow-Origin for edu.ebono.au/beta.ebono.au. Submission
-// will likely fail until Hosting adds that allowance (or another
-// endpoint is provisioned) — raising rather than improvising a fix,
-// per the brief's own instruction on this exact point.
+// Posts to this site's own /contact.php (23 Jul: moved onto
+// educational_tools rather than posting cross-origin to ebono.au,
+// which avoided the CORS question entirely instead of solving it).
 window.initContactModal = function initContactModal() {
   const openBtn = document.getElementById('contactOpen');
   const closeBtn = document.getElementById('contactClose');

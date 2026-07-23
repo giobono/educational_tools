@@ -2,3 +2,9 @@
 config.js
 apps/config.js
 apps/corres/config.js
+
+# Defensive only — real copies live one directory above the web root,
+# in the sibling config/ directory, entirely outside this git tree
+# (local FS layout design's public_html/config split). This just
+# guards against someone dropping a working copy directly in here.
+mail-config.php
