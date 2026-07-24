@@ -121,28 +121,23 @@
 <p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for binarisation…</p>
 </div>
 </div>
-<!-- ── Step 4.3 ── -->
-<div class="step-card" id="card-43">
+<!-- ── CorRes Process: Stages 2-5 (Addie's method) ──
+     Instance brief 2026-07-24 (briefs/d1dev/2026-07-24_briefs_od_d1dev_corres-frontend-buildout.md).
+     Replaces the single-pass MCA clustering (former Step 4.3) and LLM
+     frame naming (former 4.4) in this build — the backend workflows
+     those called (cluster_concepts.py, name_frames.py) are untouched
+     and still wired server-side, per that brief's own note that the
+     old path isn't being removed, just superseded in this front end. -->
+<div class="step-card" id="card-process">
 <div class="step-card-header">
 <div class="step-card-title">
-<span class="step-num" id="num-43">4.3</span>
-<span class="step-name">Cluster Analysis</span>
+<span class="step-num" id="num-process">2–5</span>
+<span class="step-name">Stability, Roles &amp; Seriation</span>
 </div>
+<span class="fixture-flag" title="Backend reachability for the new endpoints wasn't resolved this session — panels render against mocked data built to the real API schemas (build_ttm.py), not a live pipeline run. See this build's completion note.">FIXTURE DATA</span>
 </div>
-<div class="step-card-body" id="cluster-body">
-<p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for TTM construction…</p>
-</div>
-</div>
-<!-- ── Step 4.4 ── -->
-<div class="step-card" id="card-44">
-<div class="step-card-header">
-<div class="step-card-title">
-<span class="step-num" id="num-44">4.4</span>
-<span class="step-name">Frame Naming</span>
-</div>
-</div>
-<div class="step-card-body" id="naming-body">
-<p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for confirmed cluster structure…</p>
+<div class="step-card-body" id="process-body">
+<p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for term-term matrix…</p>
 </div>
 </div>
 </div>
@@ -151,9 +146,7 @@
 let dtmData       = null;  // {mode, docs:[{id,name}], concepts:[str], conceptIds:[int], matrix:[[num]]}
 let binaryMatrix  = null;  // [[0|1]] rows=docs, cols=concepts — live slider preview, then the server-confirmed matrix after Step 4.1
 let ttmData       = null;  // {concepts:[str], matrix:[[num]], sorted:[idx], totals:[num]} — reconstructed from serverTtm for the existing display code
-let clusterResult = null;  // {assignments:[int], n_clusters, explained_variance, concept_clusters} — reconstructed from serverTtm.clustering
-let serverTtm     = null;  // the actual TTMArtefact returned by /build, then re-submitted and re-assigned by /cluster and /name-frames in turn (chained, per api/ttm.py)
-let nClusters     = 4;
+let serverTtm     = null;  // the TTMArtefact returned by /build, then enriched in place with residuals/consensus/roles/bea (FIXTURE DATA this build — see corres.css's .fixture-flag)
 
 function setStatus(state, msg) {
   const el = document.getElementById('pyodide-status');
@@ -550,7 +543,7 @@ async function buildTTMServer() {
 
     renderTTM();
     markStepDone('42');
-    renderClusterControls();
+    renderProcessControls();
   } catch (err) {
     showError(`Error building TTM: ${err.message}`);
   }
@@ -664,327 +657,459 @@ function exportTTM() {
   download(`CR_TTM_Sorted_${today()}.csv`, lines.join('\n'), 'text/csv');
 }
 
-// ── Step 4.3: Cluster analysis ────────────────────────────────────────
-function renderClusterControls() {
-  const body = document.getElementById('cluster-body');
+// ── CorRes Process: Stages 2-5 (Addie's method) ─────────────────────────
+// Instance brief 2026-07-24 (briefs/d1dev/2026-07-24_briefs_od_d1dev_corres-frontend-buildout.md).
+// FIXTURE DATA this build — backend reachability for the four new
+// endpoints wasn't resolved this session (see corres.css's .fixture-flag).
+// Mock generators below produce data shaped exactly like the real API
+// schemas (artie/apps/corres/workflows/build_ttm.py's ResidualsInfo/
+// ConsensusInfo/ConceptRole/BeaInfo), and the classification/BEA logic is
+// ported faithfully from classify_roles.py/bea_order.py so the demo
+// *behaves* like the real pipeline over synthetic inputs. Swapping in
+// real callAppAPI/pollTask calls (same chained pattern as buildTTMServer/
+// the old runMCA above) only touches runProcessChain() — every render
+// function below reads serverTtm.{residuals,consensus,roles,bea} exactly
+// as the real API would populate them.
+
+const ROLE_TIER  = { distinguishing: 'CORE', bridging: 'CORE', orthogonal: 'BORDER', weak: 'BORDER' };
+const ROLE_LABEL = { distinguishing: 'Distinguishing', bridging: 'Bridging', orthogonal: 'Orthogonal', weak: 'Weak' };
+
+// Declared parameters (brief §2: "whatever run produced a result, its
+// parameters should be visible alongside it"). Threshold defaults are
+// classify_roles.py's own shipped constants (STABILITY_THRESHOLD etc) —
+// marked confirm-pending in the UI regardless, since it's not established
+// here whether they match the still-open ⟦confirm⟧ values in the formal
+// methods subsection (unreachable this session — see this build's note).
+let processParams = {
+  n_clusters: 4,
+  n_splits: 25,
+  seed: 7,
+  bea_seed: 13,
+  n_null: 500,
+  stability_threshold: 0.75,
+  abs_bridge_threshold: 2.0,
+  weak_own_threshold: 0.5,
+  weak_max_abs_threshold: 2.0,
+};
+let activePanelTab = 'D';
+
+// Seeded PRNG (mulberry32) so fixture results are stable across reloads
+// rather than reshuffling on every run.
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function renderProcessControls() {
+  const body = document.getElementById('process-body');
   body.innerHTML = `
     <p style="font-family:var(--serif);font-size:0.85rem;color:var(--ink-mid);margin-bottom:1.25rem;">
-      Set the number of clusters and run MCA. Compare the cluster output against the downloaded sorted TTM — concepts that appear adjacent in the sorted TTM but are assigned to different clusters may indicate the cluster count needs adjustment. Re-run with different values until the cluster structure shows meaningful differentiation.
+      Runs Addie's four-stage process over the confirmed term-term matrix: standardised residuals against an independence baseline, consensus-ensemble clustering across resampled splits, role classification, and BEA seriation.
     </p>
-    <div class="cluster-controls">
-      <span class="cluster-label">Number of clusters</span>
-      <div class="cluster-stepper">
-        <button onclick="adjustClusters(-1)">−</button>
-        <span id="cluster-count-display">${nClusters}</span>
-        <button onclick="adjustClusters(1)">+</button>
-      </div>
-      <button class="btn btn-primary" id="run-mca-btn" onclick="runMCA()">Run MCA →</button>
+    <div class="params-panel" id="process-params-panel"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="run-process-btn" onclick="runProcessChain()">Run stability, roles &amp; seriation →</button>
     </div>
-    <div id="mca-running" style="display:none;font-family:var(--serif);font-style:italic;font-size:0.85rem;color:var(--ink-light);">
-      Running MCA via TruncatedSVD…
-    </div>
-    <div id="cluster-results"></div>`;
+    <div id="process-running" style="display:none;font-family:var(--serif);font-style:italic;font-size:0.85rem;color:var(--ink-light);margin-top:0.75rem;">Computing residuals → consensus clustering → role classification → BEA order…</div>
+    <div id="process-results" style="margin-top:1.5rem;"></div>`;
+  renderParamsPanel();
 }
 
-function adjustClusters(delta) {
-  nClusters = Math.max(2, Math.min(10, nClusters + delta));
-  document.getElementById('cluster-count-display').textContent = nClusters;
+function renderParamsPanel() {
+  const p = processParams;
+  document.getElementById('process-params-panel').innerHTML = `
+    ${paramField('Block count (k)', 'n_clusters', p.n_clusters, 2, 10)}
+    ${paramField('Resample splits', 'n_splits', p.n_splits, 1, 200)}
+    ${paramField('Consensus seed', 'seed', p.seed, 0, 9999)}
+    ${paramField('BEA seed', 'bea_seed', p.bea_seed, 0, 9999)}
+    ${paramField('Permutation draws', 'n_null', p.n_null, 1, 5000)}
+    <div class="param-item"><span class="param-label">Stability threshold</span><span class="param-val confirm-pending">${p.stability_threshold}</span></div>
+    <div class="param-item"><span class="param-label">Abs. bridge threshold</span><span class="param-val confirm-pending">${p.abs_bridge_threshold}</span></div>
+    <div class="param-item"><span class="param-label">Weak own threshold</span><span class="param-val confirm-pending">${p.weak_own_threshold}</span></div>
+    <div class="param-item"><span class="param-label">Weak max-abs threshold</span><span class="param-val confirm-pending">${p.weak_max_abs_threshold}</span></div>`;
 }
 
-async function runMCA() {
+function paramField(label, key, value, min, max) {
+  return `<div class="param-item">
+    <span class="param-label">${label}</span>
+    <input class="param-val" type="number" min="${min}" max="${max}" value="${value}"
+      style="border:1px solid var(--paper-dark);border-radius:2px;width:100%;padding:0.15rem 0.3rem;"
+      onchange="processParams.${key} = parseInt(this.value, 10) || ${value};">
+  </div>`;
+}
+
+async function runProcessChain() {
   clearError();
-  document.getElementById('run-mca-btn').disabled = true;
-  document.getElementById('mca-running').style.display = 'block';
-  document.getElementById('cluster-results').innerHTML = '';
+  document.getElementById('run-process-btn').disabled = true;
+  document.getElementById('process-running').style.display = 'block';
+  document.getElementById('process-results').innerHTML = '';
 
   try {
-    const created = await callAppAPI('corres', 'ttm/cluster', {
-      ttm: serverTtm,
-      params: { n_clusters: nClusters },
-    });
-    serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
+    const conceptIds = dtmData.conceptIds.map(String);
 
-    // clustering.assignments/coords are concept_id-keyed dicts — map back
-    // to position-indexed arrays (dtmData.concepts/conceptIds order) for
-    // renderClusterResults()/findRepresentativeDocuments()/etc, unchanged
-    // below.
-    const clustering = serverTtm.clustering;
-    clusterResult = {
-      assignments:        dtmData.conceptIds.map(cid => clustering.assignments[String(cid)]),
-      n_clusters:          clustering.n_clusters,
-      explained_variance:  clustering.explained_variance,
-      inertia:             clustering.inertia,
-      coords:              dtmData.conceptIds.map(cid => clustering.coords[String(cid)]),
-    };
+    // FIXTURE: real path is the same chained callAppAPI/pollTask pattern
+    // as buildTTMServer above — corres/ttm/{residuals,consensus-cluster,
+    // classify-roles,bea-order} in turn, each re-submitting the growing
+    // TTMArtefact. Swap here once backend reachability is resolved;
+    // nothing downstream of this function needs to change.
+    await new Promise(r => setTimeout(r, 350));
+    const residuals = mockComputeResiduals(conceptIds, processParams.seed);
+    await new Promise(r => setTimeout(r, 350));
+    const consensus = mockConsensusCluster(conceptIds, residuals, processParams);
+    await new Promise(r => setTimeout(r, 350));
+    const roles = mockClassifyRoles(conceptIds, residuals, consensus, processParams);
+    await new Promise(r => setTimeout(r, 350));
+    const bea = mockBeaOrder(conceptIds, residuals, consensus.blocks, processParams);
 
-    renderClusterResults();
-    markStepActive('43');
+    serverTtm = Object.assign({}, serverTtm, { residuals, consensus, roles, bea });
 
+    renderProcessResults();
+    markStepActive('process');
   } catch (err) {
-    showError('MCA failed: ' + err.message);
+    showError('Stability/role/seriation processing failed: ' + err.message);
   } finally {
-    document.getElementById('run-mca-btn').disabled = false;
-    document.getElementById('mca-running').style.display = 'none';
+    document.getElementById('run-process-btn').disabled = false;
+    document.getElementById('process-running').style.display = 'none';
   }
 }
 
-function renderClusterResults() {
-  const { assignments, explained_variance, inertia } = clusterResult;
-  const concepts = dtmData.concepts;
-  const resultsDiv = document.getElementById('cluster-results');
+// ── Mock generators (FIXTURE DATA — see corres.css's .fixture-flag) ─────
 
-  // Group concepts by cluster
-  const clusters = {};
-  assignments.forEach((c, i) => {
-    if (!clusters[c]) clusters[c] = [];
-    clusters[c].push(i);
+function mockComputeResiduals(conceptIds, seed) {
+  const rng = mulberry32(seed * 1000 + 1);
+  const matrix = {};
+  conceptIds.forEach(ci => { matrix[ci] = {}; });
+  for (let i = 0; i < conceptIds.length; i++) {
+    for (let j = i; j < conceptIds.length; j++) {
+      const ci = conceptIds[i], cj = conceptIds[j];
+      if (i === j) { matrix[ci][cj] = 0; continue; }
+      const v = (rng() * 2 - 1) * 4; // roughly -4..4, occasional strong bridges
+      matrix[ci][cj] = v; matrix[cj][ci] = v;
+    }
+  }
+  return { convention: 'ca_margins', matrix };
+}
+
+function mockConsensusCluster(conceptIds, residuals, params) {
+  const rng = mulberry32(params.seed);
+  const blocks = {};
+  conceptIds.forEach((cid, i) => { blocks[cid] = i % params.n_clusters; });
+  // Nudge a few concepts toward their strongest residual partner's block,
+  // so membership isn't purely a round-robin artefact.
+  conceptIds.forEach(cid => {
+    let best = null, bestVal = -Infinity;
+    conceptIds.forEach(o => {
+      if (o !== cid && residuals.matrix[cid][o] > bestVal) { bestVal = residuals.matrix[cid][o]; best = o; }
+    });
+    if (best && bestVal > 2.5 && rng() > 0.5) blocks[cid] = blocks[best];
   });
 
-  // Quality indicator
-  const evPct = (explained_variance * 100).toFixed(1);
-
-  let html = `
-    <div class="quality-bar-wrap">
-      <div class="quality-label">
-        <span>Explained variance (TruncatedSVD)</span>
-        <span>${evPct}%</span>
-      </div>
-      <div class="quality-bar-track">
-        <div class="quality-bar-fill" style="width:${Math.min(100, explained_variance * 100)}%;"></div>
-      </div>
-      <div class="quality-note">Higher values indicate the components capture more of the variance in concept co-occurrence patterns. Compare this value across different cluster counts when deciding on structure.</div>
-    </div>
-    <div class="cluster-grid">`;
-
-  Object.entries(clusters).sort((a,b) => parseInt(a[0]) - parseInt(b[0])).forEach(([cId, conceptIdxs]) => {
-    const frameClass = `frame-${cId}`;
-    html += `
-      <div class="cluster-card">
-        <div class="cluster-card-header ${frameClass}">
-          <span class="cluster-card-name">Cluster ${parseInt(cId)+1}</span>
-          <span class="cluster-card-count">${conceptIdxs.length} concepts</span>
-        </div>
-        <div class="cluster-card-body">
-          ${conceptIdxs.map(ci => `<span class="concept-tag ${frameClass}">${escHtml(concepts[ci])}</span>`).join('')}
-        </div>
-      </div>`;
+  const matrix = {};
+  conceptIds.forEach(ci => {
+    matrix[ci] = {};
+    conceptIds.forEach(cj => {
+      if (ci === cj) { matrix[ci][cj] = 1; return; }
+      const sameBlock = blocks[ci] === blocks[cj];
+      const base = sameBlock ? 0.72 : 0.18;
+      matrix[ci][cj] = Math.min(1, Math.max(0, base + (rng() - 0.5) * 0.3));
+    });
   });
 
-  html += `</div>
-    <div class="btn-row">
-      <button class="btn btn-success" onclick="confirmClusters()">Confirm this cluster structure → proceed to naming</button>
-      <button class="btn btn-outline" onclick="exportClusteredTTM()">↓ Download clustered TTM</button>
+  return { n_splits: params.n_splits, n_clusters: params.n_clusters, seed: params.seed, matrix, blocks };
+}
+
+// Faithful port of classify_roles.py's _classify_one — see that file's
+// docstring for the bug this rule fixes over the prior ratio-based one.
+function classifyOne(own, others, stability, params) {
+  if (stability >= params.stability_threshold) {
+    if (own <= 0) return 'orthogonal';
+    if (Math.max(...others) >= params.abs_bridge_threshold) return 'bridging';
+    if (Math.min(...others) < 0) return 'distinguishing';
+    return 'distinguishing'; // no repulsion, no qualifying bridge — weak positive spillover only
+  }
+  const maxAbs = Math.max(...[own, ...others].map(v => Math.abs(v)));
+  if (own <= params.weak_own_threshold && maxAbs < params.weak_max_abs_threshold) return 'weak';
+  return 'orthogonal';
+}
+
+function mockClassifyRoles(conceptIds, residuals, consensus, params) {
+  const blocks = consensus.blocks;
+  const co = consensus.matrix;
+  const resid = residuals.matrix;
+  const roles = {};
+
+  conceptIds.forEach(cid => {
+    const ownBlock = blocks[cid];
+    const sameBlock = conceptIds.filter(c => blocks[c] === ownBlock && c !== cid);
+    const stability = sameBlock.length ? sameBlock.reduce((s, c) => s + co[cid][c], 0) / sameBlock.length : 0;
+
+    const othersAll = conceptIds.filter(c => c !== cid);
+    const magnitude = othersAll.length ? othersAll.reduce((s, c) => s + Math.abs(resid[cid][c]), 0) / othersAll.length : 0;
+
+    const affinity = {};
+    for (let b = 0; b < params.n_clusters; b++) {
+      const members = conceptIds.filter(c => blocks[c] === b && c !== cid);
+      affinity[String(b)] = members.length ? members.reduce((s, c) => s + resid[cid][c], 0) / members.length : 0;
+    }
+    const ownAffinity = affinity[String(ownBlock)];
+    const otherAffinities = Object.entries(affinity).filter(([b]) => Number(b) !== ownBlock).map(([, v]) => v);
+    const role = classifyOne(ownAffinity, otherAffinities.length ? otherAffinities : [0], stability, params);
+
+    roles[cid] = { stability, magnitude, affinity, role };
+  });
+  return roles;
+}
+
+// Faithful port of bea_order.py's _bea() (broken-bond-corrected insertion gain).
+function beaOrderConcepts(conceptIds, positiveResid) {
+  const rem = new Set(conceptIds);
+  let bestI = null, bestJ = null, bestV = -Infinity;
+  conceptIds.forEach(i => conceptIds.forEach(j => {
+    if (i !== j && positiveResid[i][j] > bestV) { bestV = positiveResid[i][j]; bestI = i; bestJ = j; }
+  }));
+  const order = [bestI, bestJ];
+  rem.delete(bestI); rem.delete(bestJ);
+  while (rem.size) {
+    let best = { gain: -Infinity, c: null, pos: null };
+    rem.forEach(c => {
+      for (let pos = 0; pos <= order.length; pos++) {
+        let gain = (pos > 0 ? positiveResid[order[pos - 1]][c] : 0) + (pos < order.length ? positiveResid[c][order[pos]] : 0);
+        if (pos > 0 && pos < order.length) gain -= positiveResid[order[pos - 1]][order[pos]];
+        if (gain > best.gain) best = { gain, c, pos };
+      }
+    });
+    order.splice(best.pos, 0, best.c);
+    rem.delete(best.c);
+  }
+  return order;
+}
+
+function mockBeaOrder(conceptIds, residuals, blocks, params) {
+  const rng = mulberry32(params.bea_seed);
+  const n = conceptIds.length;
+  const positive = {};
+  conceptIds.forEach(ci => {
+    positive[ci] = {};
+    conceptIds.forEach(cj => { positive[ci][cj] = Math.max(0, residuals.matrix[ci][cj]); });
+  });
+
+  const order = beaOrderConcepts(conceptIds, positive);
+  const blockSeq = order.map(cid => blocks[cid]);
+  const adjacency = n > 1 ? blockSeq.slice(0, -1).filter((b, i) => b === blockSeq[i + 1]).length / (n - 1) : 0;
+
+  const nullAdj = [];
+  const blockArr = conceptIds.map(cid => blocks[cid]);
+  for (let k = 0; k < params.n_null; k++) {
+    const perm = [...blockArr];
+    for (let i = perm.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [perm[i], perm[j]] = [perm[j], perm[i]];
+    }
+    nullAdj.push(n > 1 ? perm.slice(0, -1).filter((b, i) => b === perm[i + 1]).length / (n - 1) : 0);
+  }
+  nullAdj.sort((a, b) => a - b);
+  const nullMean = nullAdj.reduce((a, b) => a + b, 0) / nullAdj.length;
+  const p95Idx = Math.min(nullAdj.length - 1, Math.floor(0.95 * nullAdj.length));
+
+  return { order, adjacency, null_mean: nullMean, null_p95: nullAdj[p95Idx] };
+}
+
+// ── Rendering: certificate summary, vocabulary note, panel tabs ─────────
+
+function renderProcessResults() {
+  const { roles } = serverTtm;
+  const conceptIds = dtmData.conceptIds.map(String);
+  const certified = conceptIds.filter(cid => roles[cid].stability >= processParams.stability_threshold);
+  const resultsDiv = document.getElementById('process-results');
+
+  let html = '';
+
+  // Certificate summary (brief §2: "no certificates" is a real result, not an error).
+  if (certified.length === 0) {
+    html += `<div class="cert-none-banner"><span class="cert-icon not-earned">◇</span> No concept earned a stability certificate against the exact chance baseline at these settings — a legitimate result, not an error. Consider more splits or a different block count before concluding the structure is unstable.</div>`;
+  } else {
+    const { bea } = serverTtm;
+    html += `<div class="stats-row" style="margin-bottom:1.25rem;">
+      <div class="stat-item"><span class="stat-val">${certified.length}<span style="font-size:0.7rem;color:var(--ink-light);"> / ${conceptIds.length}</span></span><span class="stat-label">Concepts certified (σ ≥ ${processParams.stability_threshold})</span></div>
+      <div class="stat-item"><span class="stat-val">${(bea.adjacency*100).toFixed(0)}%</span><span class="stat-label">BEA block adjacency</span></div>
+      <div class="stat-item"><span class="stat-val">${(bea.null_p95*100).toFixed(0)}%</span><span class="stat-label">Null 95th pct. (${processParams.n_null} draws)</span></div>
     </div>`;
+  }
+
+  html += `<p class="vocab-note">This is <strong>role classification</strong> (the five-role scheme below) applied to the fixed <strong>concept typology</strong> from Phase 1 — the two are not interchangeable.</p>`;
+
+  html += `<div class="panel-tabs">
+    ${panelTabBtn('D', 'Panel D · Role space')}
+    ${panelTabBtn('B', 'Panel B · Concepts (A–Z)')}
+    ${panelTabBtn('E', 'Panel E · BEA order')}
+    ${panelTabBtn('C', 'Panel C · Block structure')}
+  </div>
+  <div id="panel-content"></div>`;
 
   resultsDiv.innerHTML = html;
+  renderActivePanel();
 }
 
-function exportClusteredTTM() {
-  const { assignments } = clusterResult;
-  const concepts = dtmData.concepts;
-  const { matrix } = ttmData;
-
-  // Sort concepts by cluster assignment then by total co-occurrence within cluster
-  const sorted = concepts.map((c, i) => ({ i, c, cluster: assignments[i], total: ttmData.totals[i] }))
-    .sort((a, b) => a.cluster - b.cluster || b.total - a.total)
-    .map(x => x.i);
-
-  const sortedConcepts = sorted.map(i => concepts[i]);
-  const sortedAssign   = sorted.map(i => assignments[i]);
-
-  const lines = [
-    '# CORRELATING RESONANCE — TERM-TERM MATRIX (sorted by cluster)',
-    `# Generated: ${new Date().toLocaleString()}`,
-    `# Clusters: ${clusterResult.n_clusters} · Explained variance: ${(clusterResult.explained_variance*100).toFixed(1)}%`,
-    '#',
-    ['Cluster', 'Concept', ...sortedConcepts].map(csvCell).join(',')
-  ];
-
-  sorted.forEach((ri, pos) => {
-    const row = [
-      sortedAssign[pos] + 1,
-      csvCell(concepts[ri]),
-      ...sorted.map(ci => matrix[ri][ci])
-    ];
-    lines.push(row.join(','));
-  });
-
-  download(`CR_TTM_Clustered_${nClusters}clusters_${today()}.csv`, lines.join('\n'), 'text/csv');
+function panelTabBtn(id, label) {
+  return `<button class="panel-tab${activePanelTab===id?' active':''}" onclick="setActivePanel('${id}')">${label}</button>`;
 }
 
-function confirmClusters() {
-  markStepDone('43');
-  renderFrameNaming();
+function setActivePanel(id) {
+  activePanelTab = id;
+  renderProcessResults();
 }
 
-// ── Step 4.4: Frame naming ────────────────────────────────────────────
-async function renderFrameNaming() {
-  const body = document.getElementById('naming-body');
-  body.innerHTML = `<div style="font-family:var(--serif);font-style:italic;color:var(--ink-light);">Generating working frame names…</div>`;
-  markStepActive('44');
+function renderActivePanel() {
+  const target = document.getElementById('panel-content');
+  if (!target) return;
+  if (activePanelTab === 'B') renderPanelB(target);
+  else if (activePanelTab === 'C') renderPanelC(target);
+  else if (activePanelTab === 'E') renderPanelE(target);
+  else renderPanelD(target);
+}
 
-  const { assignments } = clusterResult;
-  const concepts = dtmData.concepts;
-  const { totals } = ttmData;
-
-  // Cluster grouping and representative-document lookup are pure display
-  // prep over already-server-confirmed data (clusterResult/binaryMatrix) —
-  // stays client-side per PSI §2, same as the heatmap/slider preview.
-  const clusters = {};
-  assignments.forEach((c, i) => {
-    if (!clusters[c]) clusters[c] = [];
-    clusters[c].push({ concept: concepts[i], total: totals[i] });
-  });
-
-  const repDocs = findRepresentativeDocuments(clusters, assignments);
-
-  const conceptTerms = Object.fromEntries(
-    dtmData.conceptIds.map((cid, i) => [String(cid), dtmData.concepts[i]])
-  );
-
-  try {
-    const created = await callAppAPI('corres', 'ttm/name-frames', {
-      ttm: serverTtm,
-      params: { concept_terms: conceptTerms },
-    });
-    serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
-
-    renderNamingInterface(clusters, serverTtm.frames, repDocs);
-
-  } catch (err) {
-    renderNamingInterface(clusters, null, repDocs);
-    showError('Frame naming API call failed: ' + err.message + ' — you can still enter names manually below');
+// Role badge, with a defensive path for the brief's flagged "Unclassified
+// Core" defect. Not found in the actual feature-branch classify_roles.py
+// as read (flagged as a discrepancy in this build's completion note) —
+// handled here regardless, per the brief's explicit instruction.
+function roleBadgeHtml(role) {
+  if (!ROLE_TIER.hasOwnProperty(role)) {
+    return `<span class="role-badge role-unclassified">Unclassified Core</span>
+      <span class="role-caveat">may be reclassified as Core Bridging pending a known pipeline fix</span>`;
   }
+  const tier = ROLE_TIER[role];
+  return `<span class="role-badge role-${tier.toLowerCase()}-${role}"><span class="tier">${tier}</span> · ${ROLE_LABEL[role]}</span>`;
 }
 
-function findRepresentativeDocuments(clusters, assignments) {
-  // For each cluster, find documents whose binary profile best matches the cluster's concepts
-  const repDocs = {};
-  const nDocs   = binaryMatrix.length;
-
-  Object.entries(clusters).forEach(([cId, items]) => {
-    const clusterConceptIdxs = items.map(item => dtmData.concepts.indexOf(item.concept));
-
-    // Score each document: sum of binary values for concepts in this cluster
-    const docScores = dtmData.docs.map((doc, di) => {
-      const score = clusterConceptIdxs.reduce((s, ci) => s + (binaryMatrix[di][ci] || 0), 0);
-      return { doc, score };
-    });
-
-    repDocs[cId] = docScores.sort((a, b) => b.score - a.score).slice(0, 3);
-  });
-
-  return repDocs;
+function statusTagHtml(stability) {
+  const certified = stability >= processParams.stability_threshold;
+  return `<span class="status-tag ${certified ? 'status-certified' : 'status-exploratory'}">${certified ? 'Certified' : 'Exploratory'}</span>`;
 }
 
-function renderNamingInterface(clusters, llmNames, repDocs) {
-  const body = document.getElementById('naming-body');
-  const sortedClusters = Object.entries(clusters).sort((a,b) => parseInt(a[0]) - parseInt(b[0]));
+// Panel B — alphabetical, structure-blind (brief §2).
+function renderPanelB(target) {
+  const { roles } = serverTtm;
+  const conceptIds = dtmData.conceptIds.map(String);
+  const termById = {};
+  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
+  const sorted = [...conceptIds].sort((a, b) => termById[a].localeCompare(termById[b]));
 
-  let html = `
-    <p style="font-family:var(--serif);font-size:0.85rem;color:var(--ink-mid);margin-bottom:1.5rem;">
-      Working names have been proposed by the LLM based on the core concepts in each cluster. Review each against the concept list and the representative documents, and revise as needed. Frame names should be analytically neutral descriptions of the conceptual configuration, not value judgements.
-    </p>
-    <div class="frame-naming-grid">`;
-
-  sortedClusters.forEach(([cId, items], idx) => {
-    const frameClass = `frame-${cId}`;
-    const llmName    = llmNames ? (llmNames.find(n => n.cluster === parseInt(cId)+1) || {}) : {};
-    const topConcepts = items.sort((a,b) => b.total - a.total).slice(0, 6).map(x => x.concept);
-    const reps = (repDocs[cId] || []).slice(0, 3);
-
-    html += `
-      <div class="frame-name-row">
-        <div>
-          <div class="frame-badge ${frameClass}">Cluster ${parseInt(cId)+1}</div>
-          <div style="margin-top:0.75rem;">
-            ${topConcepts.map(c => `<span class="concept-tag ${frameClass}" style="display:inline-block;margin:0.1rem;">${escHtml(c)}</span>`).join('')}
+  target.innerHTML = `
+    <p class="panel-sub">Alphabetical order — deliberately structure-blind, so no ordering choice here implies a finding.</p>
+    <div class="concept-list">
+      ${sorted.map(cid => {
+        const r = roles[cid];
+        const certEarned = r.stability >= processParams.stability_threshold;
+        return `<div class="concept-row">
+          <div>
+            <div class="concept-row-term">${escHtml(termById[cid])}</div>
+            ${roleBadgeHtml(r.role)}${statusTagHtml(r.stability)}
           </div>
-        </div>
-        <div>
-          <label style="display:block;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--ink-mid);margin-bottom:0.35rem;">Frame name</label>
-          <input class="frame-name-input frame-${cId}-input" type="text" id="frame-name-${cId}"
-            value="${escHtml(llmName.name || '')}" placeholder="Enter frame name…">
-          ${llmName.description ? `<div class="frame-llm-name" style="margin-top:0.35rem;">${escHtml(llmName.description)}</div>` : ''}
-        </div>
-        <div>
-          <label style="display:block;font-size:0.72rem;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--ink-mid);margin-bottom:0.35rem;">Representative documents</label>
-          <div class="rep-docs-list">
-            ${reps.map(r => `
-              <div class="rep-doc-item">
-                <span class="rep-doc-score">${r.score}</span>
-                <span class="rep-doc-name">${escHtml(r.doc.name)}</span>
-              </div>`).join('')}
-          </div>
-        </div>
-      </div>`;
-  });
-
-  html += `</div>
-    <div class="btn-row" style="margin-top:1.5rem;">
-      <button class="btn btn-success" onclick="exportFinalResults()">↓ Export final frame analysis</button>
+          <div class="concept-row-stat"><span class="cs-label">Stability</span>${r.stability.toFixed(2)}</div>
+          <div class="concept-row-stat"><span class="cs-label">Magnitude</span>${r.magnitude.toFixed(2)}</div>
+          <div class="concept-row-stat"><span class="cs-label">Certificate</span><span class="cert-icon ${certEarned?'earned':'not-earned'}">${certEarned?'●':'○'}</span></div>
+        </div>`;
+      }).join('')}
     </div>`;
-
-  body.innerHTML = html;
-  markStepDone('44');
 }
 
-function exportFinalResults() {
-  const { assignments } = clusterResult;
-  const concepts  = dtmData.concepts;
-  const clusters  = {};
-  assignments.forEach((c, i) => {
-    if (!clusters[c]) clusters[c] = [];
-    clusters[c].push(concepts[i]);
-  });
+// Panel D — role space (primary evidentiary weight, brief §2).
+function renderPanelD(target) {
+  const { roles } = serverTtm;
+  const conceptIds = dtmData.conceptIds.map(String);
+  const termById = {};
+  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
 
-  const frameNames = {};
-  Object.keys(clusters).forEach(cId => {
-    const input = document.getElementById(`frame-name-${cId}`);
-    frameNames[cId] = input ? input.value.trim() || `Frame ${parseInt(cId)+1}` : `Frame ${parseInt(cId)+1}`;
-  });
+  const w = 640, h = 420, pad = 40;
+  const maxMag = Math.max(1, ...conceptIds.map(cid => roles[cid].magnitude));
+  const roleColor = { distinguishing: '#2a6b4a', bridging: '#1c7a9c', orthogonal: '#9a9490', weak: '#7a5c1a' };
 
-  const lines = [
-    '# CORRELATING RESONANCE — FRAME ANALYSIS RESULTS',
-    `# Generated: ${new Date().toLocaleString()}`,
-    `# Clusters: ${clusterResult.n_clusters} · Explained variance: ${(clusterResult.explained_variance*100).toFixed(1)}%`,
-    '#',
-    'Frame_Number,Frame_Name,Concept',
-  ];
+  const points = conceptIds.map(cid => {
+    const r = roles[cid];
+    const x = pad + r.stability * (w - 2*pad);
+    const y = h - pad - (r.magnitude / maxMag) * (h - 2*pad);
+    const color = roleColor[r.role] || '#8b3a2a';
+    const certified = r.stability >= processParams.stability_threshold;
+    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${certified?5:3.5}" fill="${color}" fill-opacity="${certified?0.9:0.45}" stroke="${certified?color:'none'}" stroke-width="1.5"><title>${escHtml(termById[cid])} — ${ROLE_TIER[r.role]||'?'} ${ROLE_LABEL[r.role]||r.role} (σ=${r.stability.toFixed(2)}, |resid|=${r.magnitude.toFixed(2)})</title></circle>`;
+  }).join('');
 
-  Object.entries(clusters).sort((a,b) => parseInt(a[0])-parseInt(b[0])).forEach(([cId, conceptList]) => {
-    const name = frameNames[cId];
-    conceptList.forEach(c => {
-      lines.push([parseInt(cId)+1, csvCell(name), csvCell(c)].join(','));
+  const threshX = pad + processParams.stability_threshold * (w - 2*pad);
+
+  target.innerHTML = `
+    <p class="panel-sub">Stability (x) vs. mean residual magnitude (y). Filled, ringed points passed the stability threshold; hollow, faint points did not. This is the figure carrying the primary evidentiary weight for this run.</p>
+    <div class="role-space-wrap">
+      <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+        <line x1="${threshX}" y1="${pad}" x2="${threshX}" y2="${h-pad}" stroke="var(--rule)" stroke-dasharray="4 3"/>
+        <line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="var(--ink-light)"/>
+        <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${h-pad}" stroke="var(--ink-light)"/>
+        <text x="${w/2}" y="${h-8}" font-size="10" fill="var(--ink-light)" text-anchor="middle" font-family="var(--mono)">stability (σ) →</text>
+        ${points}
+      </svg>
+      <div class="role-space-legend">
+        <div class="legend-item"><span style="width:10px;height:10px;border-radius:50%;background:#2a6b4a;display:inline-block;"></span>Distinguishing</div>
+        <div class="legend-item"><span style="width:10px;height:10px;border-radius:50%;background:#1c7a9c;display:inline-block;"></span>Bridging</div>
+        <div class="legend-item"><span style="width:10px;height:10px;border-radius:50%;background:#9a9490;display:inline-block;"></span>Orthogonal</div>
+        <div class="legend-item"><span style="width:10px;height:10px;border-radius:50%;background:#7a5c1a;display:inline-block;"></span>Weak</div>
+      </div>
+    </div>`;
+}
+
+// Panel E — raw BEA-seriated order (brief §2).
+function renderPanelE(target) {
+  const { bea } = serverTtm;
+  const termById = {};
+  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
+
+  target.innerHTML = `
+    <p class="panel-sub">Raw BEA-seriated ordering — concepts placed to maximise adjacent positive-residual bond strength.</p>
+    <div class="bea-adjacency-stat" style="margin-bottom:1rem;">
+      <div class="stat-item"><span class="stat-val">${(bea.adjacency*100).toFixed(0)}%</span><span class="stat-label">Same-block adjacency, observed</span></div>
+      <div class="stat-item"><span class="stat-val">${(bea.null_mean*100).toFixed(0)}%</span><span class="stat-label">Null mean (${processParams.n_null} permutations)</span></div>
+      <div class="stat-item"><span class="stat-val">${(bea.null_p95*100).toFixed(0)}%</span><span class="stat-label">Null 95th percentile</span></div>
+    </div>
+    <div class="bea-order-strip">
+      ${bea.order.map((cid, i) => `<span class="bea-order-item">${i+1}. ${escHtml(termById[cid])}</span>`).join('')}
+    </div>`;
+}
+
+// Panel C — inherits Panel E's ordering, never independently re-derived
+// (brief §2). Content choice here (a residual heatmap laid out in BEA
+// order, revealing block adjacency visually) is a design decision made
+// in the absence of the unreachable source documents — flagged for
+// review in this build's completion note, not asserted as confirmed intent.
+function renderPanelC(target) {
+  const { bea, residuals, consensus } = serverTtm;
+  const order = bea.order; // never re-sorted here
+  const termById = {};
+  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
+
+  const n = order.length;
+  const cell = Math.max(4, Math.min(18, Math.floor(560 / n)));
+  const max = Math.max(1, ...order.flatMap(ci => order.map(cj => Math.abs(residuals.matrix[ci][cj]))));
+
+  let rects = '';
+  order.forEach((ci, ri) => {
+    order.forEach((cj, ci2) => {
+      const v = residuals.matrix[ci][cj];
+      const sameBlock = consensus.blocks[ci] === consensus.blocks[cj];
+      const intensity = Math.min(1, Math.abs(v) / max);
+      const color = v >= 0
+        ? `rgba(28,122,156,${(sameBlock?0.9:0.5)*intensity})`
+        : `rgba(139,58,42,${(sameBlock?0.9:0.5)*intensity})`;
+      rects += `<rect x="${ci2*cell}" y="${ri*cell}" width="${cell}" height="${cell}" fill="${color}"><title>${escHtml(termById[ci])} × ${escHtml(termById[cj])}: ${v.toFixed(2)}</title></rect>`;
     });
   });
 
-  download(`CR_FrameAnalysis_${today()}.csv`, lines.join('\n'), 'text/csv');
-
-  // Also export document-frame assignments
-  const docLines = [
-    '# CORRELATING RESONANCE — DOCUMENT FRAME SCORES',
-    `# Generated: ${new Date().toLocaleString()}`,
-    '#',
-    ['Doc_ID', 'Filename', ...Object.entries(frameNames).sort((a,b)=>parseInt(a[0])-parseInt(b[0])).map(([cId,n]) => csvCell(`Frame${parseInt(cId)+1}_${n}`))].join(',')
-  ];
-
-  dtmData.docs.forEach((doc, di) => {
-    const clusterConceptIdxs = {};
-    assignments.forEach((c, ci) => {
-      if (!clusterConceptIdxs[c]) clusterConceptIdxs[c] = [];
-      clusterConceptIdxs[c].push(ci);
-    });
-    const frameScores = Object.keys(clusters).sort((a,b)=>parseInt(a)-parseInt(b)).map(cId => {
-      const idxs = clusterConceptIdxs[cId] || [];
-      return idxs.reduce((s, ci) => s + (binaryMatrix[di][ci] || 0), 0);
-    });
-    docLines.push([csvCell(doc.id), csvCell(doc.name), ...frameScores].join(','));
-  });
-
-  setTimeout(() => {
-    download(`CR_DocumentFrameScores_${today()}.csv`, docLines.join('\n'), 'text/csv');
-  }, 500);
+  target.innerHTML = `
+    <p class="panel-c-note">Same order as Panel E (BEA seriation) — this view never re-derives its own ordering. Residual matrix in that order; blue = positive residual, terracotta = negative, deeper colour = same consensus block.</p>
+    <div class="role-space-wrap" style="overflow:auto;">
+      <svg width="${n*cell}" height="${n*cell}">${rects}</svg>
+    </div>`;
 }
 
 // ── Step state helpers ────────────────────────────────────────────────
@@ -996,16 +1121,15 @@ function markStepActive(id) {
   document.getElementById(`num-${id}`).classList.add('active');
 }
 function resetAll() {
-  dtmData = binaryMatrix = ttmData = clusterResult = serverTtm = null;
-  ['41','42','43','44'].forEach(id => {
+  dtmData = binaryMatrix = ttmData = serverTtm = null;
+  ['41','42','process'].forEach(id => {
     document.getElementById(`num-${id}`).className = 'step-num';
   });
   document.getElementById('bin-waiting').style.display  = 'block';
   document.getElementById('bin-controls').style.display = 'none';
   document.getElementById('bin-status').textContent     = '';
   document.getElementById('ttm-body').innerHTML    = '<p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for binarisation…</p>';
-  document.getElementById('cluster-body').innerHTML = '<p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for TTM construction…</p>';
-  document.getElementById('naming-body').innerHTML   = '<p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for confirmed cluster structure…</p>';
+  document.getElementById('process-body').innerHTML = '<p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for term-term matrix…</p>';
   document.getElementById('ttm-actions').innerHTML  = '';
   document.getElementById('error-display').innerHTML = '';
   // Reset heatmap canvas

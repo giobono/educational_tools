@@ -346,9 +346,128 @@
   .callout { background: white; border-left: 3px solid var(--accent); padding: 1rem 1.25rem; margin-bottom: 2rem; font-family: var(--serif); font-size: 0.88rem; line-height: 1.7; color: var(--ink-mid); }
   .callout strong { color: var(--ink); font-family: var(--sans); font-size: 0.82rem; }
 
+  /* ── CorRes process (Addie's method, Stages 2-5) ──────────────────────
+     Instance brief 2026-07-24: corres_frontend_build_2026_07. Fixture-data
+     build (backend reachability not yet resolved) - see FIXTURE DATA flag. */
+
+  .fixture-flag {
+    font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--warning); background: var(--warning-bg);
+    border: 1px solid var(--warning-border); padding: 0.2rem 0.55rem; border-radius: 2px;
+    cursor: help;
+  }
+
+  /* Declared-parameters transparency (brief §2: "whatever run produced a
+     result, its parameters should be visible alongside it, not buried"). */
+  .params-panel {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.75rem; padding: 1rem; background: var(--paper-mid);
+    border: 1px solid var(--rule); border-radius: 3px; margin-bottom: 1.25rem;
+  }
+  .param-item { display: flex; flex-direction: column; gap: 0.15rem; }
+  .param-label { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); }
+  .param-val { font-family: var(--mono); font-size: 0.85rem; color: var(--ink); font-weight: 500; }
+  .param-val.confirm-pending { color: var(--warning); }
+  .param-val.confirm-pending::after { content: ' ⟦confirm⟧'; font-size: 0.65rem; opacity: 0.75; }
+
+  /* Vocabulary discipline (brief §2): "role classification" is this
+     five-role scheme (CORE/BORDER + four leaves) and must read as
+     distinct from "concept typology" (the fixed Stage-1 coding frame)
+     wherever both terms could appear near each other. */
+  .vocab-note { font-family: var(--serif); font-style: italic; font-size: 0.78rem; color: var(--ink-light); margin-bottom: 1.25rem; }
+  .vocab-note strong { font-style: normal; color: var(--ink-mid); }
+
+  /* Role taxonomy: CORE{Distinguishing,Bridging} / BORDER{Orthogonal,Weak}
+     (brief §2, superseding the flat four/five-item list; Addie-confirmed
+     24 Jul). Backend still returns the flat leaf value only - grouping
+     into CORE/BORDER happens here, client-side. */
+  .role-badge {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.04em;
+    padding: 0.2rem 0.5rem; border-radius: 2px; white-space: nowrap;
+  }
+  .role-badge .tier { opacity: 0.7; }
+  .role-core-distinguishing { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+  .role-core-bridging       { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-light); }
+  .role-border-orthogonal   { background: var(--paper-mid); color: var(--ink-light); border: 1px solid var(--rule); }
+  .role-border-weak         { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
+  /* Known defect (brief §2): current python may return "Unclassified Core"
+     for some genuine Core Bridging concepts - not found in the actual
+     feature-branch code as read (flagged as a discrepancy), but handled
+     defensively per the brief's explicit instruction regardless. */
+  .role-unclassified {
+    background: #fdf0ee; color: var(--accent); border: 1px dashed #e8b4aa;
+  }
+  .role-caveat {
+    display: block; font-family: var(--serif); font-style: italic;
+    font-size: 0.68rem; color: var(--accent); margin-top: 0.2rem;
+  }
+
+  /* Status labelling (brief §2: "not cosmetic... needs to travel with
+     the number, not live only in a footnote") */
+  .status-tag {
+    font-family: var(--mono); font-size: 0.56rem; letter-spacing: 0.08em;
+    text-transform: uppercase; padding: 0.1rem 0.4rem; border-radius: 2px;
+    margin-left: 0.4rem;
+  }
+  .status-certified   { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+  .status-exploratory { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
+
+  /* Stability certificates (brief §2: earned/not-earned per concept;
+     "no certificates" is a real, non-error result - see .cert-none-banner) */
+  .cert-icon { font-size: 0.85rem; }
+  .cert-icon.earned { color: var(--success); }
+  .cert-icon.not-earned { color: var(--ink-light); opacity: 0.5; }
+  .cert-none-banner {
+    display: flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1.1rem;
+    background: var(--paper-mid); border: 1px solid var(--rule); border-radius: 3px;
+    font-family: var(--serif); font-size: 0.85rem; color: var(--ink-mid); margin-bottom: 1.25rem;
+  }
+
+  /* Panel tabs (B / C / D / E) */
+  .panel-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--ink); margin-bottom: 1.25rem; }
+  .panel-tab {
+    font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 0.6rem 1.1rem; background: none; border: none; cursor: pointer;
+    color: var(--ink-light); border-bottom: 2px solid transparent; margin-bottom: -2px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .panel-tab:hover { color: var(--ink); }
+  .panel-tab.active { color: var(--ink); border-color: var(--accent); font-weight: 600; }
+  .panel-sub { font-family: var(--serif); font-style: italic; font-size: 0.8rem; color: var(--ink-light); margin-bottom: 1rem; }
+
+  /* Panel B: alphabetical, structure-blind concept list */
+  .concept-list { display: flex; flex-direction: column; gap: 0.4rem; }
+  .concept-row {
+    display: grid; grid-template-columns: 1fr auto auto auto; gap: 1rem; align-items: center;
+    padding: 0.6rem 0.85rem; border: 1px solid var(--rule); border-radius: 3px; background: white;
+  }
+  .concept-row-term { font-weight: 500; color: var(--ink); }
+  .concept-row-stat { font-family: var(--mono); font-size: 0.72rem; color: var(--ink-mid); text-align: right; }
+  .concept-row-stat .cs-label { display: block; font-size: 0.55rem; color: var(--ink-light); letter-spacing: 0.06em; text-transform: uppercase; }
+
+  /* Panel D: role space scatter (primary evidentiary weight, brief §2) */
+  .role-space-wrap { border: 1px solid var(--rule); border-radius: 3px; background: white; padding: 1rem; overflow: auto; }
+  .role-space-legend { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.75rem; font-family: var(--mono); font-size: 0.62rem; color: var(--ink-light); }
+  .role-space-legend .legend-item { display: flex; align-items: center; gap: 0.35rem; }
+
+  /* Panel E: BEA-seriated order */
+  .bea-order-strip { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
+  .bea-order-item {
+    font-family: var(--mono); font-size: 0.68rem; padding: 0.3rem 0.6rem;
+    border-radius: 2px; background: var(--paper-mid); color: var(--ink-mid);
+    border: 1px solid var(--rule);
+  }
+  .bea-adjacency-stat { display: flex; gap: 2rem; flex-wrap: wrap; }
+
+  /* Panel C: inherits Panel E's ordering - never independently re-derived */
+  .panel-c-note { font-family: var(--serif); font-style: italic; font-size: 0.75rem; color: var(--ink-light); margin-bottom: 1rem; }
+
   @media (max-width: 800px) {
     .workspace { padding: 1.5rem; }
     header { padding: 1.25rem 1.5rem; }
     .frame-name-row { grid-template-columns: 1fr; }
+    .concept-row { grid-template-columns: 1fr; text-align: left; }
+    .concept-row-stat { text-align: left; }
   }
 
