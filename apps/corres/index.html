@@ -134,7 +134,7 @@
 <span class="step-num" id="num-process">2–5</span>
 <span class="step-name">Stability, Roles &amp; Seriation</span>
 </div>
-<span class="fixture-flag" title="Backend reachability for the new endpoints wasn't resolved this session — panels render against mocked data built to the real API schemas (build_ttm.py), not a live pipeline run. See this build's completion note.">FIXTURE DATA</span>
+<span class="fixture-flag" id="fixture-flag" style="display:none;" title="The real backend call failed and this run fell back to fixture data (mocked, built to the real API schemas) rather than a live pipeline result.">FIXTURE DATA — backend unreachable, showing fixture data</span>
 </div>
 <div class="step-card-body" id="process-body">
 <p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for term-term matrix…</p>
@@ -673,6 +673,9 @@ function exportTTM() {
 
 const ROLE_TIER  = { distinguishing: 'CORE', bridging: 'CORE', orthogonal: 'BORDER', weak: 'BORDER' };
 const ROLE_LABEL = { distinguishing: 'Distinguishing', bridging: 'Bridging', orthogonal: 'Orthogonal', weak: 'Weak' };
+// unclassified_core (added 24 Jul, Definition 5's genuine fifth leaf) has
+// no tier — shared across Panel D's scatter and Panel E's role strip.
+const ROLE_COLOR = { distinguishing: '#2a6b4a', bridging: '#1c7a9c', orthogonal: '#9a9490', weak: '#7a5c1a', unclassified_core: '#8b3a2a' };
 
 // Declared parameters (brief §2: "whatever run produced a result, its
 // parameters should be visible alongside it"). Threshold defaults are
@@ -688,6 +691,13 @@ let processParams = {
   n_null: 500,
   stability_threshold: 0.75,
   abs_bridge_threshold: 2.0,
+  // core_distinguishing_min_affinity (tau_a): added 24 Jul per D2Dev's
+  // classify_roles.py rewrite against Definition 5 — own-block affinity
+  // must clear this bar to qualify as core distinguishing, not merely be
+  // positive. Server default 0.0, deliberately conservative pending
+  // Louis/Addie confirmation — same confirm-pending treatment as the
+  // other three.
+  core_distinguishing_min_affinity: 0.0,
   weak_own_threshold: 0.5,
   weak_max_abs_threshold: 2.0,
 };
@@ -728,8 +738,9 @@ function renderParamsPanel() {
     ${paramField('Consensus seed', 'seed', p.seed, 0, 9999)}
     ${paramField('BEA seed', 'bea_seed', p.bea_seed, 0, 9999)}
     ${paramField('Permutation draws', 'n_null', p.n_null, 1, 5000)}
-    <div class="param-item"><span class="param-label">Stability threshold</span><span class="param-val confirm-pending">${p.stability_threshold}</span></div>
-    <div class="param-item"><span class="param-label">Abs. bridge threshold</span><span class="param-val confirm-pending">${p.abs_bridge_threshold}</span></div>
+    <div class="param-item"><span class="param-label">Stability threshold (τσ)</span><span class="param-val confirm-pending">${p.stability_threshold}</span></div>
+    <div class="param-item"><span class="param-label">Abs. bridge threshold (τx)</span><span class="param-val confirm-pending">${p.abs_bridge_threshold}</span></div>
+    <div class="param-item"><span class="param-label">Core distinguishing min. affinity (τa)</span><span class="param-val confirm-pending">${p.core_distinguishing_min_affinity}</span></div>
     <div class="param-item"><span class="param-label">Weak own threshold</span><span class="param-val confirm-pending">${p.weak_own_threshold}</span></div>
     <div class="param-item"><span class="param-label">Weak max-abs threshold</span><span class="param-val confirm-pending">${p.weak_max_abs_threshold}</span></div>`;
 }
@@ -743,6 +754,39 @@ function paramField(label, key, value, min, max) {
   </div>`;
 }
 
+// Real chain, per D2Dev's 24 Jul wiring instructions (briefs/d1dev/
+// 2026-07-24_briefs_d2dev_d1dev_corres_backend_wiring_instructions.md
+// §1) — same chained callAppAPI/pollTask pattern buildTTMServer already
+// uses for /build. /residuals and /classify-roles take no meaningful
+// params (empty {} still required by the request schema); /consensus-
+// cluster needs n_clusters/n_splits/seed; /bea-order needs n_null/seed.
+// UNTESTED from this machine — no backend was reachable from Windows
+// this session (see completion note). First thing to verify on the Mac.
+async function runRealProcessChain() {
+  const consensusParams = {
+    n_clusters: processParams.n_clusters,
+    n_splits: processParams.n_splits,
+    seed: processParams.seed,
+  };
+
+  let created = await callAppAPI('corres', 'ttm/residuals', { ttm: serverTtm, params: {} });
+  serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
+
+  created = await callAppAPI('corres', 'ttm/consensus-cluster', { ttm: serverTtm, params: consensusParams });
+  serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
+
+  created = await callAppAPI('corres', 'ttm/classify-roles', { ttm: serverTtm, params: {} });
+  serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
+
+  created = await callAppAPI('corres', 'ttm/bea-order', {
+    ttm: serverTtm,
+    params: { n_null: processParams.n_null, seed: processParams.bea_seed },
+  });
+  serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
+}
+
+let lastRunWasFixture = false;
+
 async function runProcessChain() {
   clearError();
   document.getElementById('run-process-btn').disabled = true;
@@ -750,23 +794,27 @@ async function runProcessChain() {
   document.getElementById('process-results').innerHTML = '';
 
   try {
-    const conceptIds = dtmData.conceptIds.map(String);
-
-    // FIXTURE: real path is the same chained callAppAPI/pollTask pattern
-    // as buildTTMServer above — corres/ttm/{residuals,consensus-cluster,
-    // classify-roles,bea-order} in turn, each re-submitting the growing
-    // TTMArtefact. Swap here once backend reachability is resolved;
-    // nothing downstream of this function needs to change.
-    await new Promise(r => setTimeout(r, 350));
-    const residuals = mockComputeResiduals(conceptIds, processParams.seed);
-    await new Promise(r => setTimeout(r, 350));
-    const consensus = mockConsensusCluster(conceptIds, residuals, processParams);
-    await new Promise(r => setTimeout(r, 350));
-    const roles = mockClassifyRoles(conceptIds, residuals, consensus, processParams);
-    await new Promise(r => setTimeout(r, 350));
-    const bea = mockBeaOrder(conceptIds, residuals, consensus.blocks, processParams);
-
-    serverTtm = Object.assign({}, serverTtm, { residuals, consensus, roles, bea });
+    try {
+      await runRealProcessChain();
+      lastRunWasFixture = false;
+    } catch (backendErr) {
+      // Graceful fallback, not a hard failure — backend reachability from
+      // this build was an open question as of 24 Jul (D2Dev's brief §1:
+      // "I don't know what CORRES_CONFIG.apiBase your build currently
+      // points at, or whether it can reach a Mac-hosted artie instance").
+      // Falls back to the same fixture generators this build shipped
+      // with, so the demo still works while that's unresolved — but
+      // flags plainly that it did, rather than silently passing off mock
+      // output as real.
+      console.warn('Real backend call failed, falling back to fixture data:', backendErr);
+      const conceptIds = dtmData.conceptIds.map(String);
+      const residuals = mockComputeResiduals(conceptIds, processParams.seed);
+      const consensus = mockConsensusCluster(conceptIds, residuals, processParams);
+      const roles = mockClassifyRoles(conceptIds, residuals, consensus, processParams);
+      const bea = mockBeaOrder(conceptIds, residuals, consensus.blocks, processParams);
+      serverTtm = Object.assign({}, serverTtm, { residuals, consensus, roles, bea });
+      lastRunWasFixture = true;
+    }
 
     renderProcessResults();
     markStepActive('process');
@@ -820,17 +868,36 @@ function mockConsensusCluster(conceptIds, residuals, params) {
     });
   });
 
-  return { n_splits: params.n_splits, n_clusters: params.n_clusters, seed: params.seed, matrix, blocks };
+  // Rough proportional stand-in for fixture runs only — NOT Proposition
+  // 2's exact combinatorial formula (added to ConsensusInfo 24 Jul; that
+  // formula needs the real backend, which computes it from the actual
+  // discovered block sizes). Good enough to exercise the UI, not to cite.
+  const blockSizes = {};
+  Object.values(blocks).forEach(b => { blockSizes[b] = (blockSizes[b] || 0) + 1; });
+  const n = conceptIds.length;
+  const chanceBaseline = n > 1
+    ? Object.values(blockSizes).reduce((s, sz) => s + sz * (sz - 1), 0) / (n * (n - 1))
+    : 0;
+
+  return { n_splits: params.n_splits, n_clusters: params.n_clusters, seed: params.seed, matrix, blocks, chance_baseline: chanceBaseline };
 }
 
-// Faithful port of classify_roles.py's _classify_one — see that file's
-// docstring for the bug this rule fixes over the prior ratio-based one.
+// Faithful port of classify_roles.py's _classify_one, updated 24 Jul to
+// match D2Dev's rewrite against Definition 5 (corres_formal_methods_
+// subsection_v0_1.md): bridging is now checked first and counts ALL block
+// affinities (own included) against tau_x, not just the non-own ones —
+// the ordering bug this fixes let a genuinely bridging concept with
+// non-positive own-block affinity fall into "orthogonal" before ever
+// being tested for bridging. "unclassified_core" is Definition 5's own
+// genuine fifth leaf (the "otherwise" case), not a defect.
 function classifyOne(own, others, stability, params) {
   if (stability >= params.stability_threshold) {
+    const allAffinities = [own, ...others];
+    const qualifyingBlocks = allAffinities.filter(a => a >= params.abs_bridge_threshold).length;
+    if (qualifyingBlocks >= 2) return 'bridging';
     if (own <= 0) return 'orthogonal';
-    if (Math.max(...others) >= params.abs_bridge_threshold) return 'bridging';
-    if (Math.min(...others) < 0) return 'distinguishing';
-    return 'distinguishing'; // no repulsion, no qualifying bridge — weak positive spillover only
+    if (own >= params.core_distinguishing_min_affinity && Math.max(...others) < params.abs_bridge_threshold) return 'distinguishing';
+    return 'unclassified_core';
   }
   const maxAbs = Math.max(...[own, ...others].map(v => Math.abs(v)));
   if (own <= params.weak_own_threshold && maxAbs < params.weak_max_abs_threshold) return 'weak';
@@ -927,15 +994,27 @@ function renderProcessResults() {
   const certified = conceptIds.filter(cid => roles[cid].stability >= processParams.stability_threshold);
   const resultsDiv = document.getElementById('process-results');
 
+  document.getElementById('fixture-flag').style.display = lastRunWasFixture ? 'inline-block' : 'none';
+
   let html = '';
+
+  // Chance baseline (Proposition 2's exact combinatorial formula, added
+  // 24 Jul to ConsensusInfo — groundwork for Definition 5's "boundary"
+  // test, not yet consumed by classify_roles.py, but the number itself is
+  // exactly the "tested against chance" evidence CD's positioning note
+  // leans on). chanceBaseline() below is a rough proportional stand-in
+  // for fixture runs, not Proposition 2's real formula — flagged in its
+  // own comment.
+  const chanceBaseline = serverTtm.consensus.chance_baseline;
 
   // Certificate summary (brief §2: "no certificates" is a real result, not an error).
   if (certified.length === 0) {
-    html += `<div class="cert-none-banner"><span class="cert-icon not-earned">◇</span> No concept earned a stability certificate against the exact chance baseline at these settings — a legitimate result, not an error. Consider more splits or a different block count before concluding the structure is unstable.</div>`;
+    html += `<div class="cert-none-banner"><span class="cert-icon not-earned">◇</span> No concept earned a stability certificate against the exact chance baseline (${(chanceBaseline*100).toFixed(1)}%) at these settings — a legitimate result, not an error. Consider more splits or a different block count before concluding the structure is unstable.</div>`;
   } else {
     const { bea } = serverTtm;
     html += `<div class="stats-row" style="margin-bottom:1.25rem;">
       <div class="stat-item"><span class="stat-val">${certified.length}<span style="font-size:0.7rem;color:var(--ink-light);"> / ${conceptIds.length}</span></span><span class="stat-label">Concepts certified (σ ≥ ${processParams.stability_threshold})</span></div>
+      <div class="stat-item"><span class="stat-val">${(chanceBaseline*100).toFixed(1)}%</span><span class="stat-label">Exact chance baseline (Prop. 2)</span></div>
       <div class="stat-item"><span class="stat-val">${(bea.adjacency*100).toFixed(0)}%</span><span class="stat-label">BEA block adjacency</span></div>
       <div class="stat-item"><span class="stat-val">${(bea.null_p95*100).toFixed(0)}%</span><span class="stat-label">Null 95th pct. (${processParams.n_null} draws)</span></div>
     </div>`;
@@ -1027,13 +1106,11 @@ function renderPanelD(target) {
 
   const w = 640, h = 420, pad = 40;
   const maxMag = Math.max(1, ...conceptIds.map(cid => roles[cid].magnitude));
-  const roleColor = { distinguishing: '#2a6b4a', bridging: '#1c7a9c', orthogonal: '#9a9490', weak: '#7a5c1a' };
-
   const points = conceptIds.map(cid => {
     const r = roles[cid];
     const x = pad + r.stability * (w - 2*pad);
     const y = h - pad - (r.magnitude / maxMag) * (h - 2*pad);
-    const color = roleColor[r.role] || '#8b3a2a';
+    const color = ROLE_COLOR[r.role] || '#8b3a2a';
     const certified = r.stability >= processParams.stability_threshold;
     return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${certified?5:3.5}" fill="${color}" fill-opacity="${certified?0.9:0.45}" stroke="${certified?color:'none'}" stroke-width="1.5"><title>${escHtml(termById[cid])} — ${ROLE_TIER[r.role]||'?'} ${ROLE_LABEL[r.role]||r.role} (σ=${r.stability.toFixed(2)}, |resid|=${r.magnitude.toFixed(2)})</title></circle>`;
   }).join('');
@@ -1055,43 +1132,21 @@ function renderPanelD(target) {
         <div class="legend-item"><span style="width:10px;height:10px;border-radius:50%;background:#1c7a9c;display:inline-block;"></span>Bridging</div>
         <div class="legend-item"><span style="width:10px;height:10px;border-radius:50%;background:#9a9490;display:inline-block;"></span>Orthogonal</div>
         <div class="legend-item"><span style="width:10px;height:10px;border-radius:50%;background:#7a5c1a;display:inline-block;"></span>Weak</div>
+        <div class="legend-item"><span style="width:10px;height:10px;border-radius:50%;background:#8b3a2a;display:inline-block;"></span>Unclassified core</div>
       </div>
     </div>`;
 }
 
-// Panel E — raw BEA-seriated order (brief §2).
-function renderPanelE(target) {
-  const { bea } = serverTtm;
-  const termById = {};
-  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
+// Shared block-colour palette — small hash-based list, not tied to any
+// particular n_clusters. Used by Panel E's block strip.
+const BLOCK_PALETTE = ['#2a4a7a', '#2a6b4a', '#7a3a6a', '#5a4a1a', '#1a5a6b', '#7a2a2a', '#4a2a7a', '#2a7a5a', '#7a5a2a', '#2a5a7a'];
 
-  target.innerHTML = `
-    <p class="panel-sub">Raw BEA-seriated ordering — concepts placed to maximise adjacent positive-residual bond strength.</p>
-    <div class="bea-adjacency-stat" style="margin-bottom:1rem;">
-      <div class="stat-item"><span class="stat-val">${(bea.adjacency*100).toFixed(0)}%</span><span class="stat-label">Same-block adjacency, observed</span></div>
-      <div class="stat-item"><span class="stat-val">${(bea.null_mean*100).toFixed(0)}%</span><span class="stat-label">Null mean (${processParams.n_null} permutations)</span></div>
-      <div class="stat-item"><span class="stat-val">${(bea.null_p95*100).toFixed(0)}%</span><span class="stat-label">Null 95th percentile</span></div>
-    </div>
-    <div class="bea-order-strip">
-      ${bea.order.map((cid, i) => `<span class="bea-order-item">${i+1}. ${escHtml(termById[cid])}</span>`).join('')}
-    </div>`;
-}
-
-// Panel C — inherits Panel E's ordering, never independently re-derived
-// (brief §2). Content choice here (a residual heatmap laid out in BEA
-// order, revealing block adjacency visually) is a design decision made
-// in the absence of the unreachable source documents — flagged for
-// review in this build's completion note, not asserted as confirmed intent.
-function renderPanelC(target) {
-  const { bea, residuals, consensus } = serverTtm;
-  const order = bea.order; // never re-sorted here
-  const termById = {};
-  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
-
-  const n = order.length;
-  const cell = Math.max(4, Math.min(18, Math.floor(560 / n)));
+// Residual-matrix heatmap as an SVG <rect> string, in a given concept
+// order — shared by Panel C (residuals, pending confirmation — see that
+// function) and Panel E (residuals, per D2Dev's read of Addie's original
+// figures: "a heatmap over the BEA-ordered residual matrix").
+function residualHeatmapRects(order, residuals, consensus, cell) {
   const max = Math.max(1, ...order.flatMap(ci => order.map(cj => Math.abs(residuals.matrix[ci][cj]))));
-
   let rects = '';
   order.forEach((ci, ri) => {
     order.forEach((cj, ci2) => {
@@ -1101,14 +1156,75 @@ function renderPanelC(target) {
       const color = v >= 0
         ? `rgba(28,122,156,${(sameBlock?0.9:0.5)*intensity})`
         : `rgba(139,58,42,${(sameBlock?0.9:0.5)*intensity})`;
-      rects += `<rect x="${ci2*cell}" y="${ri*cell}" width="${cell}" height="${cell}" fill="${color}"><title>${escHtml(termById[ci])} × ${escHtml(termById[cj])}: ${v.toFixed(2)}</title></rect>`;
+      rects += `<rect x="${ci2*cell}" y="${ri*cell}" width="${cell}" height="${cell}" fill="${color}"/>`;
     });
   });
+  return rects;
+}
+
+// Panel E — raw BEA-seriated order (brief §2), upgraded 24 Jul per
+// D2Dev's read of Addie's original Python figures: a heatmap over the
+// BEA-ordered residual matrix, with stacked block/stability/role colour
+// strips — not just the ordered list this panel shipped with initially
+// (which is kept above the matrix; it captures the ordering and adjacency
+// stat correctly on its own, just not the visual matrix).
+function renderPanelE(target) {
+  const { bea, residuals, consensus, roles } = serverTtm;
+  const order = bea.order;
+  const termById = {};
+  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
+
+  const cell = Math.max(4, Math.min(18, Math.floor(560 / order.length)));
+  const stripH = 10;
+  const matrixW = order.length * cell;
+
+  const blockStrip = order.map((cid, i) => `<rect x="${i*cell}" y="0" width="${cell}" height="${stripH}" fill="${BLOCK_PALETTE[consensus.blocks[cid] % BLOCK_PALETTE.length]}"><title>${escHtml(termById[cid])} — block ${consensus.blocks[cid]}</title></rect>`).join('');
+  const stabilityStrip = order.map((cid, i) => `<rect x="${i*cell}" y="0" width="${cell}" height="${stripH}" fill="rgba(28,122,156,${roles[cid].stability.toFixed(2)})"><title>${escHtml(termById[cid])} — σ=${roles[cid].stability.toFixed(2)}</title></rect>`).join('');
+  const roleStrip = order.map((cid, i) => `<rect x="${i*cell}" y="0" width="${cell}" height="${stripH}" fill="${ROLE_COLOR[roles[cid].role] || '#8b3a2a'}"><title>${escHtml(termById[cid])} — ${ROLE_LABEL[roles[cid].role] || 'Unclassified core'}</title></rect>`).join('');
+
+  target.innerHTML = `
+    <p class="panel-sub">Raw BEA-seriated ordering — concepts placed to maximise adjacent positive-residual bond strength.</p>
+    <div class="bea-adjacency-stat" style="margin-bottom:1rem;">
+      <div class="stat-item"><span class="stat-val">${(bea.adjacency*100).toFixed(0)}%</span><span class="stat-label">Same-block adjacency, observed</span></div>
+      <div class="stat-item"><span class="stat-val">${(bea.null_mean*100).toFixed(0)}%</span><span class="stat-label">Null mean (${processParams.n_null} permutations)</span></div>
+      <div class="stat-item"><span class="stat-val">${(bea.null_p95*100).toFixed(0)}%</span><span class="stat-label">Null 95th percentile</span></div>
+    </div>
+    <div class="bea-order-strip">
+      ${order.map((cid, i) => `<span class="bea-order-item">${i+1}. ${escHtml(termById[cid])}</span>`).join('')}
+    </div>
+    <div class="role-space-wrap" style="overflow:auto;">
+      <div style="font-family:var(--mono);font-size:0.58rem;color:var(--ink-light);margin-bottom:2px;">Block</div>
+      <svg width="${matrixW}" height="${stripH}" style="display:block;">${blockStrip}</svg>
+      <div style="font-family:var(--mono);font-size:0.58rem;color:var(--ink-light);margin:4px 0 2px;">Stability</div>
+      <svg width="${matrixW}" height="${stripH}" style="display:block;">${stabilityStrip}</svg>
+      <div style="font-family:var(--mono);font-size:0.58rem;color:var(--ink-light);margin:4px 0 2px;">Role</div>
+      <svg width="${matrixW}" height="${stripH}" style="display:block;margin-bottom:6px;">${roleStrip}</svg>
+      <svg width="${matrixW}" height="${order.length*cell}">${residualHeatmapRects(order, residuals, consensus, cell)}</svg>
+    </div>`;
+}
+
+// Panel C — inherits Panel E's ordering, never independently re-derived
+// (brief §2 — confirmed correct by D2Dev's 24 Jul read of the now-
+// reachable source documents; do not change the ordering logic below).
+// CONTENT IS STILL UNCONFIRMED: this renders the residual matrix. D2Dev's
+// 24 Jul brief §3, having actually read the article and formal methods
+// subsection, recommends the CONSENSUS matrix instead (the article's
+// nearest equivalent figure, Stage 3, is explicitly "sorted by consensus
+// block" — keep this ordering, swap the cell values) — held as a strong
+// recommendation, explicitly not a settled fact, pending "a direct
+// one-line confirmation from Geoff/Louis." Not implemented here for that
+// reason — see the visible note this function renders, and this build's
+// completion note.
+function renderPanelC(target) {
+  const { bea, residuals, consensus } = serverTtm;
+  const order = bea.order; // never re-sorted here
+  const cell = Math.max(4, Math.min(18, Math.floor(560 / order.length)));
 
   target.innerHTML = `
     <p class="panel-c-note">Same order as Panel E (BEA seriation) — this view never re-derives its own ordering. Residual matrix in that order; blue = positive residual, terracotta = negative, deeper colour = same consensus block.</p>
+    <p class="panel-c-note" style="color:var(--warning);">Content shown is the <strong>residual</strong> matrix. D2Dev's reading of the article and formal methods subsection recommends this should be the <strong>consensus</strong> matrix instead — a strong recommendation, not a confirmed answer. Awaiting a one-line confirmation from Geoff/Louis before switching.</p>
     <div class="role-space-wrap" style="overflow:auto;">
-      <svg width="${n*cell}" height="${n*cell}">${rects}</svg>
+      <svg width="${order.length*cell}" height="${order.length*cell}">${residualHeatmapRects(order, residuals, consensus, cell)}</svg>
     </div>`;
 }
 
