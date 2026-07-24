@@ -367,20 +367,3 @@
     .corpus-upload-row { flex-direction: column; }
   }
 
-  /* ── Shared navigation ── */
-  .cr-nav { border-bottom: 2px solid var(--ink); padding: 1rem 2rem; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
-  .cr-nav-logo { font-family: var(--serif); font-weight: 300; font-size: 1.1rem; letter-spacing: -0.02em; text-decoration: none; color: var(--ink); flex-shrink: 0; }
-  .cr-nav-logo em { font-style: italic; color: var(--accent); }
-  .cr-phases { display: flex; align-items: center; gap: 0; }
-  .cr-phase-link { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.07em; text-transform: uppercase; text-decoration: none; padding: 0.3rem 0.65rem; border: 1px solid var(--paper-dark); border-right: none; color: var(--ink-light); transition: background 0.15s, color 0.15s; white-space: nowrap; }
-  .cr-phase-link:first-child { border-radius: 3px 0 0 3px; }
-  .cr-phase-link:last-child { border-right: 1px solid var(--paper-dark); border-radius: 0 3px 3px 0; }
-  .cr-phase-link:hover { background: var(--paper-mid); color: var(--ink); }
-  .cr-phase-link.current { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-  .cr-nav-home { margin-left: auto; font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; color: var(--ink-light); border-bottom: 1px solid transparent; transition: color 0.15s, border-color 0.15s; }
-  .cr-nav-home:hover { color: var(--accent); border-color: var(--accent); }
-  .cr-bottom-nav { border-top: 1px solid var(--rule); padding: 1.5rem 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-top: 3rem; background: white; }
-  .cr-bottom-btn { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; color: var(--ink-mid); padding: 0.5rem 1rem; border: 1px solid var(--paper-dark); border-radius: 3px; transition: all 0.15s; }
-  .cr-bottom-btn:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-  .cr-bottom-btn.ghost { opacity: 0.25; pointer-events: none; }
-  .cr-bottom-center { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-light); text-align: center; }
