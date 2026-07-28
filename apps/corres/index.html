@@ -703,7 +703,10 @@ let processParams = {
   n_splits: 25,
   seed: 7,
   bea_seed: 13,
-  n_null: 500,
+  // 2000, not 500 - corrected 28 Jul against CorRes_Article_Headline_Draft_
+  // v0_6.md's own reported figure ("across two thousand permutations",
+  // adjacency 57% vs a 95th-percentile ceiling of 57% at n=2000).
+  n_null: 2000,
   // tau_sigma - per-corpus, proposed by back end from c0 (spec §2.7); no
   // proposing endpoint exists yet, so declared from the 17 Jul fixture.
   stability_threshold: 0.75,
@@ -1143,33 +1146,42 @@ function statusTagHtml(stability) {
   return `<span class="status-tag ${certified ? 'status-certified' : 'status-exploratory'}">${certified ? 'Certified' : 'Exploratory'}</span>`;
 }
 
-// Stage 1 — raw matrix, two panels (brief §3.6 item 1). Uses only Stage-1
-// TTM data (matrix/totals/concept_order) — no residuals, consensus or
-// roles needed, so this could render as soon as the TTM exists; kept
-// here alongside the rest for one consistent sequence. "The second panel
-// is the trap being sprung, not a better view" — sorting by raw co-
-// occurrence LOOKS like a reasonable clustering but isn't the certified
-// method; shown side by side with alphabetical deliberately so the
-// contrast with Stage 4's role space is visible later.
+// Stage 1 — raw matrix, two panels (article v0.6 Figure 1; reference
+// image panelA.png). CORRECTED 28 Jul: this was built as a sorted list of
+// numbers, not a matrix — reconciled against the actual reference image
+// and the article text ("The left panel displays the term–term matrix...
+// concepts in alphabetical order... The right panel shows the same
+// matrix sorted by total co-occurrence — and the result looks
+// compellingly like structure, but the reading is an illusion... This is
+// the specific trap Stage 2 exists to spring."). Both panels are the same
+// kind of figure — a concept x concept co-occurrence-count matrix — just
+// in two different concept orders. Grayscale, matching panelA.png; no
+// residuals/consensus/roles needed, only the Stage-1 TTM matrix/totals.
 function renderStage1RawMatrix(target) {
   const termById = {};
   dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
   const ids = dtmData.conceptIds.map(String);
   const alpha = [...ids].sort((a, b) => termById[a].localeCompare(termById[b]));
   const byCooccurrence = [...ids].sort((a, b) => (serverTtm.totals[b] || 0) - (serverTtm.totals[a] || 0));
+  const cell = Math.max(4, Math.min(18, Math.floor(420 / ids.length)));
+  const max = Math.max(1, ...ids.flatMap(ci => ids.map(cj => serverTtm.matrix[ci][cj] || 0)));
 
-  const list = (order) => `<div class="concept-list">${order.map(cid => `
-    <div class="concept-row" style="grid-template-columns:1fr auto;">
-      <div class="concept-row-term">${escHtml(termById[cid])}</div>
-      <div class="concept-row-stat"><span class="cs-label">Total co-occurrence</span>${serverTtm.totals[cid] || 0}</div>
-    </div>`).join('')}</div>`;
+  const matrixSvg = (order) => {
+    let rects = '';
+    order.forEach((ci, ri) => order.forEach((cj, cj2) => {
+      const v = serverTtm.matrix[ci][cj] || 0;
+      const grey = Math.round(255 - (v / max) * 255);
+      rects += `<rect x="${cj2*cell}" y="${ri*cell}" width="${cell}" height="${cell}" fill="rgb(${grey},${grey},${grey})"><title>${escHtml(termById[ci])} × ${escHtml(termById[cj])}: ${v}</title></rect>`;
+    }));
+    return `<svg width="${order.length*cell}" height="${order.length*cell}">${rects}</svg>`;
+  };
 
   target.innerHTML = `
     <div class="stage-head"><span class="stage-num">Stage 1</span><span class="stage-name">Raw matrix — two panels</span></div>
-    <p class="panel-sub">Alphabetical (left) and sorted by total co-occurrence (right). The sorted view is the trap being sprung, not a better view — it looks like a reasonable clustering but carries no certification. Compare against Stage 4's role space.</p>
+    <p class="panel-sub">Any sufficiently large matrix looks structured — this display proves nothing. Left: alphabetical order, deliberately, because at this stage nothing has been measured. Right: the same matrix sorted by total co-occurrence — this is the specific trap Stage 2 exists to spring, not a better view.</p>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
-      <div><div class="panel-sub" style="margin-bottom:0.5rem;">Alphabetical</div>${list(alpha)}</div>
-      <div><div class="panel-sub" style="margin-bottom:0.5rem;">Sorted by co-occurrence</div>${list(byCooccurrence)}</div>
+      <div><div class="panel-sub" style="margin-bottom:0.5rem;">Alphabetical</div><div class="role-space-wrap" style="overflow:auto;">${matrixSvg(alpha)}</div></div>
+      <div><div class="panel-sub" style="margin-bottom:0.5rem;">Sorted by co-occurrence</div><div class="role-space-wrap" style="overflow:auto;">${matrixSvg(byCooccurrence)}</div></div>
     </div>`;
 }
 
