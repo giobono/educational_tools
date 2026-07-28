@@ -721,6 +721,18 @@ let processParams = {
   // value, not a confirmed constant - flagged as such in the read-only
   // display, never silently presented as settled.
   weak_own_threshold: 0.5,
+  // spread_threshold (spec §2.2a) - fenced server-side (residual_admissibility.py:
+  // "provisional, one corpus' calibration", no hardcoded default), but AD's
+  // 28 Jul amendment §3.4 states the acceptance bound actually used to
+  // verify the benchmark: "Admissible if >= 1.0". Declared from that
+  // ratified acceptance criterion, not invented.
+  spread_threshold: 1.0,
+  // tau_rel (spec §2.9) - fenced, genuinely unconfirmed. AD's 28 Jul
+  // answer §4.1: "Recommended at 0.5 and awaiting Louis... Build the
+  // fence, not the number." Used here as the only stated value, marked
+  // Open (same treatment as weak_own_threshold) - not a guess, AD's own
+  // recommendation, but explicitly not ratified.
+  tau_rel: 0.5,
 };
 
 // Seeded PRNG (mulberry32) so fixture results are stable across reloads
@@ -772,36 +784,77 @@ function paramRow(label, value, status) {
 
 function renderParamsPanel() {
   const p = processParams;
-  document.getElementById('process-params-panel').innerHTML = `
+  let html = `
     ${paramRow('Block count (k)', p.n_clusters, 'Calibrated')}
     ${paramRow('Resample splits', p.n_splits, 'Calibrated')}
     ${paramRow('Stability threshold (τσ)', p.stability_threshold, 'Calibrated')}
     ${paramRow('Bridge threshold (τbridge)', p.tau_bridge, 'Calibrated')}
+    ${paramRow('Residual spread threshold', p.spread_threshold, 'Calibrated')}
+    ${paramRow('Reliability threshold (τrel)', p.tau_rel, 'Open')}
     ${paramRow('Distinguishing ratio', DISTINGUISHING_RATIO, 'Fixed')}
     ${paramRow('Weak/boundary magnitude test', WEAK_MAX_ABS_THRESHOLD, 'Fixed')}
-    ${paramRow('Weak own-affinity threshold', p.weak_own_threshold, 'Open')}
-    <p class="vocab-note" style="grid-column:1/-1;margin:0.5rem 0 0;">All values sourced from <code>corres_fixture_17jul_verified.json</code> (the only verified numbers available this session) — not computed live. The τbridge admissible-interval and τσ-proposal endpoints (spec §2.7-2.8) don't exist server-side yet.</p>`;
+    ${paramRow('Weak own-affinity threshold', p.weak_own_threshold, 'Open')}`;
+
+  // Backend-proposed values (spec §2.7/§2.8), shown alongside the
+  // declared value once a real run has returned them — display only,
+  // per Annex A §A5; the researcher still doesn't choose here.
+  if (serverTtm && serverTtm.consensus && serverTtm.consensus.tau_sigma_proposed) {
+    html += `<div class="param-item"><span class="param-label">Backend-proposed τσ <span class="param-status param-calibrated">Proposed</span></span><span class="param-val">${serverTtm.consensus.tau_sigma_proposed.toFixed(4)}</span></div>`;
+  }
+  if (serverTtm && serverTtm.tau_bridge_interval) {
+    const tbi = serverTtm.tau_bridge_interval;
+    html += `<div class="param-item"><span class="param-label">Backend τbridge interval <span class="param-status param-calibrated">Proposed</span></span><span class="param-val">(${tbi.lower.toFixed(2)}, ${tbi.upper.toFixed(2)}] → ${tbi.proposed.toFixed(2)}</span></div>`;
+  }
+
+  html += `<p class="vocab-note" style="grid-column:1/-1;margin:0.5rem 0 0;">Declared values sourced from <code>corres_fixture_17jul_verified.json</code> and AD's 28 Jul amendment (spread/reliability thresholds) — the τbridge/τσ-proposing endpoints now exist server-side (wired below) but this remains a read-only display, not the elicitation interface (Annex A §A5).</p>`;
+
+  document.getElementById('process-params-panel').innerHTML = html;
 }
 
-// Real chain, per D2Dev's 24 Jul wiring instructions (briefs/d1dev/
-// 2026-07-24_briefs_d2dev_d1dev_corres_backend_wiring_instructions.md
-// §1) — same chained callAppAPI/pollTask pattern buildTTMServer already
-// uses for /build. /residuals and /classify-roles take no meaningful
-// params (empty {} still required by the request schema); /consensus-
-// cluster needs n_clusters/n_splits/seed; /bea-order needs n_null/seed.
+// Real chain, rewritten 29 Jul against artie's expanded pipeline (pulled
+// from feature/corres-process-v2, commit 4ab59ce): the two gates this
+// build previously showed as "not available" now exist server-side, plus
+// the tau_bridge/tau_sigma proposing computations. Eight steps now, not
+// five — order matters and matches the backend's own precondition
+// requirements (residual-admissibility needs residuals; reliability-gate
+// needs the binary matrix and must run before consensus-cluster's
+// ensemble per spec §2.4; tau-bridge-interval needs both residuals and
+// consensus; classify-roles needs both gates' inputs already used).
+//
 // UNTESTED from this machine — no backend was reachable from Windows
-// this session (see completion note). First thing to verify on the Mac.
-// Updated 28 Jul: ClassifyRolesParams no longer has defaults for
-// stability_threshold/tau_bridge/weak_own_threshold — all three are
-// fenced (spec §4, Working Arrangements §4.5), a request omitting any of
-// them is a 422, not a silent guess. abs_bridge_threshold/
-// core_distinguishing_min_affinity from the 24 Jul contract no longer
-// exist as fields at all (spec §2.6 has no such terms).
+// this session. First thing to verify on the Mac.
+//
+// Every one of these endpoints raises a structured WorkflowFailed (with
+// a .code) on a genuine methodological failure — an inadmissible matrix,
+// a failed reliability gate, an empty tau_bridge interval — per spec's
+// own "halt with a prominent diagnostic, do not proceed silently"
+// instruction. pollTask() surfaces that .code on the Error it throws
+// (edu_common.js). runProcessChain()'s caller distinguishes this from a
+// connectivity failure and must not paper over it with a fixture fallback
+// — a real gate failure is a finding, not an unreachable backend.
 async function runRealProcessChain() {
+  const admissibilityParams = {
+    k: processParams.n_clusters,
+    spread_threshold: processParams.spread_threshold,
+  };
+  const reliabilityParams = {
+    // k_min/k_max/n_splits/seed match reliability_gate.py's own declared
+    // defaults (module docstring) — supplied explicitly so the read-only
+    // display and the actual call agree, not because the server would
+    // reject their absence (only tau_rel is fenced with no default).
+    k_min: 2,
+    k_max: 10,
+    n_splits: 25,
+    seed: 11,
+    tau_rel: processParams.tau_rel,
+  };
   const consensusParams = {
     n_clusters: processParams.n_clusters,
     n_splits: processParams.n_splits,
     seed: processParams.seed,
+  };
+  const tauBridgeIntervalParams = {
+    stability_threshold: processParams.stability_threshold,
   };
   const classifyParams = {
     stability_threshold: processParams.stability_threshold,
@@ -812,7 +865,16 @@ async function runRealProcessChain() {
   let created = await callAppAPI('corres', 'ttm/residuals', { ttm: serverTtm, params: {} });
   serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
 
+  created = await callAppAPI('corres', 'ttm/residual-admissibility', { ttm: serverTtm, params: admissibilityParams });
+  serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
+
+  created = await callAppAPI('corres', 'ttm/reliability-gate', { ttm: serverTtm, params: reliabilityParams });
+  serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
+
   created = await callAppAPI('corres', 'ttm/consensus-cluster', { ttm: serverTtm, params: consensusParams });
+  serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
+
+  created = await callAppAPI('corres', 'ttm/tau-bridge-interval', { ttm: serverTtm, params: tauBridgeIntervalParams });
   serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
 
   created = await callAppAPI('corres', 'ttm/classify-roles', { ttm: serverTtm, params: classifyParams });
@@ -834,36 +896,69 @@ async function runProcessChain() {
   document.getElementById('process-results').innerHTML = '';
 
   try {
+    let backendFailure = null;
     try {
       await runRealProcessChain();
       lastRunWasFixture = false;
     } catch (backendErr) {
-      // Graceful fallback, not a hard failure — backend reachability from
-      // this build was an open question as of 24 Jul (D2Dev's brief §1:
-      // "I don't know what CORRES_CONFIG.apiBase your build currently
-      // points at, or whether it can reach a Mac-hosted artie instance").
-      // Falls back to the same fixture generators this build shipped
-      // with, so the demo still works while that's unresolved — but
-      // flags plainly that it did, rather than silently passing off mock
-      // output as real.
-      console.warn('Real backend call failed, falling back to fixture data:', backendErr);
-      const conceptIds = dtmData.conceptIds.map(String);
-      const residuals = mockComputeResiduals(conceptIds, processParams.seed);
-      const consensus = mockConsensusCluster(conceptIds, residuals, processParams);
-      const roles = mockClassifyRoles(conceptIds, residuals, consensus, processParams);
-      const bea = mockBeaOrder(conceptIds, residuals, consensus.blocks, processParams);
-      serverTtm = Object.assign({}, serverTtm, { residuals, consensus, roles, bea });
-      lastRunWasFixture = true;
+      // Two very different failure shapes, distinguished by whether the
+      // backend was actually reached (err.code present — pollTask/
+      // callAppAPI set this from a real HTTP/task response, per
+      // edu_common.js) or not (a raw fetch/network exception, no .code —
+      // e.g. CORS, connection refused, wrong apiBase). Only the second
+      // is a reachability problem safe to paper over with fixture data.
+      // The first is a genuine methodological finding (an inadmissible
+      // matrix, a failed reliability gate, an empty tau_bridge interval)
+      // and spec's own instruction is to "halt with a prominent
+      // diagnostic, do not proceed silently" — swapping in fixture data
+      // for that would be exactly the silent failure the spec forbids.
+      if (backendErr.code) {
+        backendFailure = backendErr;
+      } else {
+        console.warn('Backend unreachable, falling back to fixture data:', backendErr);
+        const conceptIds = dtmData.conceptIds.map(String);
+        const residuals = mockComputeResiduals(conceptIds, processParams.seed);
+        const consensus = mockConsensusCluster(conceptIds, residuals, processParams);
+        const roles = mockClassifyRoles(conceptIds, residuals, consensus, processParams);
+        const bea = mockBeaOrder(conceptIds, residuals, consensus.blocks, processParams);
+        serverTtm = Object.assign({}, serverTtm, { residuals, consensus, roles, bea });
+        lastRunWasFixture = true;
+      }
     }
 
-    renderProcessResults();
-    markStepActive('process');
+    if (backendFailure) {
+      renderBackendFailure(backendFailure);
+      markStepActive('process');
+    } else {
+      renderProcessResults();
+      markStepActive('process');
+    }
   } catch (err) {
     showError('Stability/role/seriation processing failed: ' + err.message);
   } finally {
     document.getElementById('run-process-btn').disabled = false;
     document.getElementById('process-running').style.display = 'none';
   }
+}
+
+// A real, backend-reported failure — one of the spec's own halt
+// conditions (residual_matrix_inadmissible, reliability_gate_failed,
+// tau_bridge_interval_empty), or a generic workflow error. Rendered as a
+// prominent diagnostic, never silently swapped for fixture data.
+function renderBackendFailure(err) {
+  document.getElementById('fixture-flag').style.display = 'none';
+  const known = {
+    residual_matrix_inadmissible: 'Residual matrix admissibility (spec §2.2a) failed — the corpus reads as degenerate ("blur" or "blob"; see the message below for spread/mean/eff_dim).',
+    reliability_gate_failed: 'Reliability gate (spec §2.9) failed — no candidate k shows adequate split-half stability for this corpus. Spec §4.4\'s failure policy is unresolved, so the backend halts rather than proceeding.',
+    tau_bridge_interval_empty: 'τbridge admissible interval (spec §2.8) is empty — no threshold value makes the classification well-defined for this corpus.',
+  };
+  const heading = known[err.code] || `Backend reported a failure (${err.code || 'unknown code'})`;
+  document.getElementById('process-results').innerHTML = `
+    <div class="warning-banner warning-fail">
+      <strong>Processing halted — this is a finding, not a connection problem</strong>
+      ${escHtml(heading)}
+      <div style="margin-top:0.5rem;font-family:var(--mono);font-size:0.72rem;">${escHtml(err.message || '')}</div>
+    </div>`;
 }
 
 // ── Mock generators (FIXTURE DATA — see corres.css's .fixture-flag) ─────
@@ -1093,26 +1188,46 @@ function renderProcessResults() {
 }
 
 // Spec §3.3: four warnings, "not logged — visible to the person reading
-// the result." Two are computable from what this build actually has
-// (UNRESOLVED count; cross-corpus parameter import, which never fires
-// this session since every value is declared from this corpus's own 17
-// Jul fixture). Two are NOT computable yet — the §2.9 reliability gate
-// and the NEW §2.2a admissibility gate (ratified 28 Jul, AD amendment
-// §3.4) don't exist server-side (confirmed via D2Dev's own open-
-// questions brief). Shown as explicit "not yet available" rather than
-// omitted — spec's instruction is "never hide", and an absent warning
-// slot is indistinguishable from a checked-and-passing one.
+// the result." UNRESOLVED count and cross-corpus-import are always
+// computable. The reliability gate (§2.9) and admissibility gate (§2.2a,
+// ratified 28 Jul) are now wired into the real path (29 Jul, artie
+// commit 4ab59ce) — shown as real pass/fail when serverTtm carries the
+// result (a completed real run), and as explicit "not yet available"
+// only when it doesn't (the fixture-fallback path, whose mock generators
+// don't compute either — a true statement, not a stale placeholder).
+// Either way spec's "never hide" instruction holds: an absent warning
+// slot is indistinguishable from a checked-and-passing one, so the
+// unavailable case stays visible rather than omitted.
 function renderWarnings(rolesInfo) {
   let html = '<div class="warnings-block">';
 
-  html += `<div class="warning-banner warning-unavailable">
-    <strong>Reliability gate (spec §2.9) — not available</strong>
-    The split-half stability scan/gate does not exist server-side yet (confirmed absent by D2Dev, 28 Jul). This is not a pass; it is unchecked.
-  </div>`;
-  html += `<div class="warning-banner warning-unavailable">
-    <strong>Residual-matrix admissibility (spec §2.2a, ratified 28 Jul) — not available</strong>
-    The blur/blob degeneracy check does not exist server-side yet. This is not a pass; it is unchecked.
-  </div>`;
+  if (serverTtm.reliability) {
+    const rel = serverTtm.reliability;
+    const cls = rel.passed ? 'warning-pass' : 'warning-fail';
+    html += `<div class="warning-banner ${cls}">
+      <strong>Reliability gate (spec §2.9) — ${rel.passed ? 'passed' : 'FAILED'}</strong>
+      Max split-half ARI ${rel.max_ari.toFixed(3)} against τrel ${rel.tau_rel.toFixed(3)}.
+    </div>`;
+  } else {
+    html += `<div class="warning-banner warning-unavailable">
+      <strong>Reliability gate (spec §2.9) — not available this run</strong>
+      Fixture-fallback path only; the real endpoint exists and is wired, but this run didn't reach it. This is not a pass; it is unchecked.
+    </div>`;
+  }
+
+  if (serverTtm.residual_admissibility) {
+    const adm = serverTtm.residual_admissibility;
+    const cls = adm.passed ? 'warning-pass' : 'warning-fail';
+    html += `<div class="warning-banner ${cls}">
+      <strong>Residual-matrix admissibility (spec §2.2a) — ${adm.passed ? 'passed' : 'FAILED'}</strong>
+      spread ${adm.spread.toFixed(3)} (≥ ${adm.spread_threshold.toFixed(3)} required), eff_dim ${adm.eff_dim.toFixed(3)} (≥ k=${adm.k} required), mean ${adm.mean.toFixed(3)}.
+    </div>`;
+  } else {
+    html += `<div class="warning-banner warning-unavailable">
+      <strong>Residual-matrix admissibility (spec §2.2a) — not available this run</strong>
+      Fixture-fallback path only; the real endpoint exists and is wired, but this run didn't reach it. This is not a pass; it is unchecked.
+    </div>`;
+  }
 
   if (rolesInfo.unresolved_concept_ids.length > 0) {
     const termById = {};
