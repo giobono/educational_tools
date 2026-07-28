@@ -1,0 +1,28 @@
+{
+  "version": "2.0.0",
+  "source": "corres_methodology_specification_v2_0.md §2.6, §3.4",
+  "sole_writer": "D2Dev / artie backend - D1Dev copies this file verbatim and queries rather than amends",
+  "roles": [
+    { "value": "distinguishing", "category": "core", "label": "Distinguishing" },
+    { "value": "bridging", "category": "core", "label": "Bridging" },
+    { "value": "weak", "category": "boundary", "label": "Weak" },
+    { "value": "orthogonal", "category": "boundary", "label": "Orthogonal" }
+  ],
+  "categories": [
+    {
+      "value": "core",
+      "label": "Core",
+      "note": "Display grouping only (spec §2.6) - never an assignable role value."
+    },
+    {
+      "value": "boundary",
+      "label": "Boundary",
+      "note": "Display grouping only (spec §2.6) - never an assignable role value. The category name is 'boundary', not 'border' - confirmed against spec v2.0, correcting earlier front-end usage."
+    }
+  ],
+  "forbidden_values": ["core", "boundary", "border", "unclassified core", "unclassified_core"],
+  "unresolved": {
+    "is_a_role": false,
+    "note": "UNRESOLVED (spec §2.6) is an error condition, not a role. A concept in this state has role: null in the result artefact and its concept_id appears in roles.unresolved_concept_ids. Must be surfaced as a prominent warning (spec §3.3), never a silent default or a fifth label."
+  }
+}

@@ -270,30 +270,40 @@
     cursor: help;
   }
 
-  /* Declared-parameters transparency (brief §2: "whatever run produced a
-     result, its parameters should be visible alongside it, not buried"). */
+  /* Declared-parameters transparency, read-only (spec §3.1-3.2, Annex A
+     §A5). Status badges distinguish Fixed/Calibrated/Open per spec §3.2's
+     explicit instruction that Fixed constants must be visually
+     unmistakable from calibrated, per-corpus values. */
   .params-panel {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 0.75rem; padding: 1rem; background: var(--paper-mid);
     border: 1px solid var(--rule); border-radius: 3px; margin-bottom: 1.25rem;
   }
   .param-item { display: flex; flex-direction: column; gap: 0.15rem; }
-  .param-label { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); }
+  .param-label { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
   .param-val { font-family: var(--mono); font-size: 0.85rem; color: var(--ink); font-weight: 500; }
-  .param-val.confirm-pending { color: var(--warning); }
-  .param-val.confirm-pending::after { content: ' ⟦confirm⟧'; font-size: 0.65rem; opacity: 0.75; }
+  .param-status {
+    font-size: 0.52rem; letter-spacing: 0.04em; padding: 0.05rem 0.35rem;
+    border-radius: 2px; text-transform: uppercase;
+  }
+  .param-status.param-fixed { background: var(--paper-dark); color: var(--ink-mid); }
+  .param-status.param-calibrated { background: var(--accent-dim); color: var(--accent); }
+  .param-status.param-open { background: var(--warning-bg); color: var(--warning); }
 
-  /* Vocabulary discipline (brief §2): "role classification" is this
-     five-role scheme (CORE/BORDER + four leaves) and must read as
-     distinct from "concept typology" (the fixed Stage-1 coding frame)
-     wherever both terms could appear near each other. */
+  /* Vocabulary discipline (spec §3.4): "role classification" is this
+     four-role scheme (Core/Boundary display groupings + four leaves) and
+     must read as distinct from "concept typology" (the fixed Stage-1
+     coding frame) wherever both terms could appear near each other. */
   .vocab-note { font-family: var(--serif); font-style: italic; font-size: 0.78rem; color: var(--ink-light); margin-bottom: 1.25rem; }
   .vocab-note strong { font-style: normal; color: var(--ink-mid); }
 
-  /* Role taxonomy: CORE{Distinguishing,Bridging} / BORDER{Orthogonal,Weak}
-     (brief §2, superseding the flat four/five-item list; Addie-confirmed
-     24 Jul). Backend still returns the flat leaf value only - grouping
-     into CORE/BORDER happens here, client-side. */
+  /* Role taxonomy: Core{Distinguishing,Bridging} / Boundary{Weak,Orthogonal}
+     per corres_methodology_specification_v2_0.md §2.6/§3.4 and
+     artie/corres/role_vocabulary.json (source of truth). "core"/
+     "boundary"/"border"/"unclassified core" must never be an assignable
+     role VALUE - category names are display groupings only. Backend
+     returns the flat leaf value (or null for UNRESOLVED); grouping into
+     Core/Boundary happens here, client-side, matching role_vocabulary.json. */
   .role-badge {
     display: inline-flex; align-items: center; gap: 0.35rem;
     font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.04em;
@@ -302,22 +312,11 @@
   .role-badge .tier { opacity: 0.7; }
   .role-core-distinguishing { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
   .role-core-bridging       { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-light); }
-  .role-border-orthogonal   { background: var(--paper-mid); color: var(--ink-light); border: 1px solid var(--rule); }
-  .role-border-weak         { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
-  /* Known defect (brief §2): current python may return "Unclassified Core"
-     for some genuine Core Bridging concepts - not found in the actual
-     feature-branch code as read (flagged as a discrepancy), but handled
-     defensively per the brief's explicit instruction regardless. */
-  .role-unclassified {
-    background: #fdf0ee; color: var(--accent); border: 1px dashed #e8b4aa;
-  }
-  .role-caveat {
-    display: block; font-family: var(--serif); font-style: italic;
-    font-size: 0.68rem; color: var(--accent); margin-top: 0.2rem;
-  }
+  .role-boundary-weak       { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
+  .role-boundary-orthogonal { background: var(--paper-mid); color: var(--ink-light); border: 1px solid var(--rule); }
 
-  /* Status labelling (brief §2: "not cosmetic... needs to travel with
-     the number, not live only in a footnote") */
+  /* Status labelling (spec §3.3: warnings "not logged - visible to the
+     person reading the result"; status travels with the number, not a footnote) */
   .status-tag {
     font-family: var(--mono); font-size: 0.56rem; letter-spacing: 0.08em;
     text-transform: uppercase; padding: 0.1rem 0.4rem; border-radius: 2px;
@@ -326,8 +325,8 @@
   .status-certified   { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
   .status-exploratory { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
 
-  /* Stability certificates (brief §2: earned/not-earned per concept;
-     "no certificates" is a real, non-error result - see .cert-none-banner) */
+  /* Stability certificates: earned/not-earned per concept; "no
+     certificates" is a real, non-error result - see .cert-none-banner */
   .cert-icon { font-size: 0.85rem; }
   .cert-icon.earned { color: var(--success); }
   .cert-icon.not-earned { color: var(--ink-light); opacity: 0.5; }
@@ -337,16 +336,22 @@
     font-family: var(--serif); font-size: 0.85rem; color: var(--ink-mid); margin-bottom: 1.25rem;
   }
 
-  /* Panel tabs (B / C / D / E) */
-  .panel-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--ink); margin-bottom: 1.25rem; }
-  .panel-tab {
-    font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase;
-    padding: 0.6rem 1.1rem; background: none; border: none; cursor: pointer;
-    color: var(--ink-light); border-bottom: 2px solid transparent; margin-bottom: -2px;
-    transition: color 0.15s, border-color 0.15s;
+  /* Prominent warnings (spec §3.3) - never logged only, always visible. */
+  .warnings-block { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.25rem; }
+  .warning-banner {
+    padding: 0.75rem 1rem; border-radius: 3px; font-size: 0.82rem;
+    font-family: var(--sans); line-height: 1.5;
   }
-  .panel-tab:hover { color: var(--ink); }
-  .panel-tab.active { color: var(--ink); border-color: var(--accent); font-weight: 600; }
+  .warning-banner strong { display: block; font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 0.25rem; }
+  .warning-fail        { background: #fdf0ee; color: var(--accent); border: 1px solid #e8b4aa; }
+  .warning-pass         { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+  .warning-unavailable  { background: var(--paper-mid); color: var(--ink-light); border: 1px dashed var(--rule); }
+
+  /* Five-stage demonstration sequence (spec §3.6 via d1dev brief) */
+  .stage-head { display: flex; align-items: baseline; gap: 0.75rem; margin: 2rem 0 0.5rem; padding-top: 1.5rem; border-top: 2px solid var(--ink); }
+  #stage-1 .stage-head { border-top: none; padding-top: 0; margin-top: 0; }
+  .stage-num { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; background: var(--ink); color: var(--paper); padding: 0.2rem 0.6rem; border-radius: 2px; }
+  .stage-name { font-weight: 600; font-size: 1rem; color: var(--ink); }
   .panel-sub { font-family: var(--serif); font-style: italic; font-size: 0.8rem; color: var(--ink-light); margin-bottom: 1rem; }
 
   /* Panel B: alphabetical, structure-blind concept list */
