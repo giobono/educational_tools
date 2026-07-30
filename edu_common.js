@@ -574,6 +574,50 @@ window.markActiveNav = function markActiveNav() {
   });
 };
 
+/**
+ * App on/off switch (per-environment config/apps/<app>/config.js
+ * appActive field, aggregated for all four apps by apps-enabled.php —
+ * see config/README.md). Call after the page's own links are in the DOM
+ * (homepage phase-cards are static; nav links arrive via loadFragment).
+ *
+ * Removes, rather than hides, any link whose href points into a
+ * disabled app's folder (/apps/<app>/...) — covers the homepage's
+ * phase-cards and the shared nav fragment in one pass, no per-page
+ * link inventory needed.
+ */
+window.applyAppVisibility = function applyAppVisibility() {
+  if (!window.APPS_ENABLED) return; // apps-enabled.php not loaded on this page — leave links as-is
+  Object.keys(window.APPS_ENABLED).forEach(appId => {
+    if (window.APPS_ENABLED[appId]) return;
+    document.querySelectorAll(`a[href*="/apps/${appId}/"]`).forEach(a => a.remove());
+  });
+};
+
+/**
+ * Blocks this page's own app when it's switched off (config.js's
+ * appActive field). Call as early as possible — after config.php and
+ * this script have loaded, before any other page-specific script runs
+ * — since it works by replacing the entire document via document.open/
+ * write/close, which aborts the browser's parsing of whatever HTML
+ * still follows in the original page source (the standard technique;
+ * anything less than a full document replace risks the rest of the
+ * original body still being parsed in and appended afterwards).
+ */
+window.enforceAppActive = function enforceAppActive() {
+  const cfg = window.CORRES_CONFIG;
+  if (!cfg || cfg.appActive !== false) return;
+  document.open();
+  document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Not available</title>
+    <style>body{font-family:sans-serif;background:#05070a;color:#eee;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;}
+    a{color:#7ec8e3;}</style></head><body><div>
+    <h1>Not available in this environment</h1>
+    <p>${window.escHtml(cfg.appId || 'This application')} is currently switched off here.</p>
+    <p><a href="/">Return to the homepage</a></p>
+    </div></body></html>`);
+  document.close();
+  window.stop();
+};
+
 /* ============================================================================
  * §E  STAGE 3 RETIREMENT — technical debt against contract §6
  *
