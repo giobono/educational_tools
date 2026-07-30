@@ -1,14 +1,15 @@
-// config.example.js — committed template.
-// Copy to config.js in this same directory; config.js is gitignored
-// (see .gitignore's bare `config.js` line — matches at any depth).
+// config.example.js — committed template, for reference only. Never
+// loaded directly: the real, working config.js lives outside this git
+// tree entirely, in the sibling config/apps/gioianie/ directory
+// (config/README.md), and reaches the browser via this app's
+// config.php, not a <script src> pointed at a static file.
 //
-// Local (interim, on VPS):       apiBase: 'https://api-local.ebono.net'
-// Local (target, on laptop):     apiBase: 'http://localhost:8001'
+// Local (target, on laptop):     apiBase: 'http://127.0.0.1:5500'
 // Dev:                           apiBase: 'https://api-dev.ebono.net'
 // Prod:                          apiBase: 'https://api.ebono.net'
 
 window.CORRES_CONFIG = {
-  apiBase:    'https://api-local.ebono.net',
+  apiBase:    'http://127.0.0.1:5500',
   appId:      'gioianie',
-  appVersion: '0.9.6'
+  appVersion: '1.0.0'
 };
