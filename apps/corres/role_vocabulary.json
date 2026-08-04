@@ -1,10 +1,11 @@
 {
-  "version": "2.0.0",
-  "source": "corres_methodology_specification_v2_0.md §2.6, §3.4",
+  "version": "3.0.0",
+  "source": "corres_methodology_specification_v2_0.md §2.6, amended 2026-08-03 by 2026-08-03_briefs_ad_d2dev_fifth_role_anchoring_ruled_v1_0.md - knowingly overrides OD-ROLE-VOCAB-FREEZE's four-leaf structure, by ruling, not a workaround",
   "sole_writer": "D2Dev / artie backend - D1Dev copies this file verbatim and queries rather than amends",
   "roles": [
     { "value": "distinguishing", "category": "core", "label": "Distinguishing" },
     { "value": "bridging", "category": "core", "label": "Bridging" },
+    { "value": "anchoring", "category": "core", "label": "Anchoring" },
     { "value": "weak", "category": "boundary", "label": "Weak" },
     { "value": "orthogonal", "category": "boundary", "label": "Orthogonal" }
   ],
@@ -12,7 +13,7 @@
     {
       "value": "core",
       "label": "Core",
-      "note": "Display grouping only (spec §2.6) - never an assignable role value."
+      "note": "Display grouping only (spec §2.6) - never an assignable role value. Three leaves as of 2026-08-03 (distinguishing, bridging, anchoring), not two - anchoring is the cross-block cell the original four-leaf taxonomy never named: reaches nowhere (rho < 0.6), repelled by nothing (min(others) >= 0)."
     },
     {
       "value": "boundary",
@@ -23,6 +24,6 @@
   "forbidden_values": ["core", "boundary", "border", "unclassified core", "unclassified_core"],
   "unresolved": {
     "is_a_role": false,
-    "note": "UNRESOLVED (spec §2.6) is an error condition, not a role. A concept in this state has role: null in the result artefact and its concept_id appears in roles.unresolved_concept_ids. Must be surfaced as a prominent warning (spec §3.3), never a silent default or a fifth label."
+    "note": "UNRESOLVED (spec §2.6) is an error condition, not a role. As of the 2026-08-03 ratio-rule amendment plus the fifth-role ruling, the classification chain is exhaustive by construction for any stable, positively-anchored concept - UNRESOLVED should now be unreachable in practice. If it appears at all, that is a defect to report, not a normal outcome. A concept in this state has role: null in the result artefact and its concept_id appears in roles.unresolved_concept_ids. Must be surfaced as a prominent warning (spec §3.3), never a silent default."
   }
 }

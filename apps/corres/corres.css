@@ -297,13 +297,14 @@
   .vocab-note { font-family: var(--serif); font-style: italic; font-size: 0.78rem; color: var(--ink-light); margin-bottom: 1.25rem; }
   .vocab-note strong { font-style: normal; color: var(--ink-mid); }
 
-  /* Role taxonomy: Core{Distinguishing,Bridging} / Boundary{Weak,Orthogonal}
+  /* Role taxonomy: Core{Distinguishing,Bridging,Anchoring} / Boundary{Weak,Orthogonal}
      per corres_methodology_specification_v2_0.md §2.6/§3.4 and
-     artie/corres/role_vocabulary.json (source of truth). "core"/
-     "boundary"/"border"/"unclassified core" must never be an assignable
-     role VALUE - category names are display groupings only. Backend
-     returns the flat leaf value (or null for UNRESOLVED); grouping into
-     Core/Boundary happens here, client-side, matching role_vocabulary.json. */
+     artie/corres/role_vocabulary.json (source of truth, v3.0.0 - anchoring
+     added 3 Aug by AD ruling). "core"/"boundary"/"border"/"unclassified
+     core" must never be an assignable role VALUE - category names are
+     display groupings only. Backend returns the flat leaf value (or null
+     for UNRESOLVED); grouping into Core/Boundary happens here, client-side,
+     matching role_vocabulary.json. */
   .role-badge {
     display: inline-flex; align-items: center; gap: 0.35rem;
     font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.04em;
@@ -312,6 +313,7 @@
   .role-badge .tier { opacity: 0.7; }
   .role-core-distinguishing { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
   .role-core-bridging       { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-light); }
+  .role-core-anchoring      { background: #f0ecf7; color: #6b4a9c; border: 1px solid #d9cce8; }
   .role-boundary-weak       { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
   .role-boundary-orthogonal { background: var(--paper-mid); color: var(--ink-light); border: 1px solid var(--rule); }
 
@@ -353,6 +355,13 @@
   .stage-num { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; background: var(--ink); color: var(--paper); padding: 0.2rem 0.6rem; border-radius: 2px; }
   .stage-name { font-weight: 600; font-size: 1rem; color: var(--ink); }
   .panel-sub { font-family: var(--serif); font-style: italic; font-size: 0.8rem; color: var(--ink-light); margin-bottom: 1rem; }
+  /* Panel caption (4 Aug): none of the six real-path panels carry a
+     baked-in title/suptitle any more (v3.0 §5's format spec) - that text
+     lives only in PanelImage.caption, rendered visibly here rather than
+     left as alt-text alone. Distinct from .panel-sub (this build's own
+     pedagogical framing) - caption is the backend's own account of what
+     the figure shows. */
+  .panel-caption { font-family: var(--mono); font-size: 0.72rem; color: var(--ink-mid); background: var(--paper-mid); border-radius: 2px; padding: 0.4rem 0.6rem; margin: 0.5rem 0 1rem; }
 
   /* Panel B: alphabetical, structure-blind concept list */
   .concept-list { display: flex; flex-direction: column; gap: 0.4rem; }

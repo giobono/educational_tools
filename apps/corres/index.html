@@ -125,11 +125,13 @@
 </div>
 <!-- ── CorRes Process: Stages 2-5 (Addie's method) ──
      Instance brief 2026-07-24 (briefs/d1dev/2026-07-24_briefs_od_d1dev_corres-frontend-buildout.md).
-     Replaces the single-pass MCA clustering (former Step 4.3) and LLM
-     frame naming (former 4.4) in this build — the backend workflows
-     those called (cluster_concepts.py, name_frames.py) are untouched
-     and still wired server-side, per that brief's own note that the
-     old path isn't being removed, just superseded in this front end. -->
+     Replaces the single-pass TruncatedSVD+KMeans clustering (former Step
+     4.3) and LLM frame naming (former 4.4) in this build — the backend
+     workflows those called (cluster_concepts.py, name_frames.py) are
+     untouched and still wired server-side, per that brief's own note
+     that the old path isn't being removed, just superseded in this
+     front end. Not to be confused with Panel P1 (B1+B2, PCA-based) -
+     the retired clustering arms that name replaced, see runRealProcessChain(). -->
 <div class="step-card" id="card-process">
 <div class="step-card-header">
 <div class="step-card-title">
@@ -157,7 +159,7 @@ function setStatus(state, msg) {
   document.getElementById('pyodide-msg').textContent = msg;
 }
 
-setStatus('ready', 'Clustering runs server-side (MCA via TruncatedSVD + KMeans) — no local Python environment needed.');
+setStatus('ready', 'Stability, roles and seriation run server-side (Panel P1 consensus clustering) — no local Python environment needed.');
 document.getElementById('py-spinner').style.display = 'none';
 
 // ── DTM upload ────────────────────────────────────────────────────────
@@ -670,25 +672,35 @@ function exportTTM() {
 // ported faithfully from classify_roles.py/bea_order.py so the demo
 // *behaves* like the real pipeline over synthetic inputs. Swapping in
 // real callAppAPI/pollTask calls (same chained pattern as buildTTMServer/
-// the old runMCA above) only touches runProcessChain() — every render
+// the old single-pass clustering step this replaced) only touches
+// runProcessChain() — every render
 // function below reads serverTtm.{residuals,consensus,roles,bea} exactly
 // as the real API would populate them.
 
 // Terminology per corres_methodology_specification_v2_0.md §2.6/§3.4 and
 // artie/corres/role_vocabulary.json (source of truth, copied byte-
-// identical into this app's directory 28 Jul): four leaves only -
-// distinguishing/bridging (category "core"), weak/orthogonal (category
-// "boundary"). "core", "boundary", "border" and "unclassified core" (this
-// build's own 24 Jul addition, now retired) must never be an assignable
-// role VALUE anywhere - category names are display groupings only.
-const ROLE_TIER  = { distinguishing: 'Core', bridging: 'Core', orthogonal: 'Boundary', weak: 'Boundary' };
-const ROLE_LABEL = { distinguishing: 'Distinguishing', bridging: 'Bridging', orthogonal: 'Orthogonal', weak: 'Weak' };
-const ROLE_COLOR = { distinguishing: '#2a6b4a', bridging: '#1c7a9c', orthogonal: '#9a9490', weak: '#7a5c1a' };
-// Spec §3.4: "the role-space plot must distinguish the four roles by
-// shape or pattern as well as colour" - readable in greyscale/print and
-// to a colour-blind reader. Marker is an SVG path 'shape' key consumed by
-// renderPanelRoleSpace()'s point renderer.
-const ROLE_MARKER = { distinguishing: 'circle', bridging: 'square', weak: 'triangle', orthogonal: 'cross' };
+// identical into this app's directory - updated 4 Aug against v3.0.0 per
+// 2026-08-04_briefs_d2dev_d1dev_v3_0_consolidated_frontend_catchup_v1_0.md):
+// five leaves - distinguishing/bridging/anchoring (category "core"),
+// weak/orthogonal (category "boundary"). `anchoring` added 3 Aug by AD
+// ruling (2026-08-03_briefs_ad_d2dev_fifth_role_anchoring_ruled_v1_0.md):
+// the cross-block cell the original four-leaf taxonomy never named -
+// reaches nowhere (rho < 0.6), repelled by nothing (min(others) >= 0).
+// "core", "boundary", "border" and "unclassified core" (this build's own
+// 24 Jul addition, now retired) must never be an assignable role VALUE
+// anywhere - category names are display groupings only. Hand-copied here
+// to match role_vocabulary.json rather than fetched at runtime, same
+// pattern as that file's own "copy, never edit" discipline.
+const ROLE_TIER  = { distinguishing: 'Core', bridging: 'Core', anchoring: 'Core', orthogonal: 'Boundary', weak: 'Boundary' };
+const ROLE_LABEL = { distinguishing: 'Distinguishing', bridging: 'Bridging', anchoring: 'Anchoring', orthogonal: 'Orthogonal', weak: 'Weak' };
+const ROLE_COLOR = { distinguishing: '#2a6b4a', bridging: '#1c7a9c', anchoring: '#6b4a9c', orthogonal: '#9a9490', weak: '#7a5c1a' };
+// Spec §3.4: "the role-space plot must distinguish the roles by shape or
+// pattern as well as colour" - readable in greyscale/print and to a
+// colour-blind reader. Marker is an SVG path 'shape' key consumed by
+// renderStage4RoleSpaceSvg()'s point renderer. anchoring = diamond, per
+// D2Dev's own return brief §3 ("role space: five-role legend, anchoring =
+// purple diamond").
+const ROLE_MARKER = { distinguishing: 'circle', bridging: 'square', anchoring: 'diamond', weak: 'triangle', orthogonal: 'cross' };
 
 // Declared parameters (spec §3.1-3.2, Annex A §A5: read-only for this
 // demonstration - no elicitation interface yet). Two are genuinely Fixed
@@ -699,7 +711,7 @@ const ROLE_MARKER = { distinguishing: 'circle', bridging: 'square', weak: 'trian
 // server-side yet - see this build's completion note). Values sourced
 // from corres_fixture_17jul_verified.json (ebono_governance/briefs/
 // dndev/), the only verified numbers available, NOT invented here.
-const DISTINGUISHING_RATIO = 0.6;   // spec §2.6/§2.7: Fixed, scale-invariant ratio - never editable
+const BRIDGING_RATIO = 0.6;   // ratio rule, spec §2.6 as amended 3 Aug: Fixed, scale-invariant ratio (rho = max(others)/own >= 0.6 -> bridging) - never editable
 const WEAK_MAX_ABS_THRESHOLD = 2.0; // spec §2.6/§2.7: Fixed, residual-scale constant - never editable
 let processParams = {
   n_clusters: 3,          // fixture: block_sizes [7,2,6], k=3
@@ -713,11 +725,6 @@ let processParams = {
   // tau_sigma - per-corpus, proposed by back end from c0 (spec §2.7); no
   // proposing endpoint exists yet, so declared from the 17 Jul fixture.
   stability_threshold: 0.75,
-  // tau_bridge - per-corpus, declared within the admissible interval the
-  // back end would compute (spec §2.8); no interval-computing endpoint
-  // exists yet, so declared from the fixture (interval (0.69, 2.21],
-  // certified placement 2.0).
-  tau_bridge: 2.0,
   // weak_own_threshold - spec §4.1: the "0.5" own-affinity companion is
   // OPEN, unconfirmed since v1.0. Fenced per Working Arrangements §4.5:
   // no default, no fallback. 0.5 shown here is the fixture's own working
@@ -770,11 +777,13 @@ function renderProcessControls() {
 // per spec §3.2's explicit instruction ("must distinguish them
 // unmistakably from the calibrated parameters, because their scale
 // semantics differ"):
-//   Fixed      — DISTINGUISHING_RATIO, WEAK_MAX_ABS_THRESHOLD. Never
+//   Fixed      — BRIDGING_RATIO, WEAK_MAX_ABS_THRESHOLD. Never
 //                editable, never fenced, implemented as written.
-//   Calibrated — tau_sigma, tau_bridge, k. Per-corpus values; declared
-//                here from the 17 Jul fixture, not computed live (no
-//                proposing endpoint exists yet).
+//   Calibrated — tau_sigma, k. Per-corpus values; declared here from the
+//                17 Jul fixture, not computed live (no proposing endpoint
+//                exists yet). tau_bridge/tau-bridge-interval retired
+//                entirely 3-4 Aug (ratio rule replaces it, spec §2.6 as
+//                amended) — no longer a parameter of any kind.
 //   Open       — weak_own_threshold. Spec §4.1: unconfirmed since v1.0.
 //                Shown with its working value, flagged as unconfirmed.
 function paramRow(label, value, status) {
@@ -791,10 +800,9 @@ function renderParamsPanel() {
     ${paramRow('Block count (k)', p.n_clusters, 'Calibrated')}
     ${paramRow('Resample splits', p.n_splits, 'Calibrated')}
     ${paramRow('Stability threshold (τσ)', p.stability_threshold, 'Calibrated')}
-    ${paramRow('Bridge threshold (τbridge)', p.tau_bridge, 'Calibrated')}
     ${paramRow('Residual spread threshold', p.spread_threshold, 'Calibrated')}
     ${paramRow('Reliability threshold (τrel)', p.tau_rel, 'Open')}
-    ${paramRow('Distinguishing ratio', DISTINGUISHING_RATIO, 'Fixed')}
+    ${paramRow('Bridging ratio threshold (ρ = max(others)/own)', BRIDGING_RATIO, 'Fixed')}
     ${paramRow('Weak/boundary magnitude test', WEAK_MAX_ABS_THRESHOLD, 'Fixed')}
     ${paramRow('Weak own-affinity threshold', p.weak_own_threshold, 'Open')}`;
 
@@ -804,37 +812,36 @@ function renderParamsPanel() {
   if (serverTtm && serverTtm.consensus && serverTtm.consensus.tau_sigma_proposed) {
     html += `<div class="param-item"><span class="param-label">Backend-proposed τσ <span class="param-status param-calibrated">Proposed</span></span><span class="param-val">${serverTtm.consensus.tau_sigma_proposed.toFixed(4)}</span></div>`;
   }
-  if (serverTtm && serverTtm.tau_bridge_interval) {
-    const tbi = serverTtm.tau_bridge_interval;
-    html += `<div class="param-item"><span class="param-label">Backend τbridge interval <span class="param-status param-calibrated">Proposed</span></span><span class="param-val">(${tbi.lower.toFixed(2)}, ${tbi.upper.toFixed(2)}] → ${tbi.proposed.toFixed(2)}</span></div>`;
-  }
 
-  html += `<p class="vocab-note" style="grid-column:1/-1;margin:0.5rem 0 0;">Declared values sourced from <code>corres_fixture_17jul_verified.json</code> and AD's 28 Jul amendment (spread/reliability thresholds) — the τbridge/τσ-proposing endpoints now exist server-side (wired below) but this remains a read-only display, not the elicitation interface (Annex A §A5).</p>`;
+  html += `<p class="vocab-note" style="grid-column:1/-1;margin:0.5rem 0 0;">Declared values sourced from <code>corres_fixture_17jul_verified.json</code> and AD's 28 Jul amendment (spread/reliability thresholds) — the τσ-proposing endpoint now exists server-side (wired below) but this remains a read-only display, not the elicitation interface (Annex A §A5).</p>`;
 
   document.getElementById('process-params-panel').innerHTML = html;
 }
 
-// Real chain, rewritten 29 Jul against artie's expanded pipeline (pulled
-// from feature/corres-process-v2, commit 4ab59ce): the two gates this
-// build previously showed as "not available" now exist server-side, plus
-// the tau_bridge/tau_sigma proposing computations. Eight steps now, not
-// five — order matters and matches the backend's own precondition
-// requirements (residual-admissibility needs residuals; reliability-gate
-// needs the binary matrix and must run before consensus-cluster's
-// ensemble per spec §2.4; tau-bridge-interval needs both residuals and
-// consensus; classify-roles needs both gates' inputs already used).
+// Real chain, rewritten 4 Aug against the v3.0 ratio-rule/anchoring/
+// bipartite-admission pipeline (2026-08-04_briefs_d2dev_d1dev_v3_0_
+// consolidated_frontend_catchup_v1_0.md, superseding the 29 Jul version
+// pulled from feature/corres-process-v2 commit 4ab59ce). Seven steps now:
+// concept-admission runs first (filters both concepts and documents
+// before anything downstream computes over them, spec §2.1 as amended),
+// then residual-admissibility needs residuals; reliability-gate needs the
+// binary matrix and must run before consensus-cluster's ensemble per
+// spec §2.4; classify-roles needs both gates' inputs already used.
+// tau-bridge-interval is gone entirely — deleted server-side, not just
+// removed from this chain — replaced by classify-roles' own fixed ratio
+// rule (spec §2.6 as amended 3 Aug).
 //
 // UNTESTED from this machine — no backend was reachable from Windows
 // this session. First thing to verify on the Mac.
 //
 // Every one of these endpoints raises a structured WorkflowFailed (with
 // a .code) on a genuine methodological failure — an inadmissible matrix,
-// a failed reliability gate, an empty tau_bridge interval — per spec's
-// own "halt with a prominent diagnostic, do not proceed silently"
-// instruction. pollTask() surfaces that .code on the Error it throws
-// (edu_common.js). runProcessChain()'s caller distinguishes this from a
-// connectivity failure and must not paper over it with a fixture fallback
-// — a real gate failure is a finding, not an unreachable backend.
+// a failed reliability gate — per spec's own "halt with a prominent
+// diagnostic, do not proceed silently" instruction. pollTask() surfaces
+// that .code on the Error it throws (edu_common.js). runProcessChain()'s
+// caller distinguishes this from a connectivity failure and must not
+// paper over it with a fixture fallback — a real gate failure is a
+// finding, not an unreachable backend.
 async function runRealProcessChain() {
   const admissibilityParams = {
     k: processParams.n_clusters,
@@ -856,16 +863,20 @@ async function runRealProcessChain() {
     n_splits: processParams.n_splits,
     seed: processParams.seed,
   };
-  const tauBridgeIntervalParams = {
-    stability_threshold: processParams.stability_threshold,
-  };
   const classifyParams = {
     stability_threshold: processParams.stability_threshold,
-    tau_bridge: processParams.tau_bridge,
     weak_own_threshold: processParams.weak_own_threshold,
   };
 
-  let created = await callAppAPI('corres', 'ttm/residuals', { ttm: serverTtm, params: {} });
+  // Concept admission (spec §2.1, amended 3 Aug: bipartite - documents as
+  // well as concepts, cascading together). Fixed rule set, nothing to
+  // configure (params: {}). Must run immediately after ttm/build and
+  // before every other stage - every later workflow already derives its
+  // concept/document universe from the admitted sets this filters to.
+  let created = await callAppAPI('corres', 'ttm/concept-admission', { ttm: serverTtm, params: {} });
+  serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
+
+  created = await callAppAPI('corres', 'ttm/residuals', { ttm: serverTtm, params: {} });
   serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
 
   created = await callAppAPI('corres', 'ttm/residual-admissibility', { ttm: serverTtm, params: admissibilityParams });
@@ -875,9 +886,6 @@ async function runRealProcessChain() {
   serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
 
   created = await callAppAPI('corres', 'ttm/consensus-cluster', { ttm: serverTtm, params: consensusParams });
-  serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
-
-  created = await callAppAPI('corres', 'ttm/tau-bridge-interval', { ttm: serverTtm, params: tauBridgeIntervalParams });
   serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
 
   created = await callAppAPI('corres', 'ttm/classify-roles', { ttm: serverTtm, params: classifyParams });
@@ -925,8 +933,8 @@ async function runProcessChain() {
       // e.g. CORS, connection refused, wrong apiBase). Only the second
       // is a reachability problem safe to paper over with fixture data.
       // The first is a genuine methodological finding (an inadmissible
-      // matrix, a failed reliability gate, an empty tau_bridge interval)
-      // and spec's own instruction is to "halt with a prominent
+      // matrix, a failed reliability gate) and spec's own instruction is
+      // to "halt with a prominent
       // diagnostic, do not proceed silently" — swapping in fixture data
       // for that would be exactly the silent failure the spec forbids.
       if (backendErr.code) {
@@ -934,11 +942,12 @@ async function runProcessChain() {
       } else {
         console.warn('Backend unreachable, falling back to fixture data:', backendErr);
         const conceptIds = dtmData.conceptIds.map(String);
+        const conceptAdmission = mockConceptAdmission(conceptIds);
         const residuals = mockComputeResiduals(conceptIds, processParams.seed);
         const consensus = mockConsensusCluster(conceptIds, residuals, processParams);
         const roles = mockClassifyRoles(conceptIds, residuals, consensus, processParams);
         const bea = mockBeaOrder(conceptIds, residuals, consensus.blocks, processParams);
-        serverTtm = Object.assign({}, serverTtm, { residuals, consensus, roles, bea });
+        serverTtm = Object.assign({}, serverTtm, { concept_admission: conceptAdmission, residuals, consensus, roles, bea });
         lastRunWasFixture = true;
       }
     }
@@ -959,15 +968,16 @@ async function runProcessChain() {
 }
 
 // A real, backend-reported failure — one of the spec's own halt
-// conditions (residual_matrix_inadmissible, reliability_gate_failed,
-// tau_bridge_interval_empty), or a generic workflow error. Rendered as a
-// prominent diagnostic, never silently swapped for fixture data.
+// conditions (residual_matrix_inadmissible, reliability_gate_failed), or
+// a generic workflow error. Rendered as a prominent diagnostic, never
+// silently swapped for fixture data. tau_bridge_interval_empty retired
+// 4 Aug along with the endpoint it came from — the ratio rule that
+// replaced it has no admissible-interval concept to fail empty.
 function renderBackendFailure(err) {
   document.getElementById('fixture-flag').style.display = 'none';
   const known = {
     residual_matrix_inadmissible: 'Residual matrix admissibility (spec §2.2a) failed — the corpus reads as degenerate ("blur" or "blob"; see the message below for spread/mean/eff_dim).',
     reliability_gate_failed: 'Reliability gate (spec §2.9) failed — no candidate k shows adequate split-half stability for this corpus. Spec §4.4\'s failure policy is unresolved, so the backend halts rather than proceeding.',
-    tau_bridge_interval_empty: 'τbridge admissible interval (spec §2.8) is empty — no threshold value makes the classification well-defined for this corpus.',
   };
   const heading = known[err.code] || `Backend reported a failure (${err.code || 'unknown code'})`;
   document.getElementById('process-results').innerHTML = `
@@ -979,6 +989,20 @@ function renderBackendFailure(err) {
 }
 
 // ── Mock generators (FIXTURE DATA — see corres.css's .fixture-flag) ─────
+
+// Concept admission (spec §2.1, amended 3 Aug: bipartite). The fixture
+// path has no D1/D2/X1/X2/X3 rule engine to port — no exclusion logic is
+// invented here, per the 4 Aug handoff's own instruction. Synthesizes the
+// clean-run shape (matches the fixed MFC-A benchmark expectation: zero
+// concepts excluded) so downstream code exercises the real field shape.
+function mockConceptAdmission(conceptIds) {
+  return {
+    excluded: [],
+    admitted_concept_ids: conceptIds,
+    admitted_doc_ids: dtmData.docs.map(d => String(d.id)),
+    passes: 1,
+  };
+}
 
 function mockComputeResiduals(conceptIds, seed) {
   const rng = mulberry32(seed * 1000 + 1);
@@ -1034,34 +1058,38 @@ function mockConsensusCluster(conceptIds, residuals, params) {
   return { n_splits: params.n_splits, n_clusters: params.n_clusters, seed: params.seed, matrix, blocks, chance_baseline: chanceBaseline };
 }
 
-// Faithful port of classify_roles.py's _classify_one, rewritten 28 Jul
-// against corres_methodology_specification_v2_0.md §2.6 — the sole
-// authoritative methodology source, superseding both this file's own 24
-// Jul version and the withdrawn corres_formal_methods_subsection_v0_1.md
-// it was built against. THE FIX: own<=0 is checked BEFORE bridging, the
-// opposite of the 24 Jul revision. Spec's own verification: "the negative-
-// own-affinity test runs before the bridging test. Reversing this order
-// pulls External regulation into bridging on the benchmark, contradicting
-// the certified classification." Hand-verified against
-// corres_fixture_17jul_verified.json's "External regulation" row
-// (own=-1.27, cross=[2.17,-0.07]) — own<=0 first correctly gives
-// orthogonal; bridging-first would wrongly give bridging (2.17 >= 2.0).
+// Faithful port of classify_roles.py's _classify_one, rewritten 4 Aug
+// against the ratio rule + fifth-role ruling
+// (2026-08-03_briefs_ad_d2dev_fifth_role_anchoring_ruled_v1_0.md §3),
+// which amends spec §2.6 in place — superseding both this file's own 28
+// Jul version (tau_bridge magnitude test) and the withdrawn 24 Jul one.
+// tau_bridge is gone entirely, not just hidden: the bridging test is now
+// a scale-invariant ratio, rho = max(others)/own >= 0.6 (BRIDGING_RATIO),
+// not a magnitude test against a calibrated per-corpus threshold.
 //
-// Returns one of the four leaf strings, or null for UNRESOLVED — an
-// error condition per spec §2.6, never a fifth label. Caller collects
-// null results into unresolved_concept_ids (RolesInfo shape, matching
-// build_ttm.py's RolesInfo exactly).
+// THE FIX this rewrite carries forward: own<=0 is checked BEFORE
+// bridging — reversing this order pulls a negative-own-affinity concept
+// into bridging on the benchmark, contradicting the certified
+// classification (hand-verified against corres_fixture_17jul_verified
+// .json's "External regulation" row, own=-1.27).
+//
+// Returns one of five leaf strings — never null. The classification is
+// now exhaustive by construction (every stable, positively-anchored
+// concept reaches a leaf): `anchoring` replaces UNRESOLVED as the
+// terminal branch. UNRESOLVED remains an error condition only (spec
+// §2.6) — this function reaching it would itself be a defect to report,
+// not a normal outcome, so it deliberately has nothing left to return
+// for that case.
 //
 // `others` is the cross-block affinity list, own block excluded — does
-// NOT include `own` (the 24 Jul revision pooled them for a "two or more
-// blocks" bridging test; spec §2.6 is a single max(others) >= tau_bridge
-// test, own excluded).
+// NOT include `own`.
 function classifyOne(own, others, stability, params) {
   if (stability >= params.stability_threshold) {                    // STABLE
     if (own <= 0) return 'orthogonal';
-    if (Math.max(...others) >= params.tau_bridge) return 'bridging';
-    if (Math.min(...others) < 0 && Math.max(...others) < DISTINGUISHING_RATIO * own) return 'distinguishing';
-    return null; // UNRESOLVED — error condition, see caller
+    const rho = Math.max(...others) / own;
+    if (rho >= BRIDGING_RATIO) return 'bridging';
+    if (Math.min(...others) < 0) return 'distinguishing';
+    return 'anchoring';
   }
   // UNSTABLE
   if (own <= params.weak_own_threshold && Math.max(...[own, ...others].map(v => Math.abs(v))) < WEAK_MAX_ABS_THRESHOLD) return 'weak';
@@ -1192,24 +1220,28 @@ function renderProcessResults() {
     </div>`;
   }
 
-  html += `<p class="vocab-note">This is <strong>role classification</strong> (the four-role scheme below) applied to the fixed <strong>concept typology</strong> from Phase 1 — the two are not interchangeable (spec §3.4).</p>`;
+  html += `<p class="vocab-note">This is <strong>role classification</strong> (the five-role scheme below) applied to the fixed <strong>concept typology</strong> from Phase 1 — the two are not interchangeable (spec §3.4).</p>`;
 
-  html += `<div id="stage-1"></div><div id="stage-2"></div><div id="stage-3"></div><div id="stage-4"></div><div id="stage-5"></div>`;
+  html += `<div id="stage-1"></div><div id="stage-2"></div><div id="stage-2b"></div><div id="stage-3"></div><div id="stage-4"></div><div id="stage-5"></div>`;
 
   resultsDiv.innerHTML = html;
   // Real path: backend-rendered PNGs (figuresResult, set in
-  // runRealProcessChain() after bea-order). Fixture path: this build's
-  // own SVG rendering — figures/render needs a real backend round-trip
-  // and cannot run against mock data at all (2026-07-29 figures handoff).
+  // runRealProcessChain() after classify-roles/bea-order). Fixture path:
+  // this build's own SVG rendering — figures/render needs a real backend
+  // round-trip and cannot run against mock data at all (2026-07-29
+  // figures handoff). Six panels now, not five (4 Aug: panel B' inserted
+  // after B, no baked-in titles — see each renderer's caption line).
   if (lastRunWasFixture) {
     renderStage1RawMatrixSvg(document.getElementById('stage-1'));
     renderStage2ResidualsSvg(document.getElementById('stage-2'));
+    renderStage2bBlockOrderSvg(document.getElementById('stage-2b'));
     renderStage3ConsensusSvg(document.getElementById('stage-3'));
     renderStage4RoleSpaceSvg(document.getElementById('stage-4'));
     renderStage5BeaSvg(document.getElementById('stage-5'));
   } else {
     renderStage1RawMatrix(document.getElementById('stage-1'));
     renderStage2Residuals(document.getElementById('stage-2'));
+    renderStage2bBlockOrder(document.getElementById('stage-2b'));
     renderStage3Consensus(document.getElementById('stage-3'));
     renderStage4RoleSpace(document.getElementById('stage-4'));
     renderStage5Bea(document.getElementById('stage-5'));
@@ -1229,6 +1261,38 @@ function renderProcessResults() {
 // unavailable case stays visible rather than omitted.
 function renderWarnings(rolesInfo) {
   let html = '<div class="warnings-block">';
+
+  // Concept admission (spec §2.1, amended 3 Aug: bipartite - documents as
+  // well as concepts, cascading together). Per D2Dev's 4 Aug handoff §2:
+  // concept exclusions are the surprising/reportable case (spec's "never
+  // silent" instruction for typology/corpus-fit findings) and get the
+  // same warning-fail/warning-pass treatment as the other gates; document
+  // exclusions are common at scale (MFC-A alone excludes 91 of 3,416,
+  // each coding exactly one concept) and are informational, not a fail
+  // state, so they get the neutral "unavailable"-styled banner instead.
+  const termById = {};
+  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
+  if (serverTtm.concept_admission) {
+    const ca = serverTtm.concept_admission;
+    const excludedConcepts = ca.excluded.filter(e => e.kind === 'concept');
+    const excludedDocs = ca.excluded.filter(e => e.kind === 'document');
+
+    if (excludedConcepts.length === 0) {
+      html += `<div class="warning-banner warning-pass"><strong>Concept admission — no exclusions.</strong> All ${ca.admitted_concept_ids.length} concepts in the typology were admitted.</div>`;
+    } else {
+      const rows = excludedConcepts.map(e => `${escHtml(termById[e.identifier] || e.identifier)} (${e.rule}, count ${e.count_at_exclusion})`).join(', ');
+      html += `<div class="warning-banner warning-fail"><strong>${excludedConcepts.length} concept(s) excluded before analysis.</strong> ${rows}</div>`;
+    }
+
+    if (excludedDocs.length > 0) {
+      html += `<div class="warning-banner warning-unavailable"><strong>${excludedDocs.length} of ${ca.admitted_doc_ids.length + excludedDocs.length} documents excluded (rule D2)</strong> — each coded exactly one concept, contributing nothing to co-occurrence. Common at scale; not itself a signal about typology fit.</div>`;
+    }
+  } else {
+    html += `<div class="warning-banner warning-unavailable">
+      <strong>Concept admission (spec §2.1) — not available this run</strong>
+      Fixture-fallback path only; the real endpoint exists and is wired, but this run didn't reach it. This is not a clean-admission result; it is unchecked.
+    </div>`;
+  }
 
   if (serverTtm.reliability) {
     const rel = serverTtm.reliability;
@@ -1259,8 +1323,6 @@ function renderWarnings(rolesInfo) {
   }
 
   if (rolesInfo.unresolved_concept_ids.length > 0) {
-    const termById = {};
-    dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
     const names = rolesInfo.unresolved_concept_ids.map(cid => termById[cid] || cid).join(', ');
     html += `<div class="warning-banner warning-fail">
       <strong>${rolesInfo.unresolved_concept_ids.length} UNRESOLVED concept(s) — thresholds unsuitable for this corpus</strong>
@@ -1366,6 +1428,33 @@ function renderStage2ResidualsSvg(target) {
     <div class="role-space-wrap" style="overflow:auto;"><svg width="${alpha.length*cell}" height="${alpha.length*cell}">${rects}</svg></div>`;
 }
 
+// Stage 2b — Panel B' (new 4 Aug): the same standardised residuals as
+// Stage 2, reordered into consensus-block order instead of alphabetical,
+// with no certification strips (that's Panel E's job) - just the block
+// permutation applied to the same matrix and colour convention.
+function renderStage2bBlockOrderSvg(target) {
+  const { residuals, consensus } = serverTtm;
+  const termById = {};
+  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
+  const ids = dtmData.conceptIds.map(String);
+  const byBlock = [...ids].sort((a, b) => (consensus.blocks[a] - consensus.blocks[b]) || termById[a].localeCompare(termById[b]));
+  const cell = Math.max(4, Math.min(18, Math.floor(560 / byBlock.length)));
+  const max = Math.max(1, ...byBlock.flatMap(ci => byBlock.map(cj => Math.abs(residuals.matrix[ci][cj]))));
+
+  let rects = '';
+  byBlock.forEach((ci, ri) => byBlock.forEach((cj, cj2) => {
+    const v = residuals.matrix[ci][cj];
+    const intensity = Math.min(1, Math.abs(v) / max);
+    const color = v >= 0 ? `rgba(178,34,34,${intensity})` : `rgba(28,122,156,${intensity})`;
+    rects += `<rect x="${cj2*cell}" y="${ri*cell}" width="${cell}" height="${cell}" fill="${color}"><title>${escHtml(termById[ci])} × ${escHtml(termById[cj])}: ${v.toFixed(2)}</title></rect>`;
+  }));
+
+  target.innerHTML = `
+    <div class="stage-head"><span class="stage-num">Stage 2'</span><span class="stage-name">Standardised residuals — block order</span></div>
+    <p class="panel-sub">Same matrix and colour convention as Stage 2, reordered into consensus-block order — no certification strips (Stage 5 carries those).</p>
+    <div class="role-space-wrap" style="overflow:auto;"><svg width="${byBlock.length*cell}" height="${byBlock.length*cell}">${rects}</svg></div>`;
+}
+
 // Stage 3 — consensus co-classification, sorted by block (brief §3.6 item 3).
 function renderStage3ConsensusSvg(target) {
   const { consensus } = serverTtm;
@@ -1412,6 +1501,7 @@ function renderStage4RoleSpaceSvg(target) {
     if (shape === 'circle') return `<circle cx="${x}" cy="${y}" r="${size}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="1.5"/>`;
     if (shape === 'square') return `<rect x="${x-size}" y="${y-size}" width="${size*2}" height="${size*2}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="1.5"/>`;
     if (shape === 'triangle') return `<polygon points="${x},${y-size*1.2} ${x-size*1.1},${y+size*0.8} ${x+size*1.1},${y+size*0.8}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="1.5"/>`;
+    if (shape === 'diamond') return `<polygon points="${x},${y-size*1.2} ${x+size*1.2},${y} ${x},${y+size*1.2} ${x-size*1.2},${y}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="1.5"/>`;
     // cross (orthogonal)
     return `<g stroke="${fill}" stroke-opacity="${opacity}" stroke-width="${size*0.6}"><line x1="${x-size}" y1="${y-size}" x2="${x+size}" y2="${y+size}"/><line x1="${x-size}" y1="${y+size}" x2="${x+size}" y2="${y-size}"/></g>`;
   };
@@ -1508,17 +1598,35 @@ function renderStage5BeaSvg(target) {
     </div>`;
 }
 
-// Real-path renderers (2026-07-29 figures handoff): one <img> each, off
-// figuresResult (set in runRealProcessChain() after bea-order). Backend
-// PNGs already carry their own embedded title/legend text; panel-sub here
-// keeps this build's own pedagogical framing (the article's own language
-// for what each stage argues), not a restatement of the image.
+// Real-path renderers (2026-07-29 figures handoff, panel set widened to
+// six 4 Aug): one <img> each, off figuresResult (set in
+// runRealProcessChain() after classify-roles/bea-order). None of the six
+// panels carry a baked-in title/suptitle any more (v3.0 §5) - that text
+// lives only in PanelImage.caption (rendered visibly via
+// panelCaptionHtml() below, not just as alt-text) and a fuller
+// sidecar_text (every parameter used to render the panel), offered as a
+// paired .txt download where present. panel-sub keeps this build's own
+// pedagogical framing (the article's own language for what each stage
+// argues) — distinct from caption, the backend's own account of the figure.
+function panelCaptionHtml(p, key) {
+  const dl = p.sidecar_text
+    ? ` <button class="btn btn-outline" style="font-size:0.62rem;padding:0.15rem 0.5rem;margin-left:0.5rem;" onclick="downloadPanelSidecar('${key}')">↓ parameters (.txt)</button>`
+    : '';
+  return `<p class="panel-caption">${escHtml(p.caption)}${dl}</p>`;
+}
+function downloadPanelSidecar(key) {
+  const p = figuresResult && figuresResult[key];
+  if (!p || !p.sidecar_text) return;
+  download(`CR_${key}_${today()}.txt`, p.sidecar_text, 'text/plain');
+}
+
 function renderStage1RawMatrix(target) {
   const p = figuresResult.panel_a_raw_matrix;
   target.innerHTML = `
     <div class="stage-head"><span class="stage-num">Stage 1</span><span class="stage-name">Raw matrix — two panels</span></div>
     <p class="panel-sub">Any sufficiently large matrix looks structured — this display proves nothing. Left: alphabetical order, deliberately, because at this stage nothing has been measured. Right: the same matrix sorted by total co-occurrence — this is the specific trap Stage 2 exists to spring, not a better view.</p>
-    <img src="data:image/png;base64,${p.data_base64}" style="max-width:100%;height:auto;" alt="${escHtml(p.caption)}">`;
+    <img src="data:image/png;base64,${p.data_base64}" style="max-width:100%;height:auto;" alt="${escHtml(p.caption)}">
+    ${panelCaptionHtml(p, 'panel_a_raw_matrix')}`;
 }
 
 function renderStage2Residuals(target) {
@@ -1526,7 +1634,19 @@ function renderStage2Residuals(target) {
   target.innerHTML = `
     <div class="stage-head"><span class="stage-num">Stage 2</span><span class="stage-name">Standardised residuals</span></div>
     <p class="panel-sub">Alphabetical order. Red = resonance (co-occurs more than the independence baseline expects); blue = dissonance (less).</p>
-    <img src="data:image/png;base64,${p.data_base64}" style="max-width:100%;height:auto;" alt="${escHtml(p.caption)}">`;
+    <img src="data:image/png;base64,${p.data_base64}" style="max-width:100%;height:auto;" alt="${escHtml(p.caption)}">
+    ${panelCaptionHtml(p, 'panel_b_residuals')}`;
+}
+
+// Panel B' (new 4 Aug): the same residuals, reordered into consensus-
+// block order — see D2Dev's 4 Aug handoff §3.
+function renderStage2bBlockOrder(target) {
+  const p = figuresResult.panel_b_prime_block_order;
+  target.innerHTML = `
+    <div class="stage-head"><span class="stage-num">Stage 2'</span><span class="stage-name">Standardised residuals — block order</span></div>
+    <p class="panel-sub">Same matrix and colour convention as Stage 2, reordered into consensus-block order — no certification strips (Stage 5 carries those).</p>
+    <img src="data:image/png;base64,${p.data_base64}" style="max-width:100%;height:auto;" alt="${escHtml(p.caption)}">
+    ${panelCaptionHtml(p, 'panel_b_prime_block_order')}`;
 }
 
 function renderStage3Consensus(target) {
@@ -1534,7 +1654,8 @@ function renderStage3Consensus(target) {
   target.innerHTML = `
     <div class="stage-head"><span class="stage-num">Stage 3</span><span class="stage-name">Consensus co-classification</span></div>
     <p class="panel-sub">Sorted by consensus block. Darker = higher co-classification rate across the resampled ensemble.</p>
-    <img src="data:image/png;base64,${p.data_base64}" style="max-width:100%;height:auto;" alt="${escHtml(p.caption)}">`;
+    <img src="data:image/png;base64,${p.data_base64}" style="max-width:100%;height:auto;" alt="${escHtml(p.caption)}">
+    ${panelCaptionHtml(p, 'panel_c_consensus')}`;
 }
 
 function renderStage4RoleSpace(target) {
@@ -1542,12 +1663,13 @@ function renderStage4RoleSpace(target) {
   target.innerHTML = `
     <div class="stage-head"><span class="stage-num">Stage 4</span><span class="stage-name">Role space — primary evidentiary weight</span></div>
     <p class="panel-sub">Stability (x) vs. absolute own-block affinity (y). Shape and colour both distinguish role (spec §3.4) — legend in the figure.</p>
-    <img src="data:image/png;base64,${p.data_base64}" style="max-width:100%;height:auto;" alt="${escHtml(p.caption)}">`;
+    <img src="data:image/png;base64,${p.data_base64}" style="max-width:100%;height:auto;" alt="${escHtml(p.caption)}">
+    ${panelCaptionHtml(p, 'panel_d_role_space')}`;
 }
 
 function renderStage5Bea(target) {
   const { bea } = serverTtm;
-  const p = figuresResult.panel_e_bea_stingray;
+  const p = figuresResult.panel_e_ordered_residuals;
   target.innerHTML = `
     <div class="stage-head"><span class="stage-num">Stage 5</span><span class="stage-name">Bond-energy seriation</span></div>
     <p class="panel-sub">Concepts placed to maximise adjacent positive-residual bond strength. Renders the certified partition — spec §2.10: not an independent test of it.</p>
@@ -1556,7 +1678,8 @@ function renderStage5Bea(target) {
       <div class="stat-item"><span class="stat-val">${(bea.null_mean*100).toFixed(0)}%</span><span class="stat-label">Null mean (${processParams.n_null} permutations)</span></div>
       <div class="stat-item"><span class="stat-val">${(bea.null_p95*100).toFixed(0)}%</span><span class="stat-label">Null 95th percentile</span></div>
     </div>
-    <img src="data:image/png;base64,${p.data_base64}" style="max-width:100%;height:auto;" alt="${escHtml(p.caption)}">`;
+    <img src="data:image/png;base64,${p.data_base64}" style="max-width:100%;height:auto;" alt="${escHtml(p.caption)}">
+    ${panelCaptionHtml(p, 'panel_e_ordered_residuals')}`;
 }
 
 // ── Step state helpers ────────────────────────────────────────────────
