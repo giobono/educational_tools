@@ -691,7 +691,11 @@ function exportTTM() {
 // anywhere - category names are display groupings only. Hand-copied here
 // to match role_vocabulary.json rather than fetched at runtime, same
 // pattern as that file's own "copy, never edit" discipline.
-const ROLE_TIER  = { distinguishing: 'Core', bridging: 'Core', anchoring: 'Core', orthogonal: 'Boundary', weak: 'Boundary' };
+// "Boundary (non-core)" - exactly, including capitalisation and
+// parentheses - corrected 9 Aug per R4 of the surface wordings ruling.
+// Display grouping only, never an assignable value; the formal rename to
+// "non-core (formerly boundary)" is deferred post-Zurich (AD-NONCORE-RENAME-DEFERRED).
+const ROLE_TIER  = { distinguishing: 'Core', bridging: 'Core', anchoring: 'Core', orthogonal: 'Boundary (non-core)', weak: 'Boundary (non-core)' };
 const ROLE_LABEL = { distinguishing: 'Distinguishing', bridging: 'Bridging', anchoring: 'Anchoring', orthogonal: 'Orthogonal', weak: 'Weak' };
 const ROLE_COLOR = { distinguishing: '#2a6b4a', bridging: '#1c7a9c', anchoring: '#6b4a9c', orthogonal: '#9a9490', weak: '#7a5c1a' };
 // Spec §3.4: "the role-space plot must distinguish the roles by shape or
@@ -703,16 +707,22 @@ const ROLE_COLOR = { distinguishing: '#2a6b4a', bridging: '#1c7a9c', anchoring: 
 const ROLE_MARKER = { distinguishing: 'circle', bridging: 'square', anchoring: 'diamond', weak: 'triangle', orthogonal: 'cross' };
 
 // Declared parameters (spec §3.1-3.2, Annex A §A5: read-only for this
-// demonstration - no elicitation interface yet). Two are genuinely Fixed
-// by the specification (never overridable, never fenced); the rest are
-// per-corpus calibrated values which for this sprint are declared in
-// advance rather than computed live (the admissible-interval and
-// reliability-gate endpoints that would propose them don't exist
+// demonstration - no elicitation interface yet). Only BRIDGING_RATIO is
+// genuinely Fixed by the specification (never overridable, never
+// fenced). WEAK_MAX_ABS_THRESHOLD is never editable but is NOT Fixed -
+// corrected 9 Aug per R2 of the surface wordings ruling
+// (2026-08-08_ruling_ad_surface_wordings_v1_0.md): it is status Open,
+// spec §4 item 9, applying in the unstable branch only. The word "Fixed"
+// on this constant was a method mis-statement, not a stale label - the
+// bridging threshold it once belonged to was deleted, not recalibrated.
+// The rest are per-corpus calibrated values which for this sprint are
+// declared in advance rather than computed live (the admissible-interval
+// and reliability-gate endpoints that would propose them don't exist
 // server-side yet - see this build's completion note). Values sourced
 // from corres_fixture_17jul_verified.json (ebono_governance/briefs/
 // dndev/), the only verified numbers available, NOT invented here.
 const BRIDGING_RATIO = 0.6;   // ratio rule, spec §2.6 as amended 3 Aug: Fixed, scale-invariant ratio (rho = max(others)/own >= 0.6 -> bridging) - never editable
-const WEAK_MAX_ABS_THRESHOLD = 2.0; // spec §2.6/§2.7: Fixed, residual-scale constant - never editable
+const WEAK_MAX_ABS_THRESHOLD = 2.0; // spec §2.6/§2.7, §4 item 9: status Open, unstable branch only - never editable but not Fixed (R2, 9 Aug correction)
 let processParams = {
   n_clusters: 3,          // fixture: block_sizes [7,2,6], k=3
   n_splits: 25,
@@ -777,15 +787,18 @@ function renderProcessControls() {
 // per spec §3.2's explicit instruction ("must distinguish them
 // unmistakably from the calibrated parameters, because their scale
 // semantics differ"):
-//   Fixed      — BRIDGING_RATIO, WEAK_MAX_ABS_THRESHOLD. Never
-//                editable, never fenced, implemented as written.
+//   Fixed      — BRIDGING_RATIO only. Never editable, never fenced,
+//                implemented as written.
 //   Calibrated — tau_sigma, k. Per-corpus values; declared here from the
 //                17 Jul fixture, not computed live (no proposing endpoint
 //                exists yet). tau_bridge/tau-bridge-interval retired
 //                entirely 3-4 Aug (ratio rule replaces it, spec §2.6 as
 //                amended) — no longer a parameter of any kind.
-//   Open       — weak_own_threshold. Spec §4.1: unconfirmed since v1.0.
-//                Shown with its working value, flagged as unconfirmed.
+//   Open       — weak_own_threshold (spec §4.1, unconfirmed since v1.0)
+//                and WEAK_MAX_ABS_THRESHOLD (spec §4 item 9, corrected
+//                9 Aug per R2 — never editable, but status Open, not
+//                Fixed; applies in the unstable branch only). Both shown
+//                with their working value, flagged as unconfirmed.
 function paramRow(label, value, status) {
   const cls = status === 'Fixed' ? 'param-fixed' : status === 'Open' ? 'param-open' : 'param-calibrated';
   return `<div class="param-item">
@@ -803,7 +816,7 @@ function renderParamsPanel() {
     ${paramRow('Residual spread threshold', p.spread_threshold, 'Calibrated')}
     ${paramRow('Reliability threshold (τrel)', p.tau_rel, 'Open')}
     ${paramRow('Bridging ratio threshold (ρ = max(others)/own)', BRIDGING_RATIO, 'Fixed')}
-    ${paramRow('Weak/boundary magnitude test', WEAK_MAX_ABS_THRESHOLD, 'Fixed')}
+    ${paramRow('Weak/boundary magnitude companion (spec §4 item 9, unstable branch only)', WEAK_MAX_ABS_THRESHOLD, 'Open')}
     ${paramRow('Weak own-affinity threshold', p.weak_own_threshold, 'Open')}`;
 
   // Backend-proposed values (spec §2.7/§2.8), shown alongside the
@@ -973,11 +986,17 @@ async function runProcessChain() {
 // silently swapped for fixture data. tau_bridge_interval_empty retired
 // 4 Aug along with the endpoint it came from — the ratio rule that
 // replaced it has no admissible-interval concept to fail empty.
+// reliability_gate_failed wording corrected 9 Aug (R5, joining the surface
+// wordings ruling at its next reissue): the halt is deliberate design, not
+// a symptom of an unresolved policy - only the proceed-or-block choice
+// (spec §4 item 11) is open. Proceed-with-caveat was ruled in principle 8
+// Aug but its implementation is deferred past promotion, so this halt is
+// the live behaviour for both Brisbane and Zurich, not a placeholder.
 function renderBackendFailure(err) {
   document.getElementById('fixture-flag').style.display = 'none';
   const known = {
     residual_matrix_inadmissible: 'Residual matrix admissibility (spec §2.2a) failed — the corpus reads as degenerate ("blur" or "blob"; see the message below for spread/mean/eff_dim).',
-    reliability_gate_failed: 'Reliability gate (spec §2.9) failed — no candidate k shows adequate split-half stability for this corpus. Spec §4.4\'s failure policy is unresolved, so the backend halts rather than proceeding.',
+    reliability_gate_failed: 'Reliability gate (spec §2.9) failed — no candidate k shows adequate split-half stability for this corpus. A failing corpus halts by design; the proceed-or-block policy is spec §4 item 11, which is open.',
   };
   const heading = known[err.code] || `Backend reported a failure (${err.code || 'unknown code'})`;
   document.getElementById('process-results').innerHTML = `
@@ -1325,7 +1344,8 @@ function renderWarnings(rolesInfo) {
   if (rolesInfo.unresolved_concept_ids.length > 0) {
     const names = rolesInfo.unresolved_concept_ids.map(cid => termById[cid] || cid).join(', ');
     html += `<div class="warning-banner warning-fail">
-      <strong>${rolesInfo.unresolved_concept_ids.length} UNRESOLVED concept(s) — thresholds unsuitable for this corpus</strong>
+      <strong>${rolesInfo.unresolved_concept_ids.length} UNRESOLVED concept(s) — internal error, not a corpus finding</strong>
+      Internal error — a concept could not be classified. The classification is exhaustive by design, so this is a software defect, not a finding about your corpus. Do not interpret the run. Report this error.
       ${escHtml(names)}
     </div>`;
   } else {
@@ -1340,11 +1360,6 @@ function renderWarnings(rolesInfo) {
 
   html += '</div>';
   return html;
-}
-
-function roleBadgeHtml(role) {
-  const tier = ROLE_TIER[role];
-  return `<span class="role-badge role-${tier.toLowerCase()}-${role}"><span class="tier">${tier}</span> · ${ROLE_LABEL[role]}</span>`;
 }
 
 function statusTagHtml(stability) {
@@ -1513,7 +1528,7 @@ function renderStage4RoleSpaceSvg(target) {
     const y = h - pad - (ownAffinity(cid) / maxAff) * (h - 2*pad);
     const color = ROLE_COLOR[r.role];
     const certified = r.stability >= processParams.stability_threshold;
-    const title = `<title>${escHtml(termById[cid])} — ${ROLE_TIER[r.role]} ${ROLE_LABEL[r.role]} (σ=${r.stability.toFixed(2)}, |own affinity|=${ownAffinity(cid).toFixed(2)})</title>`;
+    const title = `<title>${escHtml(termById[cid])} — ${ROLE_TIER[r.role]} · ${ROLE_LABEL[r.role]} (σ=${r.stability.toFixed(2)}, |own affinity|=${ownAffinity(cid).toFixed(2)})</title>`;
     return `<g>${markerSvg(ROLE_MARKER[r.role], x.toFixed(1), y.toFixed(1), certified ? 6 : 4.5, color, certified ? 0.9 : 0.45, certified ? color : 'none')}${title}</g>`;
   }).join('');
 
@@ -1578,7 +1593,7 @@ function renderStage5BeaSvg(target) {
 
   target.innerHTML = `
     <div class="stage-head"><span class="stage-num">Stage 5</span><span class="stage-name">Bond-energy seriation</span></div>
-    <p class="panel-sub">Concepts placed to maximise adjacent positive-residual bond strength. Renders the certified partition — spec §2.10: not an independent test of it.</p>
+    <p class="panel-sub">Rows and columns are sorted by block, most stable first within each block — the certified partition (spec §2.10). Bond-energy seriation places concepts within that order to maximise adjacent positive-residual bond strength; it is computed separately as corroborating evidence, not an independent test of the partition, and its block-adjacency statistic and permutation null are reported in the sidecar.</p>
     <div class="bea-adjacency-stat" style="margin-bottom:1rem;">
       <div class="stat-item"><span class="stat-val">${(bea.adjacency*100).toFixed(0)}%</span><span class="stat-label">Same-block adjacency, observed</span></div>
       <div class="stat-item"><span class="stat-val">${(bea.null_mean*100).toFixed(0)}%</span><span class="stat-label">Null mean (${processParams.n_null} permutations)</span></div>
@@ -1672,7 +1687,7 @@ function renderStage5Bea(target) {
   const p = figuresResult.panel_e_ordered_residuals;
   target.innerHTML = `
     <div class="stage-head"><span class="stage-num">Stage 5</span><span class="stage-name">Bond-energy seriation</span></div>
-    <p class="panel-sub">Concepts placed to maximise adjacent positive-residual bond strength. Renders the certified partition — spec §2.10: not an independent test of it.</p>
+    <p class="panel-sub">Rows and columns are sorted by block, most stable first within each block — the certified partition (spec §2.10). Bond-energy seriation places concepts within that order to maximise adjacent positive-residual bond strength; it is computed separately as corroborating evidence, not an independent test of the partition, and its block-adjacency statistic and permutation null are reported in the sidecar.</p>
     <div class="bea-adjacency-stat" style="margin-bottom:1rem;">
       <div class="stat-item"><span class="stat-val">${(bea.adjacency*100).toFixed(0)}%</span><span class="stat-label">Same-block adjacency, observed</span></div>
       <div class="stat-item"><span class="stat-val">${(bea.null_mean*100).toFixed(0)}%</span><span class="stat-label">Null mean (${processParams.n_null} permutations)</span></div>
