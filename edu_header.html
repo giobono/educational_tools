@@ -14,6 +14,16 @@
       <a class="cr-phase-link" href="/apps/corres/">Analysis</a>
     </nav>
   </div>
+  <!-- Fixed build version, for Louis to cite when reporting a defect during
+       the beta window (Geoff's ruling, 9 Aug 2026). Interim only - a
+       hardcoded number in a tracked file inside public_html, never in
+       config.js (that lives outside the repo and a deploy has already
+       deleted it once, 7 Aug). Not the designed fix: the one-module,
+       declared-version-plus-build-SHA design is filed to OD at
+       ebono_governance/briefs/d2dev/2026-08-09_return_d2dev_od_version_reporting_v1_0.md
+       for a post-Zurich decision. Bump this string by hand at each
+       front-end promotion until that lands. -->
+  <span class="cr-build-version" title="Cite this build number when reporting a defect" style="position:fixed;right:0.4rem;bottom:0.3rem;font-family:var(--mono, monospace);font-size:0.6rem;color:var(--ink-light, #888);opacity:0.6;z-index:1;pointer-events:none;">beta-2026-08-09</span>
 </header>
 
 <!-- Contact FAB/modal — mirrors ebono_au_site's component (CD input v0.1
