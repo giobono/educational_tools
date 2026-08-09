@@ -1318,7 +1318,7 @@ function renderWarnings(rolesInfo) {
     const cls = rel.passed ? 'warning-pass' : 'warning-fail';
     html += `<div class="warning-banner ${cls}">
       <strong>Reliability gate (spec §2.9) — ${rel.passed ? 'passed' : 'FAILED'}</strong>
-      Max split-half ARI ${rel.max_ari.toFixed(3)} against τrel ${rel.tau_rel.toFixed(3)}.
+      Maximum split-half ARI across candidate k = ${rel.k_min}–${rel.k_max}: ${rel.max_ari.toFixed(3)} against τrel ${rel.tau_rel.toFixed(3)} (provisional, spec §4 item 8). This is the gate statistic, not the reliability of the displayed partition.
     </div>`;
   } else {
     html += `<div class="warning-banner warning-unavailable">
