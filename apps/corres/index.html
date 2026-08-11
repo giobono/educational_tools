@@ -18,7 +18,51 @@
 <link href="corres.css" rel="stylesheet"/></head>
 <body>
 <div id="edu-header" class="cr-nav"></div>
-<div class="workspace">
+<!-- ── Front page ──
+     Sighted final copy (AD, 11 Aug, register append) placed per
+     2026-08-12_briefs_od_d1dev_front_page_copy_corrections_and_promotion_v1_0.md
+     s1-s2, amending 2026-08-11_mailbox_cd_od_corres_front_page_and_fork_sequence_v1_0.md
+     s3/Annex A item 2. Wording is not D1Dev's to edit beyond the two
+     corrections named in the brief; placement, type scale and layout are.
+
+     Two corrections applied against CD's committed text:
+     s1.1 - "It also found a defect in analysis we had already published,
+     which we have since corrected" replaced (ambiguous clause read as
+     false; the method is corrected, the analysis is not - claimable set
+     s2.3/s4).
+     s1.2 - "published" -> "report" in "we published both refusals".
+     Checked first-hand, not assumed: ebono_research holds no public URL,
+     blog post or preprint carrying either refusal case (the only related
+     draft, CorRes_Article_Headline_Draft_v0_6.md, is an unpublished
+     working draft, reconciled against the now-void 17 July fixture, and
+     explicitly scopes the second-corpus refusal OUT - "A second-corpus
+     negative case was drafted and removed"). Not publicly reachable at
+     commit -> "report" substituted, per the brief's own specified branch. -->
+<section class="cr-front" id="cr-front">
+<div class="cr-front-inner">
+<p class="cr-front-eyebrow">corres</p>
+<h1 class="cr-front-title">You have coded a corpus. corres tells you how those concepts hang together.</h1>
+<p class="cr-front-sub">Which concepts travel as a group. Which ones bridge between groups. Where your material divides.</p>
+
+<h2 class="cr-front-h2">How it reads a corpus</h2>
+<p class="cr-front-p">It works on departures from independence, not on counts. Two concepts that both appear everywhere will co-occur constantly, and that tells you nothing. corres looks for the pairs that appear together more often, or less often, than chance predicts. That is the difference between finding structure and rediscovering which of your codes are common.</p>
+
+<h2 class="cr-front-h2">It will tell you when the answer is no</h2>
+<p class="cr-front-p">Before corres interprets anything, it tests whether your corpus can support interpretation at all. It resamples your documents, reruns the analysis on each half, and checks whether the groups survive. If they do not, it stops and tells you why — with the diagnosis, and every concept and document it set aside, itemised.</p>
+<p class="cr-front-p">Two of the corpora we most wanted to use have been declined by our own method, for two different reasons, and we report both refusals. It also found a defect in work we had already published. The method is corrected; that earlier analysis is being redone.</p>
+<p class="cr-front-p">A method that cannot say no cannot tell you that your coding scheme will not carry the finding you were planning. You would rather know that now than after you have built on it.</p>
+
+<h2 class="cr-front-h2">What you get</h2>
+<p class="cr-front-p">Certified groups. A role for every concept. And the parameters and conditions each result was produced under, so someone else can reproduce it.</p>
+
+<h2 class="cr-front-h2">What is yours</h2>
+<p class="cr-front-p">Our own papers read groups like these as <strong>frames</strong>. That is our interpretation, and it has not been tested against an external referent — so corres returns the structure and leaves the reading to you. That part of the work is yours.</p>
+<p class="cr-front-p">corres is in beta and under active development. Some thresholds are declared provisional and are under review; every run reports the conditions it ran under.</p>
+
+<a href="#cr-front-start" class="cr-front-cta">Bring your matrix ↓</a>
+</div>
+</section>
+<div class="workspace" id="cr-front-start">
 <div class="callout">
 <strong>Before you begin</strong><br/>
     This phase expects a reviewed and corrected DTM CSV from Phase 3.1. Low-confidence cells (marked [?]) and any anomalous scores should be resolved in the CSV before uploading. The analysis proceeds in four steps: binarisation → TTM construction → cluster analysis → frame naming. Download the sorted TTM after Step 4.2 and compare it against the clustered output from Step 4.3 to validate the cluster structure before proceeding to naming.
@@ -774,6 +818,17 @@ function renderProcessControls() {
       Runs Addie's four-stage process over the confirmed term-term matrix: standardised residuals against an independence baseline, consensus-ensemble clustering across resampled splits, role classification, and BEA seriation. Parameters below are declared in advance and shown read-only for this demonstration (Annex A §A5) — the full elicitation interface is deferred past the holiday.
     </p>
     <div class="params-panel" id="process-params-panel"></div>
+    <!-- Contact capture (12 Aug) - Annex A item 3 as amended (A2):
+         point of submission, not site entry; plainest label, no
+         marketing sentence; mints no identifier - the email is the
+         natural key and nothing else is stored or generated against it.
+         "Point of submission" read as this button: it's where a visitor
+         actually submits their corpus for the certified process, which
+         is what "the tool wants somewhere to return the result" means. -->
+    <div class="contact-capture">
+      <label for="run-contact-email">Email (optional)</label>
+      <input type="email" id="run-contact-email" placeholder="you@example.com" autocomplete="email">
+    </div>
     <div class="btn-row">
       <button class="btn btn-primary" id="run-process-btn" onclick="runProcessChain()">Run stability, roles &amp; seriation →</button>
     </div>
@@ -927,8 +982,30 @@ async function runRealProcessChain() {
 
 let lastRunWasFixture = false;
 
+// Contact capture (12 Aug, Annex A item 3/A2): fire-and-forget on
+// submission, not a precondition of it - a visitor who leaves the field
+// blank runs exactly as before. Mints nothing: reuses the site's own
+// existing contact.php/PHPMailer relay (same infrastructure already
+// live for the site's contact form) as a plain notification, not a new
+// endpoint, no database row, no token, no identifier of any kind beyond
+// the email address itself.
+function captureRunEmail() {
+  const email = (document.getElementById('run-contact-email').value || '').trim();
+  if (!email) return;
+  fetch('/contact.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      name: 'corres visitor',
+      email,
+      message: 'Corpus submitted via corres (beta). No further detail captured — return the result to this address.',
+    }),
+  }).catch(() => { /* best-effort; never blocks or surfaces to the run itself */ });
+}
+
 async function runProcessChain() {
   clearError();
+  captureRunEmail();
   document.getElementById('run-process-btn').disabled = true;
   document.getElementById('process-running').style.display = 'block';
   document.getElementById('process-results').innerHTML = '';
