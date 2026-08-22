@@ -1,29 +1,10 @@
 
-  :root {
-    /* Brand alignment (Geoff, 24 Jul): white page ground, corporate
-       navy/ice-blue in place of the inherited ink/paper/terracotta
-       scheme. Values match ebono_brand/tokens.css. */
-    --ink: #0c1424;
-    --ink-mid: #3d4a5c;
-    --ink-light: #7c838b;
-    --paper: #ffffff;
-    --paper-mid: #eef1f3;
-    --paper-dark: #dde3e7;
-    /* #1c7a9c chosen over the literal ice-blue (#a9dcef) for --accent:
-       ice-blue is ~1.3:1 contrast on white (fails WCAG AA outright) —
-       this is a darker value from the same hue, ~4.9:1, still reads as
-       the corporate blue but stays legible as small text/labels. */
-    --accent: #1c7a9c;
-    --accent-light: #4fa8c9;
-    --success: #2a6b4a;
-    --warning: #7a5c1a;
-    --warning-bg: #fdf5e0;
-    --warning-border: #e8d090;
-    --rule: #d5dbe0;
-    --mono: 'JetBrains Mono', monospace;
-    --serif: 'Spectral', Georgia, serif;
-    --sans: 'Barlow', sans-serif;
-  }
+  /* Design tokens are defined once, in /edu_common.css, which every page
+   carrying this stylesheet also loads and loads first. They were duplicated
+   here and in four sibling stylesheets until 24 Aug 2026; six copies agreed
+   only by hand, and a colour change meant six edits or a half-applied
+   redesign. The shared file is now the single definition. */
+
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
