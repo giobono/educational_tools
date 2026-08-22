@@ -121,7 +121,7 @@
   .doc-slot.filled {
     border-style: solid;
     border-color: var(--success);
-    background: #f0f7f3;
+    background: var(--success-bg);
     cursor: default;
   }
 
@@ -132,7 +132,7 @@
 
   .doc-slot.done {
     border-color: var(--success);
-    background: #f0f7f3;
+    background: var(--success-bg);
   }
 
   .doc-slot input[type="file"] {

@@ -63,7 +63,7 @@
      Phases override these in their own <style> block if they vary from the
      default. The phase-tag background alternates ink/accent across the four
      phases; rather than encoding that here, each page sets its own value. */
-  --phase-tag-bg: var(--ink);
+  --phase-tag-bg: #0c1424;
 }
 
 
@@ -93,7 +93,7 @@ body {
    --accent. */
 
 header {
-  background: linear-gradient(135deg, #0c1424, #05070a);
+  background: linear-gradient(135deg, var(--ink), #05070a);
   border-bottom: 2px solid #16264a;
   padding: 1.5rem 3rem;
   display: flex;
@@ -107,7 +107,7 @@ header {
   font-weight: 300;
   font-size: 1.4rem;
   letter-spacing: -0.02em;
-  color: #ffffff;
+  color: var(--paper);
 }
 
 .logo em { font-style: italic; color: #a9dcef; }
@@ -131,7 +131,7 @@ header {
   font-size: 1.4rem;
   letter-spacing: -0.02em;
   text-decoration: none;
-  color: #ffffff;
+  color: var(--paper);
 }
 
 .cr-nav-logo em { font-style: italic; color: #a9dcef; }
@@ -203,7 +203,7 @@ header {
   border-radius: 0 3px 3px 0;
 }
 
-.cr-phase-link:hover { background: #16264a; color: #ffffff; }
+.cr-phase-link:hover { background: #16264a; color: var(--paper); }
 
 .cr-phase-link.current {
   background: #a9dcef;
@@ -404,7 +404,7 @@ header {
   padding: 0.85rem 1.1rem;
   border-radius: 999px;
   border: 1px solid #16264a;
-  background: linear-gradient(135deg, #0c1424, #05070a);
+  background: linear-gradient(135deg, var(--ink), #05070a);
   color: #c7ccd1;
   font-family: 'IBM Plex Sans', system-ui, sans-serif;
   font-size: 0.85rem;
@@ -444,7 +444,7 @@ header {
 .modal {
   width: 100%;
   max-width: 460px;
-  background: #0c1424;
+  background: var(--ink);
   border: 1px solid #16264a;
   border-radius: 4px;
   padding: 2rem;
@@ -459,10 +459,10 @@ header {
   font-weight: 500;
   font-size: 1.4rem;
   margin: 0 0 0.4rem;
-  color: #ffffff;
+  color: var(--paper);
 }
 
-.modal p.modal-sub { margin: 0 0 1.4rem; font-size: 0.85rem; color: #7c838b; }
+.modal p.modal-sub { margin: 0 0 1.4rem; font-size: 0.85rem; color: var(--ink-light); }
 
 .modal label {
   display: block;
@@ -470,7 +470,7 @@ header {
   font-size: 0.68rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #7c838b;
+  color: var(--ink-light);
   margin: 1rem 0 0.35rem;
 }
 
@@ -479,7 +479,7 @@ header {
   background: #05070a;
   border: 1px solid #16264a;
   border-radius: 2px;
-  color: #ffffff;
+  color: var(--paper);
   font-family: 'IBM Plex Sans', system-ui, sans-serif;
   font-size: 0.9rem;
   padding: 0.65rem 0.75rem;
@@ -514,7 +514,7 @@ header {
 .modal-close {
   background: none;
   border: none;
-  color: #7c838b;
+  color: var(--ink-light);
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
   font-size: 0.75rem;
   letter-spacing: 0.08em;
