@@ -36,8 +36,16 @@
                                     ~4.9:1 on white, passes WCAG AA as text   */
 
   /* ── Typography ──────────────────────────────────────────────────────────
-     Names follow ebono.au, which set them first and is the senior surface. */
-  --font-display: 'Fraunces', 'Georgia', serif;
-  --font-body:    'IBM Plex Sans', system-ui, sans-serif;
-  --font-mono:    'IBM Plex Mono', ui-monospace, monospace;
+     Primitives, in the --ebono- namespace like the colours. A surface maps
+     these to its own semantic --font-display / --font-body / --font-mono,
+     which is ebono.au's naming and now the fleet's.
+
+     They must stay namespaced. edu_common.css declares the semantic names for
+     the light theme and loads after edu_hero.css on the landing page, so any
+     shared name it also declares is captured by it — which is exactly how the
+     landing page's subtitle silently became Barlow when these were briefly
+     called --font-body. */
+  --ebono-font-display: 'Fraunces', 'Georgia', serif;
+  --ebono-font-body:    'IBM Plex Sans', system-ui, sans-serif;
+  --ebono-font-mono:    'IBM Plex Mono', ui-monospace, monospace;
 }

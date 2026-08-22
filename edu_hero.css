@@ -126,7 +126,7 @@ body::before {
 }
 
 .hero-subtitle {
-  font-family: var(--font-body);
+  font-family: var(--ebono-font-body);
   font-weight: 300;
   font-size: clamp(1.3rem, 2.6vw, 1.8rem);
   color: var(--body-text);
@@ -151,7 +151,7 @@ body::before {
   color: var(--ground);
   text-decoration: none;
   padding: 0.85rem 2rem;
-  font-family: var(--font-body);
+  font-family: var(--ebono-font-body);
   font-size: 1rem;
   font-weight: 600;
   letter-spacing: 0.05em;
@@ -180,7 +180,7 @@ body::before {
 }
 
 .hero-stat-num {
-  font-family: var(--font-body);
+  font-family: var(--ebono-font-body);
   font-weight: 700;
   font-size: 1.8rem;
   color: var(--heading);
@@ -217,7 +217,7 @@ body::before {
 }
 
 .overview-body h2 {
-  font-family: var(--font-body);
+  font-family: var(--ebono-font-body);
   font-weight: 400;
   font-size: 2rem;
   color: var(--heading);
@@ -263,7 +263,7 @@ body::before {
 .ct-boundary::before { background: var(--ground-edge); }
 
 .concept-type-name {
-  font-family: var(--font-body);
+  font-family: var(--ebono-font-body);
   font-weight: 600;
   font-size: 0.85rem;
   letter-spacing: 0.04em;
@@ -304,7 +304,7 @@ body::before {
 }
 
 .phases-header h2 {
-  font-family: var(--font-body);
+  font-family: var(--ebono-font-body);
   font-weight: 400;
   font-size: 2rem;
   color: var(--heading);
@@ -356,7 +356,7 @@ body::before {
 }
 
 .phase-num {
-  font-family: var(--font-body);
+  font-family: var(--ebono-font-body);
   font-weight: 700;
   font-size: 3rem;
   line-height: 1;
@@ -380,7 +380,7 @@ body::before {
 }
 
 .phase-name {
-  font-family: var(--font-body);
+  font-family: var(--ebono-font-body);
   font-weight: 600;
   font-size: 1.2rem;
   color: var(--heading);
@@ -517,7 +517,7 @@ body::before {
 }
 
 .flow-step-name {
-  font-family: var(--font-body);
+  font-family: var(--ebono-font-body);
   font-weight: 600;
   font-size: 1rem;
   color: var(--heading);
@@ -528,7 +528,7 @@ body::before {
   font-size: 0.75rem;
   color: var(--body-dim);
   line-height: 1.5;
-  font-family: var(--font-body);
+  font-family: var(--ebono-font-body);
   font-weight: 300;
   flex: 1;
 }
@@ -598,7 +598,7 @@ body::before {
 }
 
 .output-name {
-  font-family: var(--font-body);
+  font-family: var(--ebono-font-body);
   font-weight: 600;
   font-size: 0.95rem;
   color: var(--heading);
