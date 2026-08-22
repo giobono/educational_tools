@@ -1,0 +1,43 @@
+/* ============================================================================
+ * ebono_brand.css — Ebono brand primitives
+ *
+ * Tier 1 of a two-tier token system. This file holds what a colour or typeface
+ * IS, named for the thing itself. Surfaces map these to semantic roles of their
+ * own (--ink, --paper, --accent) in tier 2, and components only ever consume
+ * the semantic names. A dark landing page and a light workspace are then two
+ * mappings of one brand rather than two brands.
+ *
+ * CANONICAL SOURCE. These eight colours and three typefaces were already in
+ * production on two surfaces before this file existed — ebono.au/styles.css
+ * and edu_hero.css carried them independently, with identical names and
+ * identical values down to the mixed casing of #ffcBA4, which is how we know
+ * one was copied from the other. This file makes that shared vocabulary
+ * explicit instead of coincidental.
+ *
+ * NOT here, deliberately: ebono.au's strand and strobe colours
+ * (--hover-archie, --strobe-*, --artie-a/b and siblings). Those drive an
+ * interaction that exists only on the corporate site. --hover-artie is dropped
+ * from edu_hero.css for the same reason — it was copied there and never used.
+ * ============================================================================ */
+
+:root {
+  /* ── Palette ─────────────────────────────────────────────────────────── */
+  --ebono-black:      #05070a;   /* deepest ground, landing surfaces          */
+  --ebono-navy:       #0c1424;   /* primary ink on light, ground on dark      */
+  --ebono-navy-edge:  #16264a;   /* rules, borders and dividers on dark       */
+  --ebono-silver:     #c7ccd1;   /* body text on dark                         */
+  --ebono-silver-dim: #7c838b;   /* secondary text, both grounds              */
+  --ebono-white:      #ffffff;   /* paper on light, headings on dark          */
+  --ebono-ice:        #a9dcef;   /* brand highlight. ~1.3:1 on white — NOT a
+                                    text colour on a light ground. See
+                                    --ebono-teal.                             */
+  --ebono-ice-dim:    rgba(169, 220, 239, 0.12);  /* ice as a wash            */
+  --ebono-teal:       #1c7a9c;   /* the legible accent: same hue as ice,
+                                    ~4.9:1 on white, passes WCAG AA as text   */
+
+  /* ── Typography ──────────────────────────────────────────────────────────
+     Names follow ebono.au, which set them first and is the senior surface. */
+  --font-display: 'Fraunces', 'Georgia', serif;
+  --font-body:    'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono:    'IBM Plex Mono', ui-monospace, monospace;
+}

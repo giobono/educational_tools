@@ -1,675 +1,678 @@
-<style>
-  /* ============================================================
-     CORRELATING RESONANCE — landing page
-     Brand alignment (CD input v0.1 Part A): palette and type stack
-     adopted from ebono_au_site's root theme (see ebono_brand/tokens.css
-     for the canonical values) rather than the app pages' own paper/ink
-     scheme. This file is landing-page-only — the four phase tool pages
-     keep their existing light theme; Part A scopes the dark ground to
-     the landing page specifically.
-     ============================================================ */
-  :root {
-    --black:      #05070a;
-    --navy:       #0c1424;
-    --navy-edge:  #16264a;
-    --silver:     #c7ccd1;
-    --silver-dim: #7c838b;
-    --white:      #ffffff;
-    --ice-blue:   #a9dcef;
-    --ice-blue-dim: rgba(169, 220, 239, 0.12);
-    --hover-artie: #ffcBA4;
-
-    --mono: 'IBM Plex Mono', ui-monospace, monospace;
-    --serif: 'Fraunces', Georgia, serif;
-    --cond: 'IBM Plex Sans', system-ui, sans-serif;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  html { scroll-behavior: smooth; }
-
-  body {
-    background: var(--black);
-    color: var(--silver);
-    font-family: var(--serif);
-    line-height: 1.7;
-    min-height: 100vh;
-  }
-
-  /* ── Grain overlay ── */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 100;
-    opacity: 0.6;
-  }
-
-  /* ── Hero ── */
-  .hero {
-    min-height: 100vh;
-    display: grid;
-    grid-template-rows: auto 1fr auto;
-    border-bottom: 2px solid var(--navy-edge);
-    position: relative;
-    overflow: hidden;
-    background:
-      radial-gradient(ellipse 900px 600px at 50% -10%, rgba(22,38,74,0.35), transparent 60%),
-      linear-gradient(180deg, var(--black) 0%, #06090d 100%);
-  }
-
-  /* Background rule lines — like manuscript paper, dimmed for dark ground */
-  .hero::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: repeating-linear-gradient(
-      to bottom,
-      transparent,
-      transparent 39px,
-      var(--navy-edge) 39px,
-      var(--navy-edge) 40px
-    );
-    opacity: 0.35;
-    pointer-events: none;
-  }
-
-  .hero-body {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 4rem 4rem 3rem;
-    position: relative;
-    z-index: 2;
-    max-width: 900px;
-  }
-
-  .hero-eyebrow {
-    font-family: var(--mono);
-    font-size: 0.68rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--ice-blue);
-    margin-bottom: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .hero-eyebrow::before {
-    content: '';
-    width: 2rem;
-    height: 1px;
-    background: var(--ice-blue);
-  }
-
-  .hero-title {
-    font-family: var(--serif);
-    font-weight: 380;
-    font-size: clamp(3rem, 7vw, 6rem);
-    line-height: 0.98;
-    letter-spacing: -0.01em;
-    color: var(--white);
-    margin-bottom: 0.2em;
-  }
-
-  .hero-title em {
-    font-style: italic;
-    font-weight: 380;
-    color: var(--ice-blue);
-  }
-
-  .hero-subtitle {
-    font-family: var(--cond);
-    font-weight: 300;
-    font-size: clamp(1.3rem, 2.6vw, 1.8rem);
-    color: var(--silver);
-    letter-spacing: 0.01em;
-    margin-bottom: 2.5rem;
-    font-style: italic;
-  }
-
-  .hero-description {
-    font-size: 1.05rem;
-    color: var(--silver-dim);
-    max-width: 640px;
-    line-height: 1.75;
-    margin-bottom: 3rem;
-  }
-
-  .hero-cta {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.75rem;
-    background: linear-gradient(135deg, var(--ice-blue), var(--silver));
-    color: var(--black);
-    text-decoration: none;
-    padding: 0.85rem 2rem;
-    font-family: var(--cond);
-    font-size: 1rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    transition: transform 0.2s, gap 0.2s, box-shadow 0.2s;
-    border-radius: 999px;
-  }
-
-  .hero-cta:hover { transform: translateY(-1px); gap: 1.1rem; box-shadow: 0 10px 30px -8px rgba(169,220,239,0.35); }
-
-  .hero-cta-arrow { font-size: 1.1rem; }
-
-  .hero-footer {
-    padding: 1.5rem 4rem;
-    border-top: 1px solid var(--navy-edge);
-    display: flex;
-    gap: 3rem;
-    position: relative;
-    z-index: 2;
-  }
-
-  .hero-stat {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-  }
-
-  .hero-stat-num {
-    font-family: var(--cond);
-    font-weight: 700;
-    font-size: 1.8rem;
-    color: var(--white);
-    line-height: 1;
-  }
-
-  .hero-stat-label {
-    font-family: var(--mono);
-    font-size: 0.62rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--silver-dim);
-  }
-
-  /* ── Overview section (currently unused by index.html; kept in sync
-     in case it comes back into use — not deleted, see brief report) ── */
-  .overview {
-    padding: 6rem 4rem;
-    display: grid;
-    grid-template-columns: 1fr 2fr;
-    gap: 4rem;
-    border-bottom: 1px solid var(--navy-edge);
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  .overview-label {
-    font-family: var(--mono);
-    font-size: 0.65rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--silver-dim);
-    padding-top: 0.4rem;
-  }
-
-  .overview-body h2 {
-    font-family: var(--cond);
-    font-weight: 400;
-    font-size: 2rem;
-    color: var(--white);
-    margin-bottom: 1.25rem;
-    line-height: 1.2;
-  }
-
-  .overview-body p {
-    font-size: 0.95rem;
-    color: var(--silver-dim);
-    margin-bottom: 1rem;
-    max-width: 640px;
-  }
-
-  /* Concept types */
-  .concept-types {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin-top: 2rem;
-  }
-
-  .concept-type {
-    background: var(--navy);
-    border: 1px solid var(--navy-edge);
-    border-radius: 3px;
-    padding: 1.25rem;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .concept-type::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 3px;
-    height: 100%;
-  }
-
-  .ct-differentiating::before { background: var(--ice-blue); }
-  .ct-bridging::before { background: var(--silver); }
-  .ct-boundary::before { background: var(--navy-edge); }
-
-  .concept-type-name {
-    font-family: var(--cond);
-    font-weight: 600;
-    font-size: 0.85rem;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--white);
-    margin-bottom: 0.5rem;
-  }
-
-  .concept-type-desc {
-    font-size: 0.78rem;
-    color: var(--silver-dim);
-    line-height: 1.5;
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-weight: 300;
-  }
-
-  /* ── Phase steps ── */
-  .phases {
-    padding: 6rem 4rem;
-    border-bottom: 1px solid var(--navy-edge);
-  }
-
-  .phases-header {
-    display: grid;
-    grid-template-columns: 1fr 2fr;
-    gap: 4rem;
-    max-width: 1200px;
-    margin: 0 auto 4rem;
-  }
-
-  .phases-header-label {
-    font-family: var(--mono);
-    font-size: 0.65rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--silver-dim);
-    padding-top: 0.4rem;
-  }
-
-  .phases-header h2 {
-    font-family: var(--cond);
-    font-weight: 400;
-    font-size: 2rem;
-    color: var(--white);
-    line-height: 1.2;
-  }
-
-  .phases-grid {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-  }
-
-  .phase-card {
-    background: var(--navy);
-    border: 1px solid var(--navy-edge);
-    border-radius: 4px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
-    text-decoration: none;
-    color: inherit;
-    animation: fadeUp 0.5s ease both;
-  }
-
-  .phase-card:nth-child(1) { animation-delay: 0.1s; }
-  .phase-card:nth-child(2) { animation-delay: 0.2s; }
-  .phase-card:nth-child(3) { animation-delay: 0.3s; }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  .phase-card:hover {
-    box-shadow: 0 8px 32px rgba(0,0,0,0.45);
-    border-color: var(--ice-blue);
-    transform: translateY(-2px);
-  }
-
-  .phase-card-top {
-    padding: 1.75rem 1.75rem 1.25rem;
-    border-bottom: 1px solid var(--navy-edge);
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .phase-num {
-    font-family: var(--cond);
-    font-weight: 700;
-    font-size: 3rem;
-    line-height: 1;
-    color: var(--navy-edge);
-    flex-shrink: 0;
-    margin-top: -0.1em;
-    transition: color 0.2s;
-  }
-
-  .phase-card:hover .phase-num { color: var(--ice-blue); }
-
-  .phase-card-meta {}
-
-  .phase-tag-label {
-    font-family: var(--mono);
-    font-size: 0.6rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--silver-dim);
-    margin-bottom: 0.3rem;
-  }
-
-  .phase-name {
-    font-family: var(--cond);
-    font-weight: 600;
-    font-size: 1.2rem;
-    color: var(--white);
-    line-height: 1.2;
-  }
-
-  .phase-card-body {
-    padding: 1.25rem 1.75rem;
-    flex: 1;
-  }
-
-  .phase-desc {
-    font-size: 0.85rem;
-    color: var(--silver-dim);
-    line-height: 1.6;
-    margin-bottom: 1rem;
-  }
-
-  .phase-steps {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-  }
-
-  .phase-steps li {
-    display: flex;
-    align-items: baseline;
-    gap: 0.5rem;
-    font-family: var(--mono);
-    font-size: 0.68rem;
-    color: var(--silver-dim);
-    letter-spacing: 0.02em;
-  }
-
-  .phase-steps li::before {
-    content: '→';
-    color: var(--ice-blue);
-    flex-shrink: 0;
-  }
-
-  .phase-card-footer {
-    padding: 1rem 1.75rem;
-    border-top: 1px solid var(--navy-edge);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .phase-io {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
-
-  .io-chip {
-    font-family: var(--mono);
-    font-size: 0.58rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    padding: 0.15rem 0.45rem;
-    border-radius: 2px;
-  }
-
-  .io-in  { background: var(--navy-edge); color: var(--silver-dim); }
-  .io-out { background: var(--ice-blue-dim); color: var(--ice-blue); }
-
-  .phase-link-arrow {
-    font-size: 1rem;
-    color: var(--silver-dim);
-    transition: color 0.2s, transform 0.2s;
-  }
-
-  .phase-card:hover .phase-link-arrow { color: var(--ice-blue); transform: translateX(4px); }
-
-  /* ── Workflow diagram ── */
-  .workflow {
-    padding: 5rem 4rem;
-    background: var(--navy);
-    color: var(--silver);
-    border-bottom: 2px solid var(--navy-edge);
-  }
-
-  .workflow-inner {
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  .workflow-label {
-    font-family: var(--mono);
-    font-size: 0.65rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--silver-dim);
-    margin-bottom: 2.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .workflow-label::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--navy-edge);
-  }
-
-  .workflow-flow {
-    display: flex;
-    align-items: stretch;
-    gap: 0;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
-  }
-
-  .flow-step {
-    flex: 1;
-    min-width: 140px;
-    padding: 1.5rem;
-    border-right: 1px solid var(--navy-edge);
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .flow-step:last-child { border-right: none; }
-
-  .flow-step-phase {
-    font-family: var(--mono);
-    font-size: 0.58rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--ice-blue);
-  }
-
-  .flow-step-name {
-    font-family: var(--cond);
-    font-weight: 600;
-    font-size: 1rem;
-    color: var(--white);
-    line-height: 1.2;
-  }
-
-  .flow-step-desc {
-    font-size: 0.75rem;
-    color: var(--silver-dim);
-    line-height: 1.5;
-    font-family: var(--cond);
-    font-weight: 300;
-    flex: 1;
-  }
-
-  .flow-step-output {
-    font-family: var(--mono);
-    font-size: 0.6rem;
-    color: var(--ice-blue);
-    letter-spacing: 0.05em;
-    margin-top: auto;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--navy-edge);
-  }
-
-  /* ── Output types (currently unused by index.html; kept in sync,
-     see brief report) ── */
-  .outputs-section {
-    padding: 6rem 4rem;
-    border-bottom: 1px solid var(--navy-edge);
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  .outputs-grid {
-    display: grid;
-    grid-template-columns: 1fr 2fr;
-    gap: 4rem;
-  }
-
-  .outputs-label {
-    font-family: var(--mono);
-    font-size: 0.65rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--silver-dim);
-    padding-top: 0.4rem;
-  }
-
-  .outputs-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .output-item {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 1rem;
-    align-items: start;
-    padding: 1rem 0;
-    border-bottom: 1px solid var(--navy-edge);
-  }
-
-  .output-item:last-child { border-bottom: none; }
-
-  .output-stage {
-    font-family: var(--mono);
-    font-size: 0.62rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    background: var(--navy-edge);
-    color: var(--silver-dim);
-    padding: 0.2rem 0.5rem;
-    border-radius: 2px;
-    white-space: nowrap;
-    margin-top: 0.15rem;
-  }
-
-  .output-name {
-    font-family: var(--cond);
-    font-weight: 600;
-    font-size: 0.95rem;
-    color: var(--white);
-    margin-bottom: 0.2rem;
-  }
-
-  .output-desc {
-    font-size: 0.8rem;
-    color: var(--silver-dim);
-    line-height: 1.5;
-  }
-
-  /* ── Footer ── */
-  footer {
-    padding: 2.5rem 4rem;
-    border-top: 2px solid var(--navy-edge);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 1rem;
-  }
-
-  .footer-wordmark {
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: 1rem;
-    color: var(--white);
-  }
-
-  .footer-meta {
-    font-family: var(--mono);
-    font-size: 0.65rem;
-    color: var(--silver-dim);
-    letter-spacing: 0.08em;
-  }
-
-  /* Entity footer (CD input v0.1 Part B item 1) */
-  .footer-entity {
-    width: 100%;
-    padding-top: 1.25rem;
-    margin-top: 1.25rem;
-    border-top: 1px solid var(--navy-edge);
-    font-family: var(--mono);
-    font-size: 0.65rem;
-    color: var(--silver-dim);
-    letter-spacing: 0.04em;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem 1.5rem;
-    justify-content: space-between;
-  }
-
-  .footer-entity a {
-    color: var(--silver-dim);
-    text-decoration: none;
-    border-bottom: 1px solid transparent;
-    transition: color 0.2s, border-color 0.2s;
-  }
-
-  .footer-entity a:hover { color: var(--ice-blue); border-color: var(--ice-blue); }
-
-  .footer-legal-links { display: flex; gap: 1.25rem; }
-
-  /* ── Responsive ── */
-  @media (max-width: 900px) {
-    .hero-body, .hero-footer { padding-left: 2rem; padding-right: 2rem; }
-    .overview, .phases, .phases-header, .phases-grid,
-    .workflow, .outputs-section { padding-left: 2rem; padding-right: 2rem; }
-    .overview, .outputs-grid { grid-template-columns: 1fr; gap: 2rem; }
-    .phases-header { grid-template-columns: 1fr; gap: 1rem; }
-    .phases-grid { grid-template-columns: 1fr; }
-    .concept-types { grid-template-columns: 1fr; }
-    .hero-footer { gap: 1.5rem; }
-    footer { padding: 2rem; flex-direction: column; align-items: flex-start; }
-    .footer-entity { flex-direction: column; gap: 0.6rem; }
-  }
-</style>
+/* ============================================================
+   CORRELATING RESONANCE — landing page
+   Brand alignment (CD input v0.1 Part A): palette and type stack
+   adopted from ebono_au_site's root theme (see ebono_brand/tokens.css
+   for the canonical values) rather than the app pages' own paper/ink
+   scheme. This file is landing-page-only — the four phase tool pages
+   keep their existing light theme; Part A scopes the dark ground to
+   the landing page specifically.
+   ============================================================ */
+/* Palette and typefaces come from /ebono_brand.css, which every page loading
+   this file also loads, and loads first. They were duplicated here — the same
+   eight names and values as ebono.au/styles.css, down to the mixed casing of
+   #ffcBA4 — until 24 Aug 2026. The header comment above already pointed at a
+   canonical brand file; this is that file, finally written.
+
+   --hover-artie is not carried over: it is a corporate-site strand colour and
+   was used nowhere on this surface. */
+
+:root {
+  /* Semantic roles for the landing surface — a dark mapping of the brand.
+     Components below refer only to these, never to --ebono-* directly. */
+  --ground:         var(--ebono-black);
+  --ground-edge:    var(--ebono-navy-edge);
+  --body-text:      var(--ebono-silver);
+  --body-dim:       var(--ebono-silver-dim);
+  --heading:        var(--ebono-white);
+  --highlight:      var(--ebono-ice);
+  --highlight-wash: var(--ebono-ice-dim);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--ground);
+  color: var(--body-text);
+  font-family: var(--font-display);
+  line-height: 1.7;
+  min-height: 100vh;
+}
+
+/* ── Grain overlay ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0.6;
+}
+
+/* ── Hero ── */
+.hero {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  border-bottom: 2px solid var(--ground-edge);
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 900px 600px at 50% -10%, rgba(22,38,74,0.35), transparent 60%),
+    linear-gradient(180deg, var(--ground) 0%, #06090d 100%);
+}
+
+/* Background rule lines — like manuscript paper, dimmed for dark ground */
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 39px,
+    var(--ground-edge) 39px,
+    var(--ground-edge) 40px
+  );
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.hero-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4rem 4rem 3rem;
+  position: relative;
+  z-index: 2;
+  max-width: 900px;
+}
+
+.hero-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--highlight);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.hero-eyebrow::before {
+  content: '';
+  width: 2rem;
+  height: 1px;
+  background: var(--highlight);
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-weight: 380;
+  font-size: clamp(3rem, 7vw, 6rem);
+  line-height: 0.98;
+  letter-spacing: -0.01em;
+  color: var(--heading);
+  margin-bottom: 0.2em;
+}
+
+.hero-title em {
+  font-style: italic;
+  font-weight: 380;
+  color: var(--highlight);
+}
+
+.hero-subtitle {
+  font-family: var(--font-body);
+  font-weight: 300;
+  font-size: clamp(1.3rem, 2.6vw, 1.8rem);
+  color: var(--body-text);
+  letter-spacing: 0.01em;
+  margin-bottom: 2.5rem;
+  font-style: italic;
+}
+
+.hero-description {
+  font-size: 1.05rem;
+  color: var(--body-dim);
+  max-width: 640px;
+  line-height: 1.75;
+  margin-bottom: 3rem;
+}
+
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: linear-gradient(135deg, var(--highlight), var(--body-text));
+  color: var(--ground);
+  text-decoration: none;
+  padding: 0.85rem 2rem;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: transform 0.2s, gap 0.2s, box-shadow 0.2s;
+  border-radius: 999px;
+}
+
+.hero-cta:hover { transform: translateY(-1px); gap: 1.1rem; box-shadow: 0 10px 30px -8px rgba(169,220,239,0.35); }
+
+.hero-cta-arrow { font-size: 1.1rem; }
+
+.hero-footer {
+  padding: 1.5rem 4rem;
+  border-top: 1px solid var(--ground-edge);
+  display: flex;
+  gap: 3rem;
+  position: relative;
+  z-index: 2;
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.hero-stat-num {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1.8rem;
+  color: var(--heading);
+  line-height: 1;
+}
+
+.hero-stat-label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--body-dim);
+}
+
+/* ── Overview section (currently unused by index.html; kept in sync
+   in case it comes back into use — not deleted, see brief report) ── */
+.overview {
+  padding: 6rem 4rem;
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 4rem;
+  border-bottom: 1px solid var(--ground-edge);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.overview-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--body-dim);
+  padding-top: 0.4rem;
+}
+
+.overview-body h2 {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 2rem;
+  color: var(--heading);
+  margin-bottom: 1.25rem;
+  line-height: 1.2;
+}
+
+.overview-body p {
+  font-size: 0.95rem;
+  color: var(--body-dim);
+  margin-bottom: 1rem;
+  max-width: 640px;
+}
+
+/* Concept types */
+.concept-types {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.concept-type {
+  background: var(--ebono-navy);
+  border: 1px solid var(--ground-edge);
+  border-radius: 3px;
+  padding: 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.concept-type::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+}
+
+.ct-differentiating::before { background: var(--highlight); }
+.ct-bridging::before { background: var(--body-text); }
+.ct-boundary::before { background: var(--ground-edge); }
+
+.concept-type-name {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--heading);
+  margin-bottom: 0.5rem;
+}
+
+.concept-type-desc {
+  font-size: 0.78rem;
+  color: var(--body-dim);
+  line-height: 1.5;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 300;
+}
+
+/* ── Phase steps ── */
+.phases {
+  padding: 6rem 4rem;
+  border-bottom: 1px solid var(--ground-edge);
+}
+
+.phases-header {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 4rem;
+  max-width: 1200px;
+  margin: 0 auto 4rem;
+}
+
+.phases-header-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--body-dim);
+  padding-top: 0.4rem;
+}
+
+.phases-header h2 {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 2rem;
+  color: var(--heading);
+  line-height: 1.2;
+}
+
+.phases-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.phase-card {
+  background: var(--ebono-navy);
+  border: 1px solid var(--ground-edge);
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+  text-decoration: none;
+  color: inherit;
+  animation: fadeUp 0.5s ease both;
+}
+
+.phase-card:nth-child(1) { animation-delay: 0.1s; }
+.phase-card:nth-child(2) { animation-delay: 0.2s; }
+.phase-card:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.phase-card:hover {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+  border-color: var(--highlight);
+  transform: translateY(-2px);
+}
+
+.phase-card-top {
+  padding: 1.75rem 1.75rem 1.25rem;
+  border-bottom: 1px solid var(--ground-edge);
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.phase-num {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 3rem;
+  line-height: 1;
+  color: var(--ground-edge);
+  flex-shrink: 0;
+  margin-top: -0.1em;
+  transition: color 0.2s;
+}
+
+.phase-card:hover .phase-num { color: var(--highlight); }
+
+.phase-card-meta {}
+
+.phase-tag-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--body-dim);
+  margin-bottom: 0.3rem;
+}
+
+.phase-name {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 1.2rem;
+  color: var(--heading);
+  line-height: 1.2;
+}
+
+.phase-card-body {
+  padding: 1.25rem 1.75rem;
+  flex: 1;
+}
+
+.phase-desc {
+  font-size: 0.85rem;
+  color: var(--body-dim);
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.phase-steps {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.phase-steps li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--body-dim);
+  letter-spacing: 0.02em;
+}
+
+.phase-steps li::before {
+  content: '→';
+  color: var(--highlight);
+  flex-shrink: 0;
+}
+
+.phase-card-footer {
+  padding: 1rem 1.75rem;
+  border-top: 1px solid var(--ground-edge);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.phase-io {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.io-chip {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.45rem;
+  border-radius: 2px;
+}
+
+.io-in  { background: var(--ground-edge); color: var(--body-dim); }
+.io-out { background: var(--highlight-wash); color: var(--highlight); }
+
+.phase-link-arrow {
+  font-size: 1rem;
+  color: var(--body-dim);
+  transition: color 0.2s, transform 0.2s;
+}
+
+.phase-card:hover .phase-link-arrow { color: var(--highlight); transform: translateX(4px); }
+
+/* ── Workflow diagram ── */
+.workflow {
+  padding: 5rem 4rem;
+  background: var(--ebono-navy);
+  color: var(--body-text);
+  border-bottom: 2px solid var(--ground-edge);
+}
+
+.workflow-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.workflow-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--body-dim);
+  margin-bottom: 2.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.workflow-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--ground-edge);
+}
+
+.workflow-flow {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.flow-step {
+  flex: 1;
+  min-width: 140px;
+  padding: 1.5rem;
+  border-right: 1px solid var(--ground-edge);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.flow-step:last-child { border-right: none; }
+
+.flow-step-phase {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--highlight);
+}
+
+.flow-step-name {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--heading);
+  line-height: 1.2;
+}
+
+.flow-step-desc {
+  font-size: 0.75rem;
+  color: var(--body-dim);
+  line-height: 1.5;
+  font-family: var(--font-body);
+  font-weight: 300;
+  flex: 1;
+}
+
+.flow-step-output {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--highlight);
+  letter-spacing: 0.05em;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--ground-edge);
+}
+
+/* ── Output types (currently unused by index.html; kept in sync,
+   see brief report) ── */
+.outputs-section {
+  padding: 6rem 4rem;
+  border-bottom: 1px solid var(--ground-edge);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.outputs-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 4rem;
+}
+
+.outputs-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--body-dim);
+  padding-top: 0.4rem;
+}
+
+.outputs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.output-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem;
+  align-items: start;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--ground-edge);
+}
+
+.output-item:last-child { border-bottom: none; }
+
+.output-stage {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--ground-edge);
+  color: var(--body-dim);
+  padding: 0.2rem 0.5rem;
+  border-radius: 2px;
+  white-space: nowrap;
+  margin-top: 0.15rem;
+}
+
+.output-name {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--heading);
+  margin-bottom: 0.2rem;
+}
+
+.output-desc {
+  font-size: 0.8rem;
+  color: var(--body-dim);
+  line-height: 1.5;
+}
+
+/* ── Footer ── */
+footer {
+  padding: 2.5rem 4rem;
+  border-top: 2px solid var(--ground-edge);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.footer-wordmark {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--heading);
+}
+
+.footer-meta {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--body-dim);
+  letter-spacing: 0.08em;
+}
+
+/* Entity footer (CD input v0.1 Part B item 1) */
+.footer-entity {
+  width: 100%;
+  padding-top: 1.25rem;
+  margin-top: 1.25rem;
+  border-top: 1px solid var(--ground-edge);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--body-dim);
+  letter-spacing: 0.04em;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.5rem;
+  justify-content: space-between;
+}
+
+.footer-entity a {
+  color: var(--body-dim);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.footer-entity a:hover { color: var(--highlight); border-color: var(--highlight); }
+
+.footer-legal-links { display: flex; gap: 1.25rem; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .hero-body, .hero-footer { padding-left: 2rem; padding-right: 2rem; }
+  .overview, .phases, .phases-header, .phases-grid,
+  .workflow, .outputs-section { padding-left: 2rem; padding-right: 2rem; }
+  .overview, .outputs-grid { grid-template-columns: 1fr; gap: 2rem; }
+  .phases-header { grid-template-columns: 1fr; gap: 1rem; }
+  .phases-grid { grid-template-columns: 1fr; }
+  .concept-types { grid-template-columns: 1fr; }
+  .hero-footer { gap: 1.5rem; }
+  footer { padding: 2rem; flex-direction: column; align-items: flex-start; }
+  .footer-entity { flex-direction: column; gap: 0.6rem; }
+}

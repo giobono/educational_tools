@@ -15,6 +15,7 @@
 <script src="config.php"></script>
 <script src="/edu_common.js"></script>
 <script>window.enforceAppActive();</script>
+<link href="/ebono_brand.css" rel="stylesheet"/>
 <link href="/edu_common.css" rel="stylesheet"/>
 <link href="gioianie_iterate.css" rel="stylesheet"/></head>
 <body>
@@ -36,7 +37,7 @@
 </div>
 <div id="typology-preview" style="display:none;">
 <div class="typology-preview" id="typology-list"></div>
-<div id="typology-count" style="font-family:var(--mono);font-size:0.65rem;color:var(--ink-light);margin-top:0.4rem;"></div>
+<div id="typology-count" style="font-family:var(--font-mono);font-size:0.65rem;color:var(--ink-light);margin-top:0.4rem;"></div>
 </div>
 </div>
 <div>
@@ -49,7 +50,7 @@
 <span>Add document(s)</span>
 </label>
 </div>
-<div id="doc-count-note" style="font-family:var(--serif);font-style:italic;font-size:0.78rem;color:var(--ink-light);">
+<div id="doc-count-note" style="font-family:var(--font-display);font-style:italic;font-size:0.78rem;color:var(--ink-light);">
         No documents loaded
       </div>
 </div>
@@ -217,7 +218,7 @@ function showTypologyPreview() {
   });
   if (typology.length > 30) {
     const more = document.createElement('div');
-    more.style.cssText = 'padding:0.3rem 0;font-size:0.7rem;color:var(--ink-light);font-family:var(--mono);';
+    more.style.cssText = 'padding:0.3rem 0;font-size:0.7rem;color:var(--ink-light);font-family:var(--font-mono);';
     more.textContent = `… and ${typology.length - 30} more`;
     list.appendChild(more);
   }
@@ -509,7 +510,7 @@ function showResults(excludedDocuments) {
       </div>
       <div class="concept-pills">
         ${matched.map(c => `<span class="concept-pill important">${escHtml(c.concept)}</span>`).join('')}
-        ${matched.length === 0 ? '<span style="font-family:var(--serif);font-style:italic;font-size:0.78rem;color:var(--ink-light);">No concepts scored as important or central in this document</span>' : ''}
+        ${matched.length === 0 ? '<span style="font-family:var(--font-display);font-style:italic;font-size:0.78rem;color:var(--ink-light);">No concepts scored as important or central in this document</span>' : ''}
       </div>`;
     docList.appendChild(div);
   });

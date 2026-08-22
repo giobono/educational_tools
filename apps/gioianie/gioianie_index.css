@@ -11,7 +11,7 @@
   body {
     background: var(--paper);
     color: var(--ink);
-    font-family: var(--sans);
+    font-family: var(--font-body);
     font-size: 15px;
     line-height: 1.6;
     min-height: 100vh;
@@ -28,7 +28,7 @@
   }
 
   .logo {
-    font-family: var(--serif);
+    font-family: var(--font-display);
     font-weight: 300;
     font-size: 1.4rem;
     letter-spacing: -0.02em;
@@ -37,7 +37,7 @@
   .logo em { font-style: italic; color: var(--accent); }
 
   .phase-tag {
-    font-family: var(--mono);
+    font-family: var(--font-mono);
     font-size: 0.68rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -49,7 +49,7 @@
 
   .nav-link {
     margin-left: auto;
-    font-family: var(--mono);
+    font-family: var(--font-mono);
     font-size: 0.68rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -69,7 +69,7 @@
   }
 
   .section-head {
-    font-family: var(--mono);
+    font-family: var(--font-mono);
     font-size: 0.65rem;
     letter-spacing: 0.15em;
     text-transform: uppercase;
@@ -151,7 +151,7 @@
   }
 
   .slot-num {
-    font-family: var(--mono);
+    font-family: var(--font-mono);
     font-size: 1.2rem;
     font-weight: 500;
     color: var(--paper-dark);
@@ -172,7 +172,7 @@
   .doc-slot.filled .slot-label { color: var(--success); font-weight: 500; word-break: break-word; }
 
   .slot-status {
-    font-family: var(--mono);
+    font-family: var(--font-mono);
     font-size: 0.62rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -220,7 +220,7 @@
     border: none;
     border-radius: 3px;
     padding: 0.8rem 2rem;
-    font-family: var(--sans);
+    font-family: var(--font-body);
     font-size: 0.85rem;
     font-weight: 600;
     letter-spacing: 0.08em;
@@ -234,7 +234,7 @@
   .run-btn:disabled { background: var(--ink-light); cursor: not-allowed; }
 
   .doc-count-note {
-    font-family: var(--serif);
+    font-family: var(--font-display);
     font-style: italic;
     font-size: 0.82rem;
     color: var(--ink-light);
@@ -253,7 +253,7 @@
   .pipeline.active { display: block; }
 
   .pipeline-title {
-    font-family: var(--mono);
+    font-family: var(--font-mono);
     font-size: 0.68rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -299,7 +299,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: var(--mono);
+    font-family: var(--font-mono);
     font-size: 0.68rem;
     font-weight: 500;
     color: var(--ink-light);
@@ -348,7 +348,7 @@
   }
 
   .results-summary {
-    font-family: var(--serif);
+    font-family: var(--font-display);
     font-size: 1.05rem;
   }
 
@@ -360,7 +360,7 @@
   }
 
   .count-chip {
-    font-family: var(--mono);
+    font-family: var(--font-mono);
     font-size: 0.68rem;
     letter-spacing: 0.06em;
     padding: 0.25rem 0.6rem;
@@ -377,7 +377,7 @@
     border: none;
     border-radius: 3px;
     padding: 0.6rem 1.25rem;
-    font-family: var(--mono);
+    font-family: var(--font-mono);
     font-size: 0.68rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -397,7 +397,7 @@
   .term-table thead tr { border-bottom: 2px solid var(--ink); }
 
   .term-table th {
-    font-family: var(--mono);
+    font-family: var(--font-mono);
     font-size: 0.62rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -440,7 +440,7 @@
     background: var(--warning-bg);
     color: var(--warning);
     border: 1px solid var(--warning-border);
-    font-family: var(--mono);
+    font-family: var(--font-mono);
     font-size: 0.6rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -453,7 +453,7 @@
     font-size: 0.74rem;
     color: var(--warning);
     font-style: italic;
-    font-family: var(--serif);
+    font-family: var(--font-display);
     max-width: 280px;
     line-height: 1.4;
     margin-top: 0.2rem;
@@ -466,7 +466,7 @@
   }
 
   .source-chip {
-    font-family: var(--mono);
+    font-family: var(--font-mono);
     font-size: 0.6rem;
     background: var(--paper-mid);
     color: var(--ink-light);
@@ -488,7 +488,7 @@
     border: 1px solid var(--paper-dark);
     border-radius: 2px;
     padding: 0.35rem 0.75rem;
-    font-family: var(--mono);
+    font-family: var(--font-mono);
     font-size: 0.65rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -513,7 +513,7 @@
     border: 1px solid var(--paper-dark);
     border-radius: 2px;
     padding: 0.35rem 0.75rem;
-    font-family: var(--mono);
+    font-family: var(--font-mono);
     font-size: 0.72rem;
     color: var(--ink);
     background: white;
@@ -538,7 +538,7 @@
 
   .error-box strong {
     display: block;
-    font-family: var(--mono);
+    font-family: var(--font-mono);
     font-size: 0.68rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -551,13 +551,13 @@
     border-left: 3px solid var(--accent);
     padding: 1rem 1.25rem;
     margin-bottom: 2rem;
-    font-family: var(--serif);
+    font-family: var(--font-display);
     font-size: 0.88rem;
     line-height: 1.7;
     color: var(--ink-mid);
   }
 
-  .callout strong { color: var(--ink); font-family: var(--sans); font-size: 0.82rem; letter-spacing: 0.03em; }
+  .callout strong { color: var(--ink); font-family: var(--font-body); font-size: 0.82rem; letter-spacing: 0.03em; }
 
   @media (max-width: 800px) {
     .upload-grid { grid-template-columns: repeat(3, 1fr); }

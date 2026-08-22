@@ -14,6 +14,7 @@
 <script src="config.php"></script>
 <script src="/edu_common.js"></script>
 <script>window.enforceAppActive();</script>
+<link href="/ebono_brand.css" rel="stylesheet"/>
 <link href="/edu_common.css" rel="stylesheet"/>
 <link href="corres.css" rel="stylesheet"/></head>
 <body>
@@ -91,16 +92,16 @@
 <span class="step-num" id="num-41">4.1</span>
 <span class="step-name">Binarisation</span>
 </div>
-<div id="bin-status" style="font-family:var(--mono);font-size:0.68rem;color:var(--ink-light);"></div>
+<div id="bin-status" style="font-family:var(--font-mono);font-size:0.68rem;color:var(--ink-light);"></div>
 </div>
 <div class="step-card-body" id="bin-card-body">
-<p id="bin-waiting" style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">
+<p id="bin-waiting" style="font-family:var(--font-display);font-style:italic;font-size:0.82rem;color:var(--ink-light);">
         Upload a DTM to begin.
       </p>
 <div id="bin-controls" style="display:none;">
 <!-- Mode selector -->
 <div style="margin-bottom:0.75rem;">
-<div style="font-family:var(--mono);font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-light);margin-bottom:0.6rem;">Threshold method</div>
+<div style="font-family:var(--font-mono);font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-light);margin-bottom:0.6rem;">Threshold method</div>
 <div class="threshold-modes">
 <div class="tmode-opt">
 <input checked="" id="tmode-auto" name="tmode" type="radio" value="auto"/>
@@ -164,7 +165,7 @@
 <div id="ttm-actions" style="display:none;"></div>
 </div>
 <div class="step-card-body" id="ttm-body">
-<p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for binarisation…</p>
+<p style="font-family:var(--font-display);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for binarisation…</p>
 </div>
 </div>
 <!-- ── CorRes Process: Stages 2-5 (Addie's method) ──
@@ -185,7 +186,7 @@
 <span class="fixture-flag" id="fixture-flag" style="display:none;" title="The real backend call failed and this run fell back to fixture data (mocked, built to the real API schemas) rather than a live pipeline result.">FIXTURE DATA — backend unreachable, showing fixture data</span>
 </div>
 <div class="step-card-body" id="process-body">
-<p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for term-term matrix…</p>
+<p style="font-family:var(--font-display);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for term-term matrix…</p>
 </div>
 </div>
 </div>
@@ -575,7 +576,7 @@ async function buildTTMServer() {
   };
 
   document.getElementById('ttm-body').innerHTML =
-    `<p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Building term-term matrix on the server…</p>`;
+    `<p style="font-family:var(--font-display);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Building term-term matrix on the server…</p>`;
 
   try {
     const created = await callAppAPI('corres', 'ttm/build', { dtm, params });
@@ -628,7 +629,7 @@ function renderTTM() {
       <div class="stat-item"><span class="stat-val">${ttmData.sorted.length}</span><span class="stat-label">Sorted by co-occurrence</span></div>
     </div>
     <div class="matrix-wrap" id="ttm-matrix-wrap"></div>
-    ${concepts.length > 25 ? `<div style="font-family:var(--serif);font-style:italic;font-size:0.75rem;color:var(--ink-light);margin-top:0.5rem;">Preview shows top 25 concepts by co-occurrence — download full TTM for complete matrix</div>` : ''}`;
+    ${concepts.length > 25 ? `<div style="font-family:var(--font-display);font-style:italic;font-size:0.75rem;color:var(--ink-light);margin-top:0.5rem;">Preview shows top 25 concepts by co-occurrence — download full TTM for complete matrix</div>` : ''}`;
 
   const wrap  = body.querySelector('#ttm-matrix-wrap');
   const table = document.createElement('table');
@@ -814,7 +815,7 @@ function mulberry32(seed) {
 function renderProcessControls() {
   const body = document.getElementById('process-body');
   body.innerHTML = `
-    <p style="font-family:var(--serif);font-size:0.85rem;color:var(--ink-mid);margin-bottom:1.25rem;">
+    <p style="font-family:var(--font-display);font-size:0.85rem;color:var(--ink-mid);margin-bottom:1.25rem;">
       Runs Addie's four-stage process over the confirmed term-term matrix: standardised residuals against an independence baseline, consensus-ensemble clustering across resampled splits, role classification, and BEA seriation. Parameters below are declared in advance and shown read-only for this demonstration (Annex A §A5) — the full elicitation interface is deferred past the holiday.
     </p>
     <div class="params-panel" id="process-params-panel"></div>
@@ -832,7 +833,7 @@ function renderProcessControls() {
     <div class="btn-row">
       <button class="btn btn-primary" id="run-process-btn" onclick="runProcessChain()">Run stability, roles &amp; seriation →</button>
     </div>
-    <div id="process-running" style="display:none;font-family:var(--serif);font-style:italic;font-size:0.85rem;color:var(--ink-light);margin-top:0.75rem;">Computing residuals → consensus clustering → role classification → BEA order…</div>
+    <div id="process-running" style="display:none;font-family:var(--font-display);font-style:italic;font-size:0.85rem;color:var(--ink-light);margin-top:0.75rem;">Computing residuals → consensus clustering → role classification → BEA order…</div>
     <div id="process-results" style="margin-top:1.5rem;"></div>`;
   renderParamsPanel();
 }
@@ -1080,7 +1081,7 @@ function renderBackendFailure(err) {
     <div class="warning-banner warning-fail">
       <strong>Processing halted — this is a finding, not a connection problem</strong>
       ${escHtml(heading)}
-      <div style="margin-top:0.5rem;font-family:var(--mono);font-size:0.72rem;">${escHtml(err.message || '')}</div>
+      <div style="margin-top:0.5rem;font-family:var(--font-mono);font-size:0.72rem;">${escHtml(err.message || '')}</div>
     </div>`;
 }
 
@@ -1619,7 +1620,7 @@ function renderStage4RoleSpaceSvg(target) {
         <line x1="${threshX}" y1="${pad}" x2="${threshX}" y2="${h-pad}" stroke="var(--rule)" stroke-dasharray="4 3"/>
         <line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="var(--ink-light)"/>
         <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${h-pad}" stroke="var(--ink-light)"/>
-        <text x="${w/2}" y="${h-8}" font-size="10" fill="var(--ink-light)" text-anchor="middle" font-family="var(--mono)">stability (σ) →</text>
+        <text x="${w/2}" y="${h-8}" font-size="10" fill="var(--ink-light)" text-anchor="middle" font-family="var(--font-mono)">stability (σ) →</text>
         ${points}
       </svg>
       <div class="role-space-legend">
@@ -1680,11 +1681,11 @@ function renderStage5BeaSvg(target) {
       ${order.map((cid, i) => `<span class="bea-order-item">${i+1}. ${escHtml(termById[cid])}</span>`).join('')}
     </div>
     <div class="role-space-wrap" style="overflow:auto;">
-      <div style="font-family:var(--mono);font-size:0.58rem;color:var(--ink-light);margin-bottom:2px;">Block</div>
+      <div style="font-family:var(--font-mono);font-size:0.58rem;color:var(--ink-light);margin-bottom:2px;">Block</div>
       <svg width="${matrixW}" height="${stripH}" style="display:block;">${blockStrip}</svg>
-      <div style="font-family:var(--mono);font-size:0.58rem;color:var(--ink-light);margin:4px 0 2px;">Stability</div>
+      <div style="font-family:var(--font-mono);font-size:0.58rem;color:var(--ink-light);margin:4px 0 2px;">Stability</div>
       <svg width="${matrixW}" height="${stripH}" style="display:block;">${stabilityStrip}</svg>
-      <div style="font-family:var(--mono);font-size:0.58rem;color:var(--ink-light);margin:4px 0 2px;">Role</div>
+      <div style="font-family:var(--font-mono);font-size:0.58rem;color:var(--ink-light);margin:4px 0 2px;">Role</div>
       <svg width="${matrixW}" height="${stripH}" style="display:block;margin-bottom:6px;">${roleStrip}</svg>
       <svg width="${matrixW}" height="${order.length*cell}">${matrixRects}</svg>
     </div>`;
@@ -1790,8 +1791,8 @@ function resetAll() {
   document.getElementById('bin-waiting').style.display  = 'block';
   document.getElementById('bin-controls').style.display = 'none';
   document.getElementById('bin-status').textContent     = '';
-  document.getElementById('ttm-body').innerHTML    = '<p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for binarisation…</p>';
-  document.getElementById('process-body').innerHTML = '<p style="font-family:var(--serif);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for term-term matrix…</p>';
+  document.getElementById('ttm-body').innerHTML    = '<p style="font-family:var(--font-display);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for binarisation…</p>';
+  document.getElementById('process-body').innerHTML = '<p style="font-family:var(--font-display);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for term-term matrix…</p>';
   document.getElementById('ttm-actions').innerHTML  = '';
   document.getElementById('error-display').innerHTML = '';
   // Reset heatmap canvas

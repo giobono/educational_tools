@@ -55,9 +55,9 @@
   --warning-border: #e8d090;
 
   /* Typography */
-  --mono:  'JetBrains Mono', monospace;
-  --serif: 'Spectral', Georgia, serif;
-  --sans:  'Barlow', sans-serif;
+  --font-mono:  'JetBrains Mono', monospace;
+  --font-display: 'Spectral', Georgia, serif;
+  --font-body:  'Barlow', sans-serif;
 
   /* Component hooks
      Phases override these in their own <style> block if they vary from the
@@ -74,7 +74,7 @@
 body {
   background:  var(--paper);
   color:       var(--ink);
-  font-family: var(--sans);
+  font-family: var(--font-body);
   font-size:   15px;
   line-height: 1.6;
   min-height:  100vh;
@@ -103,7 +103,7 @@ header {
 }
 
 .logo {
-  font-family: var(--serif);
+  font-family: var(--font-display);
   font-weight: 300;
   font-size: 1.4rem;
   letter-spacing: -0.02em;
@@ -126,7 +126,7 @@ header {
 /* .cr-nav-logo previously had no matching rule — fell back to default
    link styling. Reuses .logo's intended look. */
 .cr-nav-logo {
-  font-family: var(--serif);
+  font-family: var(--font-display);
   font-weight: 300;
   font-size: 1.4rem;
   letter-spacing: -0.02em;
@@ -137,7 +137,7 @@ header {
 .cr-nav-logo em { font-style: italic; color: #a9dcef; }
 
 .phase-tag {
-  font-family: var(--mono);
+  font-family: var(--font-mono);
   font-size: 0.68rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -149,7 +149,7 @@ header {
 
 .nav-link {
   margin-left: auto;
-  font-family: var(--mono);
+  font-family: var(--font-mono);
   font-size: 0.68rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -183,7 +183,7 @@ header {
 }
 
 .cr-phase-link {
-  font-family: var(--mono);
+  font-family: var(--font-mono);
   font-size: 0.6rem;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -213,7 +213,7 @@ header {
 
 .cr-nav-home {
   margin-left: auto;
-  font-family: var(--mono);
+  font-family: var(--font-mono);
   font-size: 0.6rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -241,7 +241,7 @@ header {
 }
 
 .cr-bottom-btn {
-  font-family: var(--mono);
+  font-family: var(--font-mono);
   font-size: 0.65rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -286,7 +286,7 @@ header {
   margin: 1rem 0;
   font-size: 0.85rem;
   color: #5a1010;
-  font-family: var(--mono);
+  font-family: var(--font-mono);
 }
 
 .error-box strong { display: block; margin-bottom: 0.25rem; }
@@ -321,7 +321,7 @@ header {
 /* Buttons ----------------------------------------------------------------- */
 
 .btn-primary {
-  font-family: var(--mono);
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -338,7 +338,7 @@ header {
 .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .btn-secondary {
-  font-family: var(--mono);
+  font-family: var(--font-mono);
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -359,7 +359,7 @@ header {
 /* Section headings -------------------------------------------------------- */
 
 .section-num {
-  font-family: var(--mono);
+  font-family: var(--font-mono);
   font-size: 0.7rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -368,7 +368,7 @@ header {
 }
 
 .section-title {
-  font-family: var(--serif);
+  font-family: var(--font-display);
   font-size: 1.4rem;
   font-weight: 400;
   letter-spacing: -0.01em;

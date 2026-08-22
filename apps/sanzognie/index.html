@@ -15,6 +15,7 @@
 <script src="config.php"></script>
 <script src="/edu_common.js"></script>
 <script>window.enforceAppActive();</script>
+<link href="/ebono_brand.css" rel="stylesheet"/>
 <link href="/edu_common.css" rel="stylesheet"/>
 <link href="sanzognie.css" rel="stylesheet"/></head>
 <body>
@@ -71,7 +72,7 @@
 <div class="upload-text"><strong>Drop CSV here</strong> or click to browse</div>
 <div class="upload-sub">Finalised typology from Phase 2</div>
 </div>
-<div id="typology-count" style="font-family:var(--mono);font-size:0.65rem;color:var(--ink-light);margin-top:0.35rem;"></div>
+<div id="typology-count" style="font-family:var(--font-mono);font-size:0.65rem;color:var(--ink-light);margin-top:0.35rem;"></div>
 </div>
 </div>
 </div>
@@ -101,7 +102,7 @@
 <div class="corpus-file-list" id="corpus-file-list" style="display:none;"></div>
 </div>
 <!-- ── Resume from checkpoint ── -->
-<div class="section-head">Resume from checkpoint <span style="font-family:var(--serif);font-style:italic;font-weight:300;font-size:0.9em;text-transform:none;letter-spacing:0;color:var(--ink-light);">— optional</span></div>
+<div class="section-head">Resume from checkpoint <span style="font-family:var(--font-display);font-style:italic;font-weight:300;font-size:0.9em;text-transform:none;letter-spacing:0;color:var(--ink-light);">— optional</span></div>
 <div style="margin-bottom:2rem;">
 <div class="upload-zone" id="checkpoint-zone" style="max-width:520px;">
 <input accept=".csv" id="checkpoint-file" type="file"/>
@@ -109,7 +110,7 @@
 <div class="upload-text"><strong>Drop a checkpoint DTM here</strong> or click to browse</div>
 <div class="upload-sub">Documents already in this file will be skipped</div>
 </div>
-<div id="checkpoint-status" style="display:none;margin-top:0.6rem;font-family:var(--mono);font-size:0.72rem;color:var(--success);"></div>
+<div id="checkpoint-status" style="display:none;margin-top:0.6rem;font-family:var(--font-mono);font-size:0.72rem;color:var(--success);"></div>
 </div>
 <!-- ── Run ── -->
 <div class="run-row">
@@ -147,7 +148,7 @@
 <tbody id="dtm-tbody"></tbody>
 </table>
 </div>
-<div style="margin-top:0.75rem;font-family:var(--serif);font-style:italic;font-size:0.78rem;color:var(--ink-light);">
+<div style="margin-top:0.75rem;font-family:var(--font-display);font-style:italic;font-size:0.78rem;color:var(--ink-light);">
       Cells highlighted in amber indicate low-confidence scores flagged by the LLM. Proceed to Phase 3.2 for threshold setting and binarisation.
     </div>
 </div>
@@ -765,7 +766,7 @@ function renderDTMPreview(rows, concepts, mode) {
     const tr = document.createElement('tr');
     const td = document.createElement('td');
     td.colSpan = 2 + concepts.length;
-    td.style.cssText = 'padding:0.75rem;font-style:italic;color:var(--ink-light);font-family:var(--serif);text-align:center;';
+    td.style.cssText = 'padding:0.75rem;font-style:italic;color:var(--ink-light);font-family:var(--font-display);text-align:center;';
     td.textContent = `… ${rows.length - 40} more rows — export full DTM to view all`;
     tr.appendChild(td);
     tbody.appendChild(tr);

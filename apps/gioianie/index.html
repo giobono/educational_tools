@@ -14,6 +14,7 @@
   <script src="config.php"></script>
   <script src="/edu_common.js"></script>
   <script>window.enforceAppActive();</script>
+  <link href="/ebono_brand.css" rel="stylesheet"/>
   <link href="/edu_common.css" rel="stylesheet"/>
   <link href="gioianie_index.css" rel="stylesheet"/>
 </head>
@@ -356,7 +357,7 @@ function renderTable() {
   );
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" style="padding:1.5rem 0;color:var(--ink-light);font-style:italic;font-family:var(--serif);">No terms match the current filter.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" style="padding:1.5rem 0;color:var(--ink-light);font-style:italic;font-family:var(--font-display);">No terms match the current filter.</td></tr>`;
     return;
   }
 
