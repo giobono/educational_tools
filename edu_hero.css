@@ -35,7 +35,7 @@ html { scroll-behavior: smooth; }
 body {
   background: var(--ground);
   color: var(--body-text);
-  font-family: var(--font-display);
+  font-family: var(--ebono-font-display);
   line-height: 1.7;
   min-height: 100vh;
 }
@@ -91,7 +91,7 @@ body::before {
 }
 
 .hero-eyebrow {
-  font-family: var(--font-mono);
+  font-family: var(--ebono-font-mono);
   font-size: 0.68rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -110,7 +110,7 @@ body::before {
 }
 
 .hero-title {
-  font-family: var(--font-display);
+  font-family: var(--ebono-font-display);
   font-weight: 380;
   font-size: clamp(3rem, 7vw, 6rem);
   line-height: 0.98;
@@ -188,7 +188,7 @@ body::before {
 }
 
 .hero-stat-label {
-  font-family: var(--font-mono);
+  font-family: var(--ebono-font-mono);
   font-size: 0.62rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -208,7 +208,7 @@ body::before {
 }
 
 .overview-label {
-  font-family: var(--font-mono);
+  font-family: var(--ebono-font-mono);
   font-size: 0.65rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -295,7 +295,7 @@ body::before {
 }
 
 .phases-header-label {
-  font-family: var(--font-mono);
+  font-family: var(--ebono-font-mono);
   font-size: 0.65rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -371,7 +371,7 @@ body::before {
 .phase-card-meta {}
 
 .phase-tag-label {
-  font-family: var(--font-mono);
+  font-family: var(--ebono-font-mono);
   font-size: 0.6rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -410,7 +410,7 @@ body::before {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
-  font-family: var(--font-mono);
+  font-family: var(--ebono-font-mono);
   font-size: 0.68rem;
   color: var(--body-dim);
   letter-spacing: 0.02em;
@@ -437,7 +437,7 @@ body::before {
 }
 
 .io-chip {
-  font-family: var(--font-mono);
+  font-family: var(--ebono-font-mono);
   font-size: 0.58rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -470,7 +470,7 @@ body::before {
 }
 
 .workflow-label {
-  font-family: var(--font-mono);
+  font-family: var(--ebono-font-mono);
   font-size: 0.65rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -509,7 +509,7 @@ body::before {
 .flow-step:last-child { border-right: none; }
 
 .flow-step-phase {
-  font-family: var(--font-mono);
+  font-family: var(--ebono-font-mono);
   font-size: 0.58rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -534,7 +534,7 @@ body::before {
 }
 
 .flow-step-output {
-  font-family: var(--font-mono);
+  font-family: var(--ebono-font-mono);
   font-size: 0.6rem;
   color: var(--highlight);
   letter-spacing: 0.05em;
@@ -559,7 +559,7 @@ body::before {
 }
 
 .outputs-label {
-  font-family: var(--font-mono);
+  font-family: var(--ebono-font-mono);
   font-size: 0.65rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -585,7 +585,7 @@ body::before {
 .output-item:last-child { border-bottom: none; }
 
 .output-stage {
-  font-family: var(--font-mono);
+  font-family: var(--ebono-font-mono);
   font-size: 0.62rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -623,14 +623,14 @@ footer {
 }
 
 .footer-wordmark {
-  font-family: var(--font-display);
+  font-family: var(--ebono-font-display);
   font-style: italic;
   font-size: 1rem;
   color: var(--heading);
 }
 
 .footer-meta {
-  font-family: var(--font-mono);
+  font-family: var(--ebono-font-mono);
   font-size: 0.65rem;
   color: var(--body-dim);
   letter-spacing: 0.08em;
@@ -642,7 +642,7 @@ footer {
   padding-top: 1.25rem;
   margin-top: 1.25rem;
   border-top: 1px solid var(--ground-edge);
-  font-family: var(--font-mono);
+  font-family: var(--ebono-font-mono);
   font-size: 0.65rem;
   color: var(--body-dim);
   letter-spacing: 0.04em;
