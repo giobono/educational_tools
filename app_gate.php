@@ -37,14 +37,20 @@ if (!$active) {
     // statement about the estate. Nothing describing the application is sent.
     http_response_code(403);
     header('Content-Type: text/html; charset=utf-8');
+    // D1Dev's switched-off page, reproduced from enforceAppActive() in
+    // edu_common.js so the two routes render identically. Naming the
+    // application discloses nothing: the requester already has the name, it is
+    // in the URL they asked for. Kept self-contained — no stylesheet, no
+    // script — so it renders whatever else is unreachable.
+    $name = htmlspecialchars($app, ENT_QUOTES, 'UTF-8');
     echo '<!doctype html><html lang="en"><head><meta charset="utf-8">'
        . '<meta name="robots" content="noindex, nofollow">'
        . '<title>Not available</title>'
-       . '<style>body{font-family:system-ui,sans-serif;background:#05070a;color:#eee;display:flex;'
-       . 'align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center}'
-       . 'a{color:#a9dcef}</style></head><body><div>'
+       . '<style>body{font-family:sans-serif;background:#05070a;color:#eee;display:flex;'
+       . 'align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;}'
+       . 'a{color:#7ec8e3;}</style></head><body><div>'
        . '<h1>Not available in this environment</h1>'
-       . '<p>This application is currently switched off here.</p>'
+       . "<p>$name is currently switched off here.</p>"
        . '<p><a href="/">Return to the homepage</a></p>'
        . '</div></body></html>';
     exit;
