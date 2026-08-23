@@ -531,3 +531,27 @@ header {
 @media (prefers-reduced-motion: reduce) {
   .contact-fab, .modal, .modal-overlay { transition: none; }
 }
+
+/* ── Registration gate and collection notice (CD v0.1, 23 Aug) ─────────────
+   Presentation only. The strings are CD's and are placed verbatim in
+   apps/corres/index.html and edu_header.html; nothing here alters them. */
+.cr-gate {
+  border: 1px solid var(--rule);
+  background: var(--paper-mid);
+  padding: 1.75rem 2rem;
+  margin: 1.5rem 0 2rem;
+  max-width: 46rem;
+}
+.cr-gate-title { font-family: var(--font-display); font-size: 1.35rem; color: var(--ink); margin: 0 0 0.75rem; }
+.cr-gate-body  { color: var(--ink-mid); margin: 0 0 0.75rem; }
+.cr-gate-action {
+  display: inline-block; margin: 0.5rem 0 0.75rem;
+  background: var(--accent); color: var(--paper);
+  padding: 0.65rem 1.5rem; text-decoration: none; font-weight: 600;
+}
+.cr-gate-action:hover { background: var(--ink); }
+.cr-gate-sub { font-size: 0.85rem; color: var(--ink-light); margin: 0; }
+.modal-collection-notice {
+  font-size: 0.8rem; line-height: 1.5; color: var(--ink-light);
+  margin: 0.25rem 0 1rem; padding-top: 0.75rem; border-top: 1px solid var(--rule);
+}

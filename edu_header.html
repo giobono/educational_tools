@@ -51,6 +51,11 @@
       <!-- honeypot field, hidden from real users -->
       <input type="text" name="website" id="contact-website" style="position:absolute; left:-9999px;" tabindex="-1" autocomplete="off">
 
+      <!-- CN-01 (CD v0.1 §2) — collection notice at the point of capture,
+           placed verbatim. CN-02 does not ship: it is conditional on the form
+           retaining optional fields, and all three fields are required. -->
+      <p class="modal-collection-notice">We collect your name and email so that we can reply to you. Ebono Intelligence Pty Ltd holds them, uses them only to contact you about corres, and does not sell them. Write to <a href="mailto:info@ebono.au">info@ebono.au</a> at any time and we will delete them.</p>
+
       <div class="modal-actions">
         <button type="button" class="modal-close" id="contactClose">Close</button>
         <button type="submit" class="modal-submit">Send message</button>

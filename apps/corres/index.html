@@ -73,6 +73,17 @@
 <div class="py-spinner" id="py-spinner"></div>
 <span id="pyodide-msg">Loading Python environment — this takes 15–30 seconds on first load…</span>
 </div>
+<!-- ── Registration gate (CD v0.1, 23 Aug — GATE-01..05, placed verbatim) ──
+     Shown in place of step one where CORRES_CONFIG.registrationRequired is
+     true. No registration mechanism exists, so the flag is the condition:
+     true on a surface that must not run corres, false where it may. -->
+<div class="cr-gate" id="corres-gate" hidden>
+  <h2 class="cr-gate-title">Open to registered researchers</h2>
+  <p class="cr-gate-body">corres is in beta, and we are opening it to researchers a few at a time so that we can respond properly to what comes back.</p>
+  <p class="cr-gate-body">Register your interest and we will be in touch.</p>
+  <p><a class="cr-gate-action" href="/#contact" id="corres-gate-action">Register your interest</a></p>
+  <p class="cr-gate-sub">Already registered? Write to <a href="mailto:info@ebono.au">info@ebono.au</a> and we will sort it out.</p>
+</div>
 <!-- ── DTM upload ── -->
 <div class="section-head">Reviewed DTM</div>
 <div class="upload-zone" id="dtm-zone">
@@ -1827,6 +1838,25 @@ function download(filename, content, type) {
     markActiveNav();
     applyAppVisibility();
   });
+
+// ── Registration gate (CD v0.1 §1) ──────────────────────────────────────────
+// The strings are CD's and are placed verbatim. This wiring is not CD's: no
+// registration mechanism exists on this site, so "where the visitor is not
+// registered" has no implementation to key to. The flag stands in for it and
+// is per-environment, in the same config the appActive flag already uses.
+(function applyCorresGate() {
+  var cfg = window.CORRES_CONFIG || {};
+  if (!cfg.registrationRequired) return;
+  var gate = document.getElementById('corres-gate');
+  if (gate) gate.hidden = false;
+  ['dtm-zone', 'card-41', 'card-42', 'card-43', 'card-44'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.hidden = true;
+  });
+  document.querySelectorAll('.section-head').forEach(function (el) {
+    if (el.textContent.trim() === 'Reviewed DTM') el.hidden = true;
+  });
+})();
 </script>
 <nav class="cr-bottom-nav">
 <a class="cr-bottom-btn" href="/apps/sanzognie">← Phase 3 · Coding</a>
