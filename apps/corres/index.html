@@ -68,10 +68,15 @@
 <strong>Before you begin</strong><br/>
     This phase expects a reviewed and corrected DTM CSV from Phase 3.1. Low-confidence cells (marked [?]) and any anomalous scores should be resolved in the CSV before uploading. The analysis proceeds in four steps: binarisation → TTM construction → cluster analysis → frame naming. Download the sorted TTM after Step 4.2 and compare it against the clustered output from Step 4.3 to validate the cluster structure before proceeding to naming.
   </div>
-<!-- ── Pyodide status ── -->
-<div class="pyodide-status loading" id="pyodide-status">
-<div class="py-spinner" id="py-spinner"></div>
-<span id="pyodide-msg">Loading Python environment — this takes 15–30 seconds on first load…</span>
+<!-- ── Where the analysis runs ──────────────────────────────────────────
+     Was a Pyodide loading message announcing a 15-30 second wait for a local
+     Python environment. Nothing loads Pyodide on this page - there are no
+     references to pyodide.js or loadPyodide() anywhere - and the analysis runs
+     server-side over the API. Script replaced the text on load, so the false
+     version was visible only briefly in a browser but was what anything
+     reading the source received. Stated correctly in the markup instead. -->
+<div class="pyodide-status ready" id="pyodide-status">
+<span id="pyodide-msg">Stability, roles and seriation run server-side (Panel P1 consensus clustering) — no local Python environment needed.</span>
 </div>
 <!-- ── Registration gate (CD v0.1, 23 Aug — GATE-01..05, placed verbatim) ──
      Shown in place of step one where CORRES_CONFIG.registrationRequired is
@@ -215,8 +220,8 @@ function setStatus(state, msg) {
   document.getElementById('pyodide-msg').textContent = msg;
 }
 
-setStatus('ready', 'Stability, roles and seriation run server-side (Panel P1 consensus clustering) — no local Python environment needed.');
-document.getElementById('py-spinner').style.display = 'none';
+// The status line is correct in the markup; setStatus() remains for a caller
+// that needs to change it at runtime.
 
 // ── DTM upload ────────────────────────────────────────────────────────
 const dtmZone = document.getElementById('dtm-zone');
