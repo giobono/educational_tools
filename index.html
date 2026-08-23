@@ -40,8 +40,8 @@
 
 <section class="fp-section">
 <h2 class="fp-heading">It will tell you when the answer is no</h2>
-<p class="fp-body">Before corres interprets anything, it tests whether your corpus can support interpretation at all. It resamples your documents, reruns the analysis on each half, and checks whether the groups survive. If they do not, it stops and tells you why — with the diagnosis, and every concept and document it set aside, itemised.</p>
-<p class="fp-body">Two of the corpora we most wanted to use have been declined by our own method, for two different reasons.</p>
+<p class="fp-body">Before corres interprets anything, it runs two tests on your corpus. The first asks whether there is enough departure from chance in your matrix to be worth analysing at all. The second resamples your documents, reruns the analysis on each half, and checks whether the same groups come back. If either test fails, corres stops and tells you which one and why — with every concept and document it set aside, itemised.</p>
+<p class="fp-body">Two of the corpora we most wanted to use have been declined by our own method — one for strength, one for stability.</p>
 <!-- The comma below is CD's and is deliberate: it separates subject from
      predicate, which is irregular, and is kept because the line is spoken
      aloud at Brisbane and the pause is the point. Not a typo to tidy. -->
@@ -53,7 +53,7 @@
 <section class="fp-section fp-paired">
 <div>
 <h2 class="fp-heading">What you get</h2>
-<p class="fp-body">Groups that survived the stability test. A role for every concept — which ones sit at the core of a group, which ones bridge, which ones sit apart. And the parameters and conditions each result was produced under, so the run can be reproduced.</p>
+<p class="fp-body">Groups that survived the stability test. A role for every concept — which ones characterise a group, which ones bridge between groups, which ones sit apart. And the parameters and conditions each result was produced under, so the run can be reproduced.</p>
 </div>
 <div>
 <h2 class="fp-heading">What is yours</h2>
@@ -65,7 +65,13 @@
 
 <section class="fp-section">
 <h2 class="fp-heading">What it costs</h2>
-<p class="fp-body">corres is free while it is in beta, and there is nothing to set up — no account, no key, no billing. Your matrix is sent to our server to be analysed by a fixed set of python scripts and is not retained afterwards. The analysis runs from your matrix by fixed rules, so two people running the same matrix under the same conditions get the same answer.</p>
+<!-- AD brief 23 Aug Item 2. The determinism claim is withdrawn: the pipeline
+     is stochastic by construction — 25 random splits by 2 halves, k-means on
+     each (spec §2.3) — and no RNG seed is declared or persisted, so two runs
+     are not guaranteed to agree. The retention clause is cut pending Item 1,
+     which is answered: the binarised matrix IS retained, and indefinitely,
+     because the declared seven-day purge is never called. -->
+<p class="fp-body">corres is free while it is in beta, and there is nothing to set up — no account, no key, no billing. Your matrix is analysed on our server by standard scientific Python libraries running a fixed procedure. No language model reads your material, and no part of the result is generated: every number comes from the same statistical code, applied the same way to every corpus. Each run reports the parameters and conditions it ran under.</p>
 </section>
 
 <section class="fp-section">
@@ -77,7 +83,15 @@
 <section class="fp-section" id="register">
 <h2 class="fp-heading">Tell us what you think</h2>
 <p class="fp-body">corres is open and free during beta, and we would rather you ran your own material through it than took our word for any of this. We are most interested in the runs that fail. If corres declines your corpus, that is a result, and it is the one we most want to hear about — what you brought, what came back, and whether the diagnosis told you anything you could use.</p>
-<p class="fp-body"><strong>Use the Contact button</strong> at the foot of the page and tell us what happened. Name, email and what you are working on — that is all we need.</p>
+<!-- AD brief 23 Aug Item 3: the Contact button is position:fixed at the
+     bottom-right of the viewport — neither nav nor footer — and is visible at
+     every scroll position, so "at the foot of the page" was wrong. Corrected
+     to match where it actually renders.
+
+     FLAG: this whole sentence is D2Dev's, not CD's. It was authored when the
+     unformatted feedback form was removed, and AD has now sighted it as though
+     it were CD copy. It should be replaced by a CD string. -->
+<p class="fp-body"><strong>Use the Contact button</strong> in the bottom corner of the page and tell us what happened. Name, email and what you are working on — that is all we need.</p>
 <p class="fp-body">We will use your address to reply to you and to tell you when we release the upstream stages. Nothing else.</p>
 </section>
 
