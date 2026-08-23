@@ -576,24 +576,41 @@ header {
 .edu-footer .footer-entity a:hover { color: var(--accent); border-color: var(--accent); }
 .edu-footer .footer-legal-links { display: flex; gap: 1.25rem; }
 
-/* ── Front page prose sections (CD front-page strings v0.1) ───────────────
-   The landing page is dark; these sit on it. Presentation only — no string
-   is altered by anything here. */
-.fp-section { padding: 4rem 4rem 0; max-width: 62rem; }
+/* ── Front page prose sections (CD corres_beta_copy v0.1) ────────────────
+   These sit BELOW the hero, on edu_common's light ground — edu_common.css
+   loads after edu_hero.css and sets body to --paper. They were first styled
+   with the hero's dark-theme tokens, which rendered every heading #ffffff on
+   #ffffff: present in the markup, invisible on the page. Light tokens here. */
+.fp-section {
+  padding: 0 4rem;
+  max-width: 62rem;
+  margin: 0 auto 3.5rem;
+}
+.fp-section:first-of-type { margin-top: 4rem; }
 .fp-heading {
-  font-family: var(--ebono-font-display); font-weight: 380;
-  font-size: clamp(1.6rem, 3vw, 2.2rem);
-  color: var(--heading); margin: 0 0 1.25rem;
+  font-family: var(--ebono-font-display); font-weight: 400;
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  color: var(--ink); margin: 0 0 1rem; line-height: 1.15;
 }
 .fp-body {
-  font-family: var(--ebono-font-body); font-weight: 300;
-  font-size: 1.02rem; line-height: 1.75;
-  color: var(--body-dim); max-width: 46rem; margin: 0 0 1.1rem;
+  font-family: var(--ebono-font-body); font-weight: 400;
+  font-size: 1.05rem; line-height: 1.7;
+  color: var(--ink-mid); max-width: 42rem; margin: 0 0 1rem;
 }
-.fp-body strong { color: var(--body-text); font-weight: 500; }
+.fp-body strong { color: var(--ink); font-weight: 600; }
 .fp-fields {
   font-family: var(--ebono-font-mono); font-size: 0.72rem;
-  letter-spacing: 0.06em; color: var(--body-dim);
-  padding-top: 0.75rem; border-top: 1px solid var(--ground-edge);
+  letter-spacing: 0.06em; color: var(--ink-light);
+  padding-top: 0.75rem; border-top: 1px solid var(--rule);
 }
-@media (max-width: 900px) { .fp-section { padding-left: 2rem; padding-right: 2rem; } }
+
+/* The hero was built full-viewport, with a 1fr row for a footer strip that
+   this page no longer carries. With CD's shorter copy that row became a
+   screen-height void below the call to action. Size to content instead. */
+.hero { min-height: 0; }
+.hero-body { padding: 5rem 4rem 4.5rem; }
+
+@media (max-width: 900px) {
+  .fp-section { padding-left: 2rem; padding-right: 2rem; }
+  .hero-body  { padding: 3.5rem 2rem 3rem; }
+}
