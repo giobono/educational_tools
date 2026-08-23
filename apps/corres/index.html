@@ -106,7 +106,7 @@ Resolve anything you were unsure about before you upload. Cells you have marked 
 <div class="upload-icon">📊</div>
 <div class="upload-body">
 <strong>Drop reviewed DTM CSV here or click to browse</strong>
-<div class="upload-sub">Output from Phase 3.1 with low-confidence cells resolved</div>
+<div class="upload-sub">Scores 0–3, every cell filled, anything uncertain resolved before upload</div>
 <div class="upload-stats" id="dtm-stats"></div>
 </div>
 </div>
@@ -1343,7 +1343,7 @@ function renderProcessResults() {
     </div>`;
   }
 
-  html += `<p class="vocab-note">This is <strong>role classification</strong> (the five-role scheme below) applied to the fixed <strong>concept typology</strong> from Phase 1 — the two are not interchangeable (spec §3.4).</p>`;
+  html += `<p class="vocab-note">This is <strong>role classification</strong> (the five-role scheme below) applied to the fixed <strong>concept typology</strong> your matrix was coded against — the two are not interchangeable (spec §3.4).</p>`;
 
   html += `<div id="stage-1"></div><div id="stage-2"></div><div id="stage-2b"></div><div id="stage-3"></div><div id="stage-4"></div><div id="stage-5"></div>`;
 
@@ -1873,10 +1873,13 @@ function download(filename, content, type) {
   });
 })();
 </script>
+<!-- Navigation, CD corres_beta_copy v0.1 Page 2: exactly two destinations,
+     both on the root. Phase numbering removed - CD's draft carries none on
+     either page or in either title. The Home link pointed at index.html,
+     relative, which resolves to this page rather than the root. -->
 <nav class="cr-bottom-nav">
-
-<div class="cr-bottom-center">Phase 4 of 4 · Cluster Analysis</div>
-<a class="cr-bottom-btn ghost" href="index.html">Home →</a>
+<a class="cr-bottom-btn ghost" href="/">← corres home</a>
+<a class="cr-bottom-btn" href="/#register">Register your interest →</a>
 </nav>
 <footer class="edu-footer">
 <div class="footer-entity">
