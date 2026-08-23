@@ -555,3 +555,23 @@ header {
   font-size: 0.8rem; line-height: 1.5; color: var(--ink-light);
   margin: 0.25rem 0 1rem; padding-top: 0.75rem; border-top: 1px solid var(--rule);
 }
+
+/* ── Site footer on the app pages ─────────────────────────────────────────
+   The landing page's footer is styled in edu_hero.css against the dark
+   ground. The app pages are light and never load that file, so the same
+   entity block needs its own rules here. Links and text are identical; only
+   the colours differ. */
+.edu-footer {
+  margin-top: 4rem;
+  padding: 1.75rem 0 2.5rem;
+  border-top: 1px solid var(--rule);
+}
+.edu-footer .footer-entity {
+  display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem;
+  justify-content: space-between; align-items: baseline;
+  font-family: var(--font-mono); font-size: 0.68rem;
+  letter-spacing: 0.04em; color: var(--ink-light);
+}
+.edu-footer .footer-entity a { color: var(--ink-light); text-decoration: none; border-bottom: 1px solid transparent; }
+.edu-footer .footer-entity a:hover { color: var(--accent); border-color: var(--accent); }
+.edu-footer .footer-legal-links { display: flex; gap: 1.25rem; }
