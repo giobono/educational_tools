@@ -1,29 +1,24 @@
-# ── Unreleased applications ───────────────────────────────────────────────
+# ── Application pages route through the flag ──────────────────────────────
 # CD dispatch to OD, 23 August, items 2, 4 and 5.
 #
-# The existing gate is client-side: edu_common.js's enforceAppActive() replaces
-# the document with document.open/write/close AFTER the server has already sent
-# it in full. Anything that reads HTML without executing it receives the whole
-# page. These rules withhold it at the server instead, which is what CD asked
-# for; the flag stays and nothing is deleted.
+# This file is plumbing and does not decide anything. It routes the four
+# application pages through app_gate.php, which reads the SAME
+# config/apps/<app>/config.js that apps-enabled.php reads and that the D
+# instances built. Turning an application on or off remains one edit to one
+# config file outside the web root — no rebuild, no copy pass, and nothing
+# here changes.
 #
-# Both directives apply in BOTH flag states, deliberately: turning an
-# application on for beta must not silently turn indexing on with it.
+# The earlier version of this file denied the three unreleased paths outright.
+# That met CD's item 2 but broke the thing CD asked to keep: a static deny
+# makes switching an application on a file edit rather than a flag change.
 #
-# robots.txt stays silent on these paths on purpose. A Disallow stops the
+# robots.txt stays silent on these paths deliberately. A Disallow stops the
 # crawler fetching the page, so it never reads the noindex header, so a URL
-# discovered elsewhere can still be indexed as a bare link with no way to
-# remove it. The header is the control.
+# found elsewhere can still be indexed as a bare link with no way to remove
+# it. The header is the control, and app_gate.php sets it in both flag states.
 
-<IfModule mod_headers.c>
-  <FilesMatch "\.(html|php)$">
-    Header set X-Robots-Tag "noindex, nofollow"
-  </FilesMatch>
-</IfModule>
-
-# 403 rather than 404: the paths exist and are switched off, and a 404 would be
-# a false statement about the estate. Serves no document either way.
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteRule ^apps/(gioianie|sanzognie|pluralitie)(/.*)?$ - [F,L]
+  RewriteRule ^apps/(gioianie|sanzognie|corres|pluralitie)/([A-Za-z0-9_.-]+\.html)$ app_gate.php?app=$1&page=$2 [L,QSA]
+  RewriteRule ^apps/(gioianie|sanzognie|corres|pluralitie)/?$ app_gate.php?app=$1&page=index.html [L,QSA]
 </IfModule>
