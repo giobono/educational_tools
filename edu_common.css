@@ -575,3 +575,25 @@ header {
 .edu-footer .footer-entity a { color: var(--ink-light); text-decoration: none; border-bottom: 1px solid transparent; }
 .edu-footer .footer-entity a:hover { color: var(--accent); border-color: var(--accent); }
 .edu-footer .footer-legal-links { display: flex; gap: 1.25rem; }
+
+/* ── Front page prose sections (CD front-page strings v0.1) ───────────────
+   The landing page is dark; these sit on it. Presentation only — no string
+   is altered by anything here. */
+.fp-section { padding: 4rem 4rem 0; max-width: 62rem; }
+.fp-heading {
+  font-family: var(--ebono-font-display); font-weight: 380;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  color: var(--heading); margin: 0 0 1.25rem;
+}
+.fp-body {
+  font-family: var(--ebono-font-body); font-weight: 300;
+  font-size: 1.02rem; line-height: 1.75;
+  color: var(--body-dim); max-width: 46rem; margin: 0 0 1.1rem;
+}
+.fp-body strong { color: var(--body-text); font-weight: 500; }
+.fp-fields {
+  font-family: var(--ebono-font-mono); font-size: 0.72rem;
+  letter-spacing: 0.06em; color: var(--body-dim);
+  padding-top: 0.75rem; border-top: 1px solid var(--ground-edge);
+}
+@media (max-width: 900px) { .fp-section { padding-left: 2rem; padding-right: 2rem; } }

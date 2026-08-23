@@ -19,199 +19,56 @@
 </head>
 <body>
 <div id="edu-header" class="cr-nav"></div>
- <!-- ── Hero ── -->
+ <!-- ── Front page strings, CD v0.1 of 23 August, placed verbatim ──────────
+     FP-01 to FP-19. Strings are placed, not authored: not edited, shortened,
+     expanded, re-headed, split or merged. FP-20 is optional and conference-only
+     and is not placed. FP-15/FP-16 ship as CD specifies for the case where no
+     form exists — FP-14 with a mailto behind it, so the absence of a form is
+     not visible as a failure.
+
+     The phase cards and the workflow strip are removed, not restyled: CD's
+     closing note carries SD's instruction of 23 August that nothing on this
+     page mentions another tool or another phase. The retired-technique
+     references and the prohibited-vocabulary sentence went with them; both are
+     named in CD's closing note and neither is repeated here, since a word
+     ruled unusable on this surface should not ship in a comment either. Both
+     were live on edu.ebono.au until this commit. -->
 <section class="hero">
 <div class="hero-body">
 <div class="hero-eyebrow">Computational Frame Analysis</div>
 <h1 class="hero-title">Correlating<br/><em>Resonance</em></h1>
-<p class="hero-subtitle">Identifying frames of reference in contested policy spaces</p>
-<p class="hero-description">
-      A structured methodology for revealing the conceptual configurations that underpin conflicting positions within complex or wicked problems. Apply it to any corpus of policy texts to map what different stakeholders agree on, what divides them, and where common ground exists.
-    </p>
-<a class="hero-cta" href="#phases">
-      Start here<span class="hero-cta-arrow">→</span>
-</a>
-</div>
-<!-- ── Phase cards ── -->
-<section class="phases" id="phases">
-<div class="phases-header">
-<div class="phases-header-label">The process</div>
-<h2><span>Three phases, each building on the last</span><br/>
-<span style="color:var(--highlight);">Phase 3 clusters your data</span></h2>
-</div>
-<div class="phases-grid">
-<!-- Phase 1 -->
-<a class="phase-card" href="/apps/gioianie/index.html">
-<div class="phase-card-top">
-  <div class="phase-num">1</div>
-  <div class="phase-card-meta">
-  <div class="phase-tag-label">Phase One</div>
-  <div class="phase-name">Typology Development</div>
-</div>
-</div>
-<div class="phase-card-body">
-<p class="phase-desc">
-      <em>Start here</em> if you have a corpus of documents and want to code them for analysis. This process uses open coding under your guidance.      
-</p>
-<ul class="phase-steps">
-<li>Upload 5 random corpus documents</li>
-<li>The application extracts candidate concepts through open coding</li>
-</ul>
-</div>
-<div class="phase-card-top">
-  <div class="phase-num">&nbsp;</div>
-  <div class="phase-card-meta">
-  <div class="phase-name">Saturation Check</div>
-  <ul class="phase-steps">
-  <li>Gradually refine your typology</li>
-  <li>Check new documents for new codes</li>
-  <li>Edit definitions, merge duplicates, add synonyms</li>
-  </ul>
-</div>
-</div>
-<div class="phase-card-footer">
-<div class="phase-io">
-<span class="io-chip io-in">5 × PDF or TXT</span>
-<span class="io-chip io-out">Typology CSV</span>
-</div>
-<span class="phase-link-arrow">→</span>
-</div>
-</a>
-<!-- Phase 1.b -->
-<!--<a class="phase-card" href="/apps/gioianie/iterate.html">
-<div class="phase-card-top">
-<div class="phase-num">2</div>
-<div class="phase-card-meta">
-<div class="phase-tag-label">Phase Two</div>
-<div class="phase-name">Saturation Check</div>
-</div>
-</div>
-<div class="phase-card-body">
-<p class="phase-desc">
-          Upload your revised typology and a new batch of documents (5–10% of the corpus). Each document is coded against the fixed typology in an isolated session. Any content not captured by existing concepts is flagged for researcher review. Repeat until the typology holds without new concepts emerging.
-        </p>
-<ul class="phase-steps">
-<li>Upload revised typology CSV</li>
-<li>Upload new document batch</li>
-<li>Code each document in isolation</li>
-<li>Review flagged new concept candidates</li>
-<li>Update typology and repeat if needed</li>
-</ul>
-</div>
-<div class="phase-card-footer">
-<div class="phase-io">
-<span class="io-chip io-in">Typology CSV</span>
-<span class="io-chip io-in">Document batch</span>
-<span class="io-chip io-out">Saturated typology</span>
-</div>
-<span class="phase-link-arrow">→</span>
-</div>
-</a>
--->
-<!-- Phase 2 -->
-<a class="phase-card" href="/apps/sanzognie/">
-<div class="phase-card-top">
-<div class="phase-num">2</div>
-<div class="phase-card-meta">
-<div class="phase-tag-label">Phase Two</div>
-<div class="phase-name">Full Corpus Coding</div>
-</div>
-</div>
-<div class="phase-card-body">
-<p class="phase-desc">
-          <em>Start here</em> if you have a typology that you want to apply to a new corpus of documents. Documents are processed in configurable batches with automatic checkpoint exports.
-</p>
-<ul class="phase-steps">
-<li>Upload a complete typology CSV</li>
-<li>Upload full corpus (folder or multi-select)</li>
-<li>Review coding and options</li>
-<li>Export complete DTM for review</li>
-</ul>
-</div>
-<div class="phase-card-footer">
-<div class="phase-io">
-<span class="io-chip io-in">Final typology</span>
-<span class="io-chip io-in">Full corpus</span>
-<span class="io-chip io-out">DTM CSV</span>
-</div>
-<span class="phase-link-arrow">→</span>
-</div>
-</a>
-<!-- Phase 3 -->
-<a class="phase-card" href="/apps/corres/">
-  <div class="phase-card-top">
-  <div class="phase-num">3</div>
-  <div class="phase-card-meta">
-  <div class="phase-tag-label">Phase Three</div>
-  <div class="phase-name">Cluster Analysis</div>
-  </div>
-  </div>
-  <div class="phase-card-body">
-  <p class="phase-desc">
-            <em>Start here</em> if you have a list of codes against document names. This Document Term Matrix is the basis of a range of analysis methods.
-          </p>
-  <ul class="phase-steps">
-  <li>Set binarisation threshold interactively</li>
-  <li>Build and download sorted TTM</li>
-  <li>Run MCA cluster analysis</li>
-  <li>Compare sorted vs clustered TTM</li>
-  <li>Name and export frames</li>
-  </ul>
-  </div>
-  <div class="phase-card-footer">
-  <div class="phase-io">
-  <span class="io-chip io-in">Reviewed DTM</span>
-  <span class="io-chip io-out">Frame analysis</span>
-  </div>
-  <span class="phase-link-arrow">→</span>
-  </div>
+<p class="hero-subtitle">A method for finding structure in coded qualitative data.</p>
+<p class="hero-description">Correlating Resonance takes a corpus you have already coded and reports how the concepts in it hang together — which travel as a group, which bridge between groups, and where your material divides.</p>
+<p class="hero-description">It works on departures from independence, not on counts. Two concepts that both appear everywhere will co-occur constantly, and that tells you nothing. corres looks for the pairs that appear together more often, or less often, than chance predicts.</p>
+<a class="hero-cta" href="#register">
+      Register your interest<span class="hero-cta-arrow">→</span>
 </a>
 </div>
 </section>
-<!-- ── Workflow ── -->
-<section class="workflow">
-<div class="workflow-inner">
-<div class="workflow-label">End-to-end workflow</div>
-<div class="workflow-flow">
-<div class="flow-step">
-<div class="flow-step-phase">Phase 1 · Step 1</div>
-<div class="flow-step-name">Initial extraction</div>
-<div class="flow-step-desc">5 random documents coded in isolated sessions to generate candidate terms</div>
-<div class="flow-step-output">→ Candidate term list</div>
-</div>
-<div class="flow-step">
-<div class="flow-step-phase">Phase 1 · Step 2</div>
-<div class="flow-step-name">Researcher review</div>
-<div class="flow-step-desc">Merge duplicates, enrich definitions with synonyms, apply scaffolding structure</div>
-<div class="flow-step-output">→ Revised typology CSV</div>
-</div>
-<div class="flow-step">
-<div class="flow-step-phase">Phase 1 · Step 3</div>
-<div class="flow-step-name">Saturation testing</div>
-<div class="flow-step-desc">New document batches tested against fixed typology until no new concepts emerge</div>
-<div class="flow-step-output">→ Saturated typology</div>
-</div>
-<div class="flow-step">
-<div class="flow-step-phase">Phase 2 · Code</div>
-<div class="flow-step-name">Full corpus coding</div>
-<div class="flow-step-desc">Every document scored against every concept — one isolated API call per document</div>
-<div class="flow-step-output">→ Raw DTM</div>
-</div>
-<div class="flow-step">
-<div class="flow-step-phase">Phase 3 · Step 1</div>
-<div class="flow-step-name">Binarisation</div>
-<div class="flow-step-desc">Scores converted to binary important / not important using fixed threshold rules</div>
-<div class="flow-step-output">→ Binary DTM</div>
-</div>
-<div class="flow-step">
-<div class="flow-step-phase">Phase 3 · Step 2</div>
-<div class="flow-step-name">Cluster analysis</div>
-<div class="flow-step-desc">TTM construction and MCA reveals concept configurations — the frames of reference</div>
-<div class="flow-step-output">→ Frame map</div>
-</div>
-</div>
-</div>
+
+<!-- ── What it asks of you ── -->
+<section class="fp-section">
+<h2 class="fp-heading">What it asks of you</h2>
+<p class="fp-body">A document–term matrix: one row per document, one column per concept, coded by you or by your own process. corres does not code your corpus for you, and it does not interpret your results. It takes coded data and returns structure, along with the parameters and conditions that structure was produced under.</p>
 </section>
+
+<!-- ── Where it stands ── -->
+<section class="fp-section">
+<h2 class="fp-heading">Where it stands</h2>
+<p class="fp-body">Before corres interprets anything, it tests whether your corpus can support interpretation at all. If it cannot, corres stops and says why — with the diagnosis, and every concept and document it set aside, itemised.</p>
+<p class="fp-body">Two of the corpora we most wanted to use have been declined by our own method, for two different reasons, and we report both refusals. It also found a defect in work we had already published. The method is corrected; that earlier analysis is being redone.</p>
+<p class="fp-body">Our own papers read groups like these as <strong>frames</strong>. That is our interpretation, and it has not been tested against an external referent — so corres returns the structure and leaves the reading to you.</p>
+<p class="fp-body">corres is in beta and under active development. Some thresholds are declared provisional and are under review; every run reports the conditions it ran under.</p>
+</section>
+
+<!-- ── Registration ── -->
+<section class="fp-section" id="register">
+<h2 class="fp-heading">Register your interest</h2>
+<p class="fp-body">We are opening corres to researchers a few at a time, so that we can respond properly to what comes back. Tell us what you are working on and we will be in touch.</p>
+<p class="fp-body fp-fields">Name · Email · Institution or affiliation (optional) · What you are working on (optional)</p>
+<p><a class="hero-cta" href="mailto:info@ebono.au?subject=Register%20interest%20%E2%80%94%20corres">Register interest</a></p>
+</section>
+
 <!-- ── Footer ── -->
 <footer>
 <div class="footer-wordmark">Correlating Resonance</div>
