@@ -12,10 +12,10 @@
 <meta name="description" content="corres finds the structure in a coded corpus: which concepts travel together, which bridge between groups, and where your material divides. Free during beta.">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,380;0,9..144,480;0,9..144,600;1,9..144,500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
 <script src="/apps-enabled.php"></script>
-<script src="/edu_common.js"></script>
-<link href="/ebono_brand.css" rel="stylesheet"/>
-<link href="/edu_hero.css" rel="stylesheet"/>
-<link href="/edu_common.css" rel="stylesheet"/>
+<script src="/edu_common.js?v=202608231842"></script>
+<link href="/ebono_brand.css?v=202608231842" rel="stylesheet"/>
+<link href="/edu_hero.css?v=202608231842" rel="stylesheet"/>
+<link href="/edu_common.css?v=202608231842" rel="stylesheet"/>
 </head>
 <body>
 <div id="edu-header" class="cr-nav"></div>
@@ -77,19 +77,7 @@
 <section class="fp-section" id="register">
 <h2 class="fp-heading">Tell us what you think</h2>
 <p class="fp-body">corres is open and free during beta, and we would rather you ran your own material through it than took our word for any of this. We are most interested in the runs that fail. If corres declines your corpus, that is a result, and it is the one we most want to hear about — what you brought, what came back, and whether the diagnosis told you anything you could use.</p>
-<form class="fp-form" id="feedbackForm" action="/contact.php" method="POST">
-<label for="fb-name">Name</label>
-<input type="text" id="fb-name" name="name" required>
-<label for="fb-org">Organisation <span class="fp-optional">optional</span></label>
-<input type="text" id="fb-org" name="organisation">
-<label for="fb-email">Email</label>
-<input type="email" id="fb-email" name="email" required>
-<label for="fb-message">What you are working on</label>
-<textarea id="fb-message" name="message" rows="4" required></textarea>
-<input type="text" name="website" id="fb-website" style="position:absolute;left:-9999px" tabindex="-1" autocomplete="off">
-<button type="submit" class="hero-cta fp-submit">Send<span class="hero-cta-arrow">→</span></button>
-<p class="fp-status" id="fb-status" role="status"></p>
-</form>
+<p class="fp-body"><strong>Use the Contact button</strong> at the foot of the page and tell us what happened. Name, email and what you are working on — that is all we need.</p>
 <p class="fp-body">We will use your address to reply to you and to tell you when we release the upstream stages. Nothing else.</p>
 </section>
 
@@ -113,38 +101,6 @@
     applyAppVisibility();
     renderBuildVersion();
 
-    // Feedback form — posts through the same /contact.php path the Contact
-    // widget uses, so the estate keeps one capture route rather than two.
-    // Organisation is optional and folds into the message, because
-    // contact.php's contract is name, email, message.
-    const fbForm = document.getElementById('feedbackForm');
-    if (fbForm) fbForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const status = document.getElementById('fb-status');
-      const btn = fbForm.querySelector('button[type=submit]');
-      const org = document.getElementById('fb-org').value.trim();
-      const body = new URLSearchParams({
-        name:    document.getElementById('fb-name').value.trim(),
-        email:   document.getElementById('fb-email').value.trim(),
-        message: (org ? `Organisation: ${org}\n\n` : '') + document.getElementById('fb-message').value.trim(),
-        website: document.getElementById('fb-website').value
-      });
-      btn.disabled = true;
-      status.textContent = 'Sending…';
-      try {
-        const res = await fetch('/contact.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body
-        });
-        const out = await res.json();
-        if (out.ok) { fbForm.reset(); status.textContent = 'Thank you. We have your details and will be in touch.'; }
-        else { status.textContent = out.error || 'Something went wrong — please write to info@ebono.au.'; btn.disabled = false; }
-      } catch (err) {
-        status.textContent = 'Could not send — please write to info@ebono.au.';
-        btn.disabled = false;
-      }
-    });
   });
 </script>
 </body>

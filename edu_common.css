@@ -607,8 +607,22 @@ header {
 /* The hero was built full-viewport, with a 1fr row for a footer strip that
    this page no longer carries. With CD's shorter copy that row became a
    screen-height void below the call to action. Size to content instead. */
-.hero { min-height: 0; }
-.hero-body { padding: 5rem 4rem 4.5rem; }
+/* The hero was authored full-viewport with a 1fr grid row for a footer strip
+   this page no longer carries, so it filled the screen and left a black void
+   under the call to action. Sized to its content: the band is now only as deep
+   as the heading, standfirst and button need. */
+section.hero {
+  min-height: 0;
+  height: auto;
+  display: block;
+}
+section.hero .hero-body {
+  padding: 3.5rem 4rem 3.25rem;
+  max-width: 62rem;
+  margin: 0 auto;
+}
+section.hero .hero-title { margin-bottom: 0.5rem; }
+section.hero .hero-description { margin-bottom: 1.75rem; max-width: 42rem; }
 
 @media (max-width: 900px) {
   .fp-section { padding-left: 2rem; padding-right: 2rem; }
