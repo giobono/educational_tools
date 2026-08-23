@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Correlating Resonance — Phase 4: Cluster Analysis · Ebono Institute</title>
+<title>corres — run the analysis · The Ebono Institute</title>
 <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
@@ -39,35 +39,33 @@
      explicitly scopes the second-corpus refusal OUT - "A second-corpus
      negative case was drafted and removed"). Not publicly reachable at
      commit -> "report" substituted, per the brief's own specified branch. -->
+<!-- ── Orientation, CD corres_beta_copy v0.1 Page 2, placed verbatim ──────
+     The argument has moved to the root and does not repeat here. One orienting
+     line is mandatory: with the upstream applications closed this page has no
+     inbound path but a direct link, and a cold arrival from a conference slide
+     meets a lowercase word it has never seen. DRAFT, NOT SIGHTED. -->
 <section class="cr-front" id="cr-front">
 <div class="cr-front-inner">
 <p class="cr-front-eyebrow">corres</p>
-<h1 class="cr-front-title">You have coded a corpus. corres tells you how those concepts hang together.</h1>
-<p class="cr-front-sub">Which concepts travel as a group. Which ones bridge between groups. Where your material divides.</p>
-
-<h2 class="cr-front-h2">How it reads a corpus</h2>
-<p class="cr-front-p">It works on departures from independence, not on counts. Two concepts that both appear everywhere will co-occur constantly, and that tells you nothing. corres looks for the pairs that appear together more often, or less often, than chance predicts. That is the difference between finding structure and rediscovering which of your codes are common.</p>
-
-<h2 class="cr-front-h2">It will tell you when the answer is no</h2>
-<p class="cr-front-p">Before corres interprets anything, it tests whether your corpus can support interpretation at all. It resamples your documents, reruns the analysis on each half, and checks whether the groups survive. If they do not, it stops and tells you why — with the diagnosis, and every concept and document it set aside, itemised.</p>
-<p class="cr-front-p">Two of the corpora we most wanted to use have been declined by our own method, for two different reasons, and we report both refusals. It also found a defect in work we had already published. The method is corrected; that earlier analysis is being redone.</p>
-<p class="cr-front-p">A method that cannot say no cannot tell you that your coding scheme will not carry the finding you were planning. You would rather know that now than after you have built on it.</p>
-
-<h2 class="cr-front-h2">What you get</h2>
-<p class="cr-front-p">Certified groups. A role for every concept. And the parameters and conditions each result was produced under, so someone else can reproduce it.</p>
-
-<h2 class="cr-front-h2">What is yours</h2>
-<p class="cr-front-p">Our own papers read groups like these as <strong>frames</strong>. That is our interpretation, and it has not been tested against an external referent — so corres returns the structure and leaves the reading to you. That part of the work is yours.</p>
-<p class="cr-front-p">corres is in beta and under active development. Some thresholds are declared provisional and are under review; every run reports the conditions it ran under.</p>
-
-<a href="#cr-front-start" class="cr-front-cta">Bring your matrix ↓</a>
+<h1 class="cr-front-title">Bring a coded matrix. Get back the structure it supports.</h1>
+<p class="cr-front-sub">corres takes a matrix of documents scored against concepts and finds which concepts group together. If your matrix cannot support that analysis, it stops and tells you why.</p>
+<p><a class="cr-front-cta" href="/">What corres does and why ↗</a></p>
 </div>
 </section>
 <div class="workspace" id="cr-front-start">
 <div class="callout">
-<strong>Before you begin</strong><br/>
-    This phase expects a reviewed and corrected DTM CSV from Phase 3.1. Low-confidence cells (marked [?]) and any anomalous scores should be resolved in the CSV before uploading. The analysis proceeds in four steps: binarisation → TTM construction → cluster analysis → frame naming. Download the sorted TTM after Step 4.2 and compare it against the clustered output from Step 4.3 to validate the cluster structure before proceeding to naming.
-  </div>
+<strong>What you need — one CSV</strong><br/>
+A matrix of documents by concepts. One row per document, one column per concept, and a score in every cell from 0 to 3:
+<table class="cr-scale">
+<tr><td><strong>0</strong></td><td>Absent</td><td>the concept does not appear</td></tr>
+<tr><td><strong>1</strong></td><td>Mentioned</td><td>brief reference only</td></tr>
+<tr><td><strong>2</strong></td><td>Important</td><td>discussed and emphasised</td></tr>
+<tr><td><strong>3</strong></td><td>Central</td><td>a core focus of the document</td></tr>
+</table>
+How you produced it is your business. Coding by hand, in NVivo, in a spreadsheet, or by any other route is fine, provided the scale is the one above and every cell is filled.<br/><br/>
+Resolve anything you were unsure about before you upload. Cells you have marked as low-confidence, and any score that looks anomalous, should be settled in the CSV — corres will treat them as given.<br/><br/>
+<strong>Minimum:</strong> a matrix small enough to be trivial will be declined, and told so. Bring what you actually have.
+</div>
 <!-- ── Where the analysis runs ──────────────────────────────────────────
      Was a Pyodide loading message announcing a 15-30 second wait for a local
      Python environment. Nothing loads Pyodide on this page - there are no
@@ -75,8 +73,20 @@
      server-side over the API. Script replaced the text on load, so the false
      version was visible only briefly in a browser but was what anything
      reading the source received. Stated correctly in the markup instead. -->
+<!-- ── Operating notes, CD corres_beta_copy v0.1 Page 2 ────────────────────
+     PLACED: "No account, no key, no charge." and the load line, with CD's
+     15-30 second estimate removed as CD's flag 1 directs.
+
+     WITHHELD, not rewritten: "This analysis uses no language model and nothing
+     you upload leaves your browser except where the run requires it." CD hedged
+     that clause because CD did not know the answer and asked OD. The answer is
+     that the analysis is NOT client-side - twelve API call sites, no Pyodide
+     loader anywhere - so the matrix does leave the browser and goes to artie.
+     Shipping it as drafted would tell a researcher holding sensitive policy
+     material something untrue about where their data goes. Rewriting it is
+     CD's act, not this seat's, so the sentence is absent rather than altered. -->
 <div class="pyodide-status ready" id="pyodide-status">
-<span id="pyodide-msg">Stability, roles and seriation run server-side (Panel P1 consensus clustering) — no local Python environment needed.</span>
+<span id="pyodide-msg">No account, no key, no charge. The environment takes a moment to load on first visit.</span>
 </div>
 <!-- ── Registration gate (CD v0.1, 23 Aug — GATE-01..05, placed verbatim) ──
      Shown in place of step one where CORRES_CONFIG.registrationRequired is

@@ -409,3 +409,8 @@
     .concept-row-stat { text-align: left; }
   }
 
+
+/* Input scale table (CD corres_beta_copy v0.1, "What you need") */
+.cr-scale { border-collapse: collapse; margin: 0.75rem 0; font-size: 0.9rem; }
+.cr-scale td { padding: 0.25rem 1rem 0.25rem 0; vertical-align: top; }
+.cr-scale td:first-child { width: 2rem; }
