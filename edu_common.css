@@ -614,3 +614,21 @@ header {
   .fp-section { padding-left: 2rem; padding-right: 2rem; }
   .hero-body  { padding: 3.5rem 2rem 3rem; }
 }
+
+/* Paired band and feedback form (CD root copy v0.2) */
+.fp-paired { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; }
+.fp-form { max-width: 34rem; margin: 1.5rem 0 1rem; display: flex; flex-direction: column; }
+.fp-form label { font-family: var(--ebono-font-mono); font-size: 0.68rem; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-light); margin: 0.9rem 0 0.3rem; }
+.fp-optional { text-transform: none; letter-spacing: 0; font-style: italic; }
+.fp-form input, .fp-form textarea {
+  font-family: var(--ebono-font-body); font-size: 0.95rem; padding: 0.6rem 0.7rem;
+  border: 1px solid var(--rule); background: var(--paper); color: var(--ink); border-radius: 2px; }
+.fp-form input:focus, .fp-form textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.fp-submit { align-self: flex-start; margin-top: 1.25rem; border: none; cursor: pointer; }
+.fp-status { font-size: 0.85rem; color: var(--ink-mid); margin: 0.75rem 0 0; min-height: 1.2em; }
+@media (max-width: 900px) { .fp-paired { grid-template-columns: 1fr; gap: 0; } }
+
+/* The floating Contact widget sat over the footer links (CD root copy v0.2).
+   Reserve space for it at the foot of the page so it cannot cover them. */
+.edu-footer, footer { padding-bottom: 5.5rem; }

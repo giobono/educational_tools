@@ -714,3 +714,15 @@ window.fixJSONStrings = function fixJSONStrings(text) {
   }
   return result;
 };
+
+/* ── Build stamp ───────────────────────────────────────────────────────────
+ * Read from config.js rather than hand-typed into the header fragment, which
+ * is where it had drifted to beta-2026-08-09 on a build made on 23 August.
+ * Both surfaces call this, so they cannot disagree about which build is live.
+ */
+window.renderBuildVersion = function renderBuildVersion() {
+  const el = document.getElementById('cr-build-version');
+  if (!el) return;
+  const cfg = window.CORRES_CONFIG;
+  el.textContent = (cfg && cfg.appVersion) ? `build ${cfg.appVersion}` : '';
+};
