@@ -56,7 +56,7 @@
 <div class="callout">
 <strong>What you need — one CSV</strong><br/>
 A matrix of documents by concepts. One row per document, one column per concept, and a score or null in every cell:<br/>
-The system was built to cope with frequency counts at a paragraph or document level, or a ranking process as described below. For test purposes at the moment, any concept that appears more than once is treated as important.  
+Which scores count as "important" is a choice you make below, once your matrix is loaded — by default, half the mean of the matrix's non-zero scores, or a fixed ranking-method boundary, or a threshold you set yourself. The server applies whichever you choose; nothing is assumed in the browser.
 <table class="cr-scale">
 <tr><td><strong>0</strong></td><td>Absent</td><td>the concept does not appear</td></tr>
 <tr><td><strong>1</strong></td><td>Mentioned</td><td>brief reference only</td></tr>
@@ -130,11 +130,11 @@ The system was built to cope with frequency counts at a paragraph or document le
 <div class="threshold-modes">
 <div class="tmode-opt">
 <input checked="" id="tmode-auto" name="tmode" type="radio" value="auto"/>
-<label for="tmode-auto">Auto — mean of non-zero<span class="tmode-sub">experimental</span></label>
+<label for="tmode-auto">Default<span class="tmode-sub">half the mean of non-zero</span></label>
 </div>
 <div class="tmode-opt">
 <input id="tmode-fixed" name="tmode" type="radio" value="fixed"/>
-<label for="tmode-fixed">Fixed — rating boundary<span class="tmode-sub">scores ≥ 2</span></label>
+<label for="tmode-fixed">Ranking method<span class="tmode-sub">scores &gt; 2</span></label>
 </div>
 <div class="tmode-opt">
 <input id="tmode-manual" name="tmode" type="radio" value="manual"/>
@@ -162,7 +162,7 @@ The system was built to cope with frequency counts at a paragraph or document le
 <div class="heatmap-header">
 <span class="heatmap-label">DTM heatmap — rows: documents · columns: concepts (sorted by importance)</span>
 <div class="heatmap-legend">
-<div class="legend-item"><div class="legend-swatch" style="background:#f0f7f3;border:1px solid #b8d9c8;"></div>Important (≥ threshold)</div>
+<div class="legend-item"><div class="legend-swatch" style="background:#f0f7f3;border:1px solid #b8d9c8;"></div>Important (&gt; threshold)</div>
 <div class="legend-item"><div class="legend-swatch" style="background:#f7f4ef;border:1px solid #ddd8cf;"></div>Not important</div>
 <div class="legend-item" id="legend-score3"><div class="legend-swatch" style="background:#8b3a2a;"></div>Score 3</div>
 </div>
@@ -348,25 +348,28 @@ function docKey(doc) {
 function initBinarisation() {
   const isRating  = dtmData.mode !== 'frequency';
   const allScores = dtmData.matrix.flat().filter(v => v > 0);
+  // Default mode (SD brief, 25 Aug 2026 restore): half the mean of
+  // non-zero cell values, not the full mean — the front end declares
+  // this choice of mode to the backend, which is the sole place the
+  // threshold value is actually computed (build_ttm.py's
+  // _resolve_threshold); this local copy exists only to drive the live
+  // slider preview before the researcher confirms.
   const autoThreshold = allScores.length
-    ? allScores.reduce((a, b) => a + b, 0) / allScores.length
-    : 2.0;
+    ? 0.5 * (allScores.reduce((a, b) => a + b, 0) / allScores.length)
+    : 1.0;
   const maxScore = Math.max(...dtmData.matrix.flat(), 1);
 
-  // Configure slider range
+  // Slider always runs 0 to the DTM's actual max cell value — not a
+  // hardcoded 0-3 assumption about the rating scale.
   const slider = document.getElementById('threshold-slider');
-  slider.min   = isRating ? '0' : '0';
-  slider.max   = isRating ? '3' : String(maxScore);
+  slider.min   = '0';
+  slider.max   = String(maxScore);
   slider.step  = isRating ? '0.05' : '1';
 
-  // Tick labels
+  // Tick labels, evenly spaced across the actual range.
   const ticks = document.getElementById('slider-ticks');
-  if (isRating) {
-    ticks.innerHTML = '<span>0</span><span>0.5</span><span>1</span><span>1.5</span><span>2</span><span>2.5</span><span>3</span>';
-  } else {
-    ticks.innerHTML = Array.from({ length: Math.min(maxScore + 1, 8) }, (_, i) =>
-      `<span>${Math.round(i * maxScore / Math.min(maxScore, 7))}</span>`).join('');
-  }
+  ticks.innerHTML = Array.from({ length: Math.min(maxScore + 1, 8) }, (_, i) =>
+    `<span>${Math.round(i * maxScore / Math.min(maxScore, 7))}</span>`).join('');
 
   // Store auto threshold for reference
   slider.dataset.autoThreshold = autoThreshold.toFixed(3);
@@ -398,17 +401,17 @@ function onModeChange() {
   const sliderRow = document.getElementById('slider-row');
 
   if (mode === 'auto') {
-    slider.value = slider.dataset.autoThreshold || '2';
+    slider.value = slider.dataset.autoThreshold || '1';
     document.getElementById('slider-val-display').textContent = parseFloat(slider.value).toFixed(2);
     sliderRow.style.opacity    = '0.5';
     sliderRow.style.pointerEvents = 'none';
-    document.getElementById('bin-status').textContent = 'Auto — mean of non-zero scores (experimental)';
+    document.getElementById('bin-status').textContent = 'Default — half the mean of non-zero scores';
   } else if (mode === 'fixed') {
     slider.value = '2';
     document.getElementById('slider-val-display').textContent = '2.00';
     sliderRow.style.opacity    = '0.5';
     sliderRow.style.pointerEvents = 'none';
-    document.getElementById('bin-status').textContent = 'Fixed — rating mode boundary (scores ≥ 2)';
+    document.getElementById('bin-status').textContent = 'Ranking method — fixed boundary (scores > 2)';
   } else {
     sliderRow.style.opacity    = '1';
     sliderRow.style.pointerEvents = 'auto';
@@ -422,14 +425,16 @@ function getCurrentThreshold() {
   const mode   = document.querySelector('input[name="tmode"]:checked').value;
   const slider = document.getElementById('threshold-slider');
   if (mode === 'fixed') return 2.0;
-  return parseFloat(slider.value) || 2.0;
+  return parseFloat(slider.value) || 1.0;
 }
 
 function updateBinarisation() {
   const t = getCurrentThreshold();
 
-  // Compute binary matrix
-  binaryMatrix = dtmData.matrix.map(row => row.map(val => val >= t ? 1 : 0));
+  // Live preview only (PSI §2) — the authoritative binarisation is
+  // computed server-side once confirmed; see buildTTMServer(). Strictly
+  // greater than the threshold, not >=.
+  binaryMatrix = dtmData.matrix.map(row => row.map(val => val > t ? 1 : 0));
 
   renderBinStats(t);
   renderHeatmap(t);
@@ -510,6 +515,69 @@ function renderBinStats(t) {
     `Threshold: ${t.toFixed(2)} · ${ones} important cells · ${(density*100).toFixed(1)}% density`;
 }
 
+// Redraws the same panel renderBinStats() draws, but every number here is
+// read from the backend's returned BinarisationInfo (build_ttm.py) — none
+// of it recomputed client-side. Called once the server confirms the build
+// (buildTTMServer()), replacing the live client-side preview shown while
+// the researcher was still choosing a threshold (spec §3.1: the front end
+// declares and displays, the back end computes; nothing displayed after
+// confirmation may be a front-end derivation).
+function renderServerBinStats(b) {
+  const nConcepts = dtmData.concepts.length;
+
+  const crit1 = b.calibration_concept_spread_ok;
+  const crit2 = b.calibration_density_ok;
+  const densityClass    = b.density > 0.15 && b.density < 0.6 ? 'good' : 'warn';
+  const nDocsAdmitted    = Object.keys(serverTtm.binary_matrix || {}).length || binaryMatrix.length;
+  const sparseClass      = b.sparse_documents > nDocsAdmitted * 0.2 ? 'warn' : 'good';
+  const peripheralClass  = b.peripheral_concepts > nConcepts * 0.3 ? 'warn' : 'good';
+
+  document.getElementById('bin-stats-grid').innerHTML = `
+    <div class="bin-stat-card ${densityClass}">
+      <div class="bsc-val ${densityClass}">${(b.density * 100).toFixed(1)}%</div>
+      <div class="bsc-label">Matrix density<br>(important cells)</div>
+    </div>
+    <div class="bin-stat-card">
+      <div class="bsc-val">${b.mean_important_per_doc.toFixed(1)} <span style="font-size:0.7rem;color:var(--ink-light);">± ${b.sd_important_per_doc.toFixed(1)}</span></div>
+      <div class="bsc-label">Avg important concepts<br>per document</div>
+    </div>
+    <div class="bin-stat-card ${sparseClass}">
+      <div class="bsc-val ${sparseClass}">${b.sparse_documents}</div>
+      <div class="bsc-label">Sparse documents<br>(&lt; mean − 1SD)</div>
+    </div>
+    <div class="bin-stat-card">
+      <div class="bsc-val">${b.dense_documents}</div>
+      <div class="bsc-label">Dense documents<br>(&gt; mean + 1SD)</div>
+    </div>
+    <div class="bin-stat-card">
+      <div class="bsc-val">${b.concepts_above_half}<span style="font-size:0.7rem;color:var(--ink-light);"> / ${nConcepts}</span></div>
+      <div class="bsc-label">Concepts important<br>in &gt;50% of documents</div>
+    </div>
+    <div class="bin-stat-card ${peripheralClass}">
+      <div class="bsc-val ${peripheralClass}">${b.peripheral_concepts}</div>
+      <div class="bsc-label">Peripheral concepts<br>(&lt;10% of documents)</div>
+    </div>`;
+
+  document.getElementById('cal-checks').innerHTML = `
+    <div class="cal-check">
+      <span class="cal-icon">${crit1 ? '✓' : '✗'}</span>
+      <span style="color:${crit1 ? 'var(--success)' : 'var(--accent)'};">
+        ${crit1 ? 'Met' : 'Not met'}: more than half the concepts are important in more than half the documents
+        (${b.concepts_above_half} of ${nConcepts} concepts)
+      </span>
+    </div>
+    <div class="cal-check">
+      <span class="cal-icon">${crit2 ? '✓' : '✗'}</span>
+      <span style="color:${crit2 ? 'var(--success)' : 'var(--accent)'};">
+        ${crit2 ? 'Met' : 'Not met'}: matrix density sufficient for co-occurrence analysis
+        (${(b.density * 100).toFixed(1)}% — target 15–60%)
+      </span>
+    </div>`;
+
+  document.getElementById('confirm-bin-note').textContent =
+    `Threshold: ${b.threshold.toFixed(2)} (${b.threshold_mode}) · confirmed by server · ${(b.density * 100).toFixed(1)}% density`;
+}
+
 function renderHeatmap(t) {
   const canvas   = document.getElementById('dtm-heatmap');
   const ctx      = canvas.getContext('2d');
@@ -538,7 +606,7 @@ function renderHeatmap(t) {
   rowOrder.forEach((ri, row) => {
     colOrder.forEach((ci, col) => {
       const val       = dtmData.matrix[ri][ci] || 0;
-      const important = val >= t;
+      const important = val > t;
       const ratio     = val / maxVal;
 
       let r, g, b;
@@ -615,6 +683,12 @@ async function buildTTMServer() {
       dtmData.conceptIds.map(cid => (serverTtm.binary_matrix[docKey(doc)] || {})[String(cid)] || 0)
     );
     ttmData = reconstructTtmDataFromServer(serverTtm);
+
+    // Redraw the binarisation panel itself from the server's returned
+    // BinarisationInfo — the stats shown while the researcher was
+    // adjusting the slider were a client-side preview; once confirmed,
+    // every number on screen must come from the backend's artefact.
+    renderServerBinStats(serverTtm.binarisation);
 
     renderTTM();
     markStepDone('42');
