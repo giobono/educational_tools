@@ -55,16 +55,15 @@
 <div class="workspace" id="cr-front-start">
 <div class="callout">
 <strong>What you need — one CSV</strong><br/>
-A matrix of documents by concepts. One row per document, one column per concept, and a score in every cell from 0 to 3:
+A matrix of documents by concepts. One row per document, one column per concept, and a score or null in every cell:<br/>
+The system was built to cope with frequency counts at a paragraph or document level, or a ranking process as described below. For test purposes at the moment, any concept that appears more than once is treated as important.  
 <table class="cr-scale">
 <tr><td><strong>0</strong></td><td>Absent</td><td>the concept does not appear</td></tr>
 <tr><td><strong>1</strong></td><td>Mentioned</td><td>brief reference only</td></tr>
 <tr><td><strong>2</strong></td><td>Important</td><td>discussed and emphasised</td></tr>
 <tr><td><strong>3</strong></td><td>Central</td><td>a core focus of the document</td></tr>
 </table>
-How you produced it is your business. Coding by hand, in NVivo, in a spreadsheet, or by any other route is fine, provided the scale is the one above and every cell is filled.<br/><br/>
-Resolve anything you were unsure about before you upload. Cells you have marked as low-confidence, and any score that looks anomalous, should be settled in the CSV — corres will treat them as given.<br/><br/>
-<strong>Minimum:</strong> a matrix small enough to be trivial will be declined, and told so. Bring what you actually have.
+<strong>Minimum:</strong> a matrix should have siginificantly more documents than terms, and a significant range of values. Very small, square, or even matrices will be declined, with reasons provided. Bring a real data set that produces significant results using other methods.
 </div>
 <!-- ── Where the analysis runs ──────────────────────────────────────────
      Was a Pyodide loading message announcing a 15-30 second wait for a local
