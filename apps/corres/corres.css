@@ -138,23 +138,20 @@
   .tmode-opt input:checked + label { background: var(--ink); color: var(--paper); }
   .tmode-opt input:checked + label .tmode-sub { color: var(--paper-dark); }
 
-  /* The two answers to "ratings or counts?", asked only when the file is
-     genuinely ambiguous. Same visual language as the threshold options
-     above, but a real button: this is a decision, not a live control. */
-  .scale-mode-btn {
-    flex: 1 1 14rem; display: flex; flex-direction: column; gap: 0.3rem;
-    padding: 0.7rem 0.85rem; cursor: pointer; text-align: left;
-    background: white; color: var(--ink);
-    border: 1px solid var(--paper-dark); border-radius: 3px;
-    font-family: var(--font-body); font-size: 0.78rem; font-weight: 600;
-    letter-spacing: 0.03em; transition: background 0.15s, color 0.15s, border-color 0.15s;
+  /* The normalise question sits above the threshold options and is
+     independent of them: it decides what the threshold is compared against,
+     not where the threshold sits. */
+  .normalise-row {
+    display: flex; gap: 0.6rem; align-items: flex-start; cursor: pointer;
+    padding: 0.7rem 0.85rem; border: 1px solid var(--paper-dark); border-radius: 3px;
+    background: white;
   }
-  .scale-mode-btn span {
-    font-family: var(--font-mono); font-size: 0.62rem; font-weight: 400;
-    color: var(--ink-light); letter-spacing: 0; line-height: 1.45;
+  .normalise-row input { margin-top: 0.2rem; flex: none; }
+  .normalise-row span {
+    font-family: var(--font-body); font-size: 0.78rem; line-height: 1.5;
+    color: var(--ink-light);
   }
-  .scale-mode-btn:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-  .scale-mode-btn:hover span { color: var(--paper-dark); }
+  .normalise-row span strong { color: var(--ink); }
 
   .slider-row {
     display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem;
