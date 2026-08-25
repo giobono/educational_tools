@@ -56,7 +56,12 @@
 <div class="callout">
 <strong>What you need — one CSV</strong><br/>
 A matrix of documents by concepts. One row per document, one column per concept, and a score or null in every cell:<br/>
-Each document's scores are first put on the same footing — every cell measured as a percentage of that document's own highest score — since a frequency count and a rating scale don't otherwise mean the same thing. Which scores then count as "important" is a choice you make below, once your matrix is loaded: by default, half the mean of the matrix's non-zero normalised scores; or, for a rating-scale matrix only, a fixed ranking-method boundary on the raw scores; or a threshold you set yourself. The server applies whichever you choose; nothing is assumed in the browser.
+<!-- [CD/AD] Factual description of the binarisation step, rewritten 26 Aug
+     2026 to match the ruling of that date. The text it replaces described a
+     scheme the code no longer runs. Written by the development seat because
+     leaving a false description standing was the worse of the two faults -
+     it is flagged here rather than passed off as sighted copy. -->
+corres accepts two kinds of matrix, and reads them differently. <strong>Rating levels</strong> — the 0–3 scale below — are kept on their own scale: by default a concept counts as important where it scores above 1, and you can set that to level 1, 2 or 3 instead. <strong>Counts</strong> — how many times something occurs, or how many annotators marked it — have no fixed ceiling, so each cell is first measured as a percentage of that document's own highest count; by default a concept counts as important above half the mean of those percentages, and you can set your own percentage instead. If your matrix contains a value above 3 it is read as counts. Otherwise, if the file says which it is, that is used; if it says nothing, corres asks you rather than assuming. The server applies whichever you choose; nothing is decided in the browser.
 <table class="cr-scale">
 <tr><td><strong>0</strong></td><td>Absent</td><td>the concept does not appear</td></tr>
 <tr><td><strong>1</strong></td><td>Mentioned</td><td>brief reference only</td></tr>
@@ -123,22 +128,31 @@ Each document's scores are first put on the same footing — every cell measured
 <p id="bin-waiting" style="font-family:var(--font-display);font-style:italic;font-size:0.82rem;color:var(--ink-light);">
         Upload a DTM to begin.
       </p>
+<div id="scale-mode-ask" style="display:none;border:1px solid var(--rule);border-radius:6px;padding:1rem 1.1rem;margin-bottom:1rem;">
+<div style="font-family:var(--font-mono);font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-light);margin-bottom:0.5rem;">One question before we start</div>
+<p style="margin:0 0 0.35rem;font-weight:600;">Are these ratings, or counts?</p>
+<p id="scale-mode-ask-detail" style="margin:0 0 0.85rem;font-size:0.9rem;color:var(--ink-light);"></p>
+<div style="display:flex;gap:0.6rem;flex-wrap:wrap;">
+<button data-scale-mode="ranking" type="button" class="scale-mode-btn">Rating levels<span>0 absent → 3 central. Kept on their own scale.</span></button>
+<button data-scale-mode="frequency" type="button" class="scale-mode-btn">Counts<span>how many times, or how many annotators. Read as a proportion of each document’s own maximum.</span></button>
+</div>
+</div>
 <div id="bin-controls" style="display:none;">
 <!-- Mode selector -->
 <div style="margin-bottom:0.75rem;">
 <div style="font-family:var(--font-mono);font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-light);margin-bottom:0.6rem;">Threshold method</div>
 <div class="threshold-modes">
-<div class="tmode-opt">
+<div class="tmode-opt" id="tmode-auto-opt">
 <input checked="" id="tmode-auto" name="tmode" type="radio" value="auto"/>
-<label for="tmode-auto">Default<span class="tmode-sub">half the mean of non-zero</span></label>
+<label for="tmode-auto">Default<span class="tmode-sub">half the mean of the non-zero normalised scores</span></label>
 </div>
 <div class="tmode-opt" id="tmode-fixed-opt">
 <input id="tmode-fixed" name="tmode" type="radio" value="fixed"/>
-<label for="tmode-fixed">Ranking method<span class="tmode-sub">scores &gt; 1</span></label>
+<label for="tmode-fixed">Default<span class="tmode-sub">level 2 and above (scores &gt; 1)</span></label>
 </div>
 <div class="tmode-opt">
 <input id="tmode-manual" name="tmode" type="radio" value="manual"/>
-<label for="tmode-manual">Manual — set threshold<span class="tmode-sub">researcher judgement</span></label>
+<label for="tmode-manual" id="tmode-manual-label">Set it yourself<span class="tmode-sub" id="tmode-manual-sub">researcher judgement</span></label>
 </div>
 </div>
 </div>
@@ -253,8 +267,7 @@ async function loadDTM(file) {
     dtmZone.classList.add('loaded');
     dtmZone.querySelector('.upload-icon').textContent = '✓';
     dtmZone.querySelector('.upload-body strong').textContent = file.name;
-    document.getElementById('dtm-stats').textContent =
-      `${dtmData.docs.length} documents · ${dtmData.concepts.length} concepts · ${dtmData.mode} mode`;
+    renderDTMStats();
 
     if (!dtmZone.querySelector('.upload-clear')) {
       const cb = document.createElement('button');
@@ -271,20 +284,57 @@ async function loadDTM(file) {
       dtmZone.appendChild(cb);
     }
 
-    initBinarisation();
+    // Step 3 of the detection chain: the matrix could be either family,
+    // so it is not guessed at. Nothing downstream runs until answered.
+    if (dtmData.mode === null) askScaleMode(); else initBinarisation();
   } catch (err) { showError('Could not load DTM: ' + err.message); }
 }
+
+function renderDTMStats() {
+  const described = dtmData.mode === 'ranking'   ? 'rating scale'
+                  : dtmData.mode === 'frequency' ? 'frequency counts'
+                  : 'scale not yet declared';
+  const why = dtmData.modeReason ? ` (${dtmData.modeReason})` : '';
+  document.getElementById('dtm-stats').textContent =
+    `${dtmData.docs.length} documents \u00b7 ${dtmData.concepts.length} concepts \u00b7 ${described}${why}`;
+}
+
+// Asked only when the file is genuinely ambiguous - values within 0-3 and
+// nothing in it saying which family they belong to. Both readings are
+// legitimate for such a matrix and they binarise differently, so the
+// researcher declares it rather than the tool assuming.
+function askScaleMode() {
+  const box = document.getElementById('scale-mode-ask');
+  document.getElementById('scale-mode-ask-detail').textContent =
+    `Your matrix contains values from 0 to ${dtmData.maxValue}, and the file does not say which of these it is.`;
+  box.style.display = 'block';
+  box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  box.querySelectorAll('button[data-scale-mode]').forEach(b => {
+    b.onclick = () => {
+      dtmData.mode = b.dataset.scaleMode;
+      dtmData.modeReason = 'you declared it';
+      box.style.display = 'none';
+      renderDTMStats();
+      initBinarisation();
+    };
+  });
+}
+// Kept in step with _FREQUENCY_WORDS / _RANKING_WORDS in build_ttm.py.
+const FREQUENCY_WORDS  = ['frequency', 'frequencies', 'count', 'counts'];
+const RANKING_WORDS    = ['ranking', 'ranked', 'rating', 'rank'];
+const RATING_SCALE_MAX = 3;
+
 function parseDTMCSV(text) {
   let headers = null, colDocId = -1, colFilename = -1, colMethod = -1;
   const docs = [], matrix = [];
-  let mode = 'rating';
+  const commentLines = [];
   let conceptIdsLine = null;
 
   for (const rawLine of text.split('\n')) {
     const line = rawLine.trim();
     if (!line) continue;
     if (line.startsWith('#')) {
-      if (line.toLowerCase().includes('frequency')) mode = 'frequency';
+      commentLines.push(line);
       // sanzognie's exportDTM (13 Jul 2026 wiring pass) writes concept_ids
       // in column order as "# Concept_IDs: 1,2,3,..." — this is how corres
       // recovers the backend's required identifier without a separate
@@ -334,7 +384,29 @@ function parseDTMCSV(text) {
     conceptIds = assignConceptIds(concepts.map(term => ({ term }))).items.map(c => c.concept_id);
   }
 
-  return { mode, docs, concepts, conceptIds, matrix };
+  // Which family this matrix belongs to, in the strict precedence of the
+  // 26 Aug 2026 ruling - the same chain as detect_scale_mode() in
+  // apps/corres/workflows/build_ttm.py, kept in step with it:
+  //   1. any value above 3 is a count, decidable from the data alone;
+  //   2. else an explicit declaration in a leading "#" comment;
+  //   3. else genuinely ambiguous, and the researcher is asked.
+  // The third case is a real answer, not a failure: the certified
+  // benchmark is annotator counts whose maximum happens to be 3, so no
+  // value-range test on its own can separate it from a rating scale.
+  const maxValue = matrix.reduce((m, row) => Math.max(m, ...row), 0);
+  let mode = null, modeReason = '';
+  if (maxValue > RATING_SCALE_MAX) {
+    mode = 'frequency';
+    modeReason = `contains ${maxValue}, above the 0\u20133 rating scale`;
+  } else {
+    for (const raw of commentLines) {
+      const line = raw.replace(/^#+/, '').trim().toLowerCase();
+      if (FREQUENCY_WORDS.some(w => line.includes(w))) { mode = 'frequency'; modeReason = 'declared in the file'; break; }
+      if (RANKING_WORDS.some(w => line.includes(w)))   { mode = 'ranking';   modeReason = 'declared in the file'; break; }
+    }
+  }
+
+  return { mode, modeReason, maxValue, docs, concepts, conceptIds, matrix };
 }
 
 // A document's identifier for the backend request/response — Doc_ID when
@@ -362,48 +434,47 @@ let normalisedMatrix = [];
 
 // ── Step 4.1: Binarisation ────────────────────────────────────────────
 function initBinarisation() {
-  const isRating = dtmData.mode !== 'frequency';
+  const isRating = dtmData.mode === 'ranking';
   normalisedMatrix = rowMaxNormalise(dtmData.matrix);
 
-  // Default mode: half the mean of non-zero NORMALISED cell values, not
-  // raw ones — applies whether the DTM is frequency counts or a rating
-  // scale, since normalisation already puts both on the same footing.
+  // Half the mean of the non-zero NORMALISED values. Frequency counts only:
+  // on a 0-3 rating scale this resolves below 1/3 - the smallest value a
+  // non-zero cell can take when a document's maximum is 3 - so every cell
+  // clears it and the scale is discarded. The option is not offered there.
   const allNormalisedScores = normalisedMatrix.flat().filter(v => v > 0);
   const autoThreshold = allNormalisedScores.length
     ? 0.5 * (allNormalisedScores.reduce((a, b) => a + b, 0) / allNormalisedScores.length)
     : 0.5;
 
-  // "Ranking method" only has a comparable semantic on a bounded rating
-  // scale (its raw boundary of 1 means nothing fixed on unbounded
-  // frequency counts) — hidden, not just disabled, for frequency DTMs.
-  const fixedOpt = document.getElementById('tmode-fixed-opt');
-  fixedOpt.style.display = isRating ? '' : 'none';
-  if (!isRating && document.getElementById('tmode-fixed').checked) {
-    document.getElementById('tmode-auto').checked = true;
+  // Each family is offered the choices that mean something for it. The two
+  // defaults are mutually exclusive, so exactly one is ever visible.
+  document.getElementById('tmode-auto-opt').style.display  = isRating ? 'none' : '';
+  document.getElementById('tmode-fixed-opt').style.display = isRating ? '' : 'none';
+  document.getElementById('tmode-manual-sub').textContent  = isRating
+    ? 'a level of 1, 2 or 3'
+    : 'a percentage of each document\u2019s own maximum';
+  document.getElementById(isRating ? 'tmode-fixed' : 'tmode-auto').checked = true;
+
+  const slider = document.getElementById('threshold-slider');
+  if (isRating) {
+    // Levels, not percentages: the lowest rating that counts as important.
+    slider.min = '1'; slider.max = '3'; slider.step = '1'; slider.value = '2';
+    document.getElementById('slider-ticks').innerHTML =
+      '<span>1 · mentioned</span><span>2 · important</span><span>3 · central</span>';
+  } else {
+    slider.min = '1'; slider.max = '100'; slider.step = '1';
+    slider.dataset.autoThreshold = autoThreshold.toFixed(4);
+    slider.value = Math.max(1, Math.round(autoThreshold * 100)).toString();
+    document.getElementById('slider-ticks').innerHTML =
+      '<span>1%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>';
   }
 
-  // Slider runs 0-100%, the row-normalised scale — not raw units. Only
-  // meaningful for auto/manual; "fixed" (ranking method) bypasses
-  // normalisation entirely and does not use the slider.
-  const slider = document.getElementById('threshold-slider');
-  slider.min  = '0';
-  slider.max  = '100';
-  slider.step = '1';
-  slider.dataset.autoThreshold = autoThreshold.toFixed(4);
-  slider.value = (autoThreshold * 100).toFixed(1);
-  document.getElementById('slider-val-display').textContent = `${(autoThreshold * 100).toFixed(0)}%`;
-
-  const ticks = document.getElementById('slider-ticks');
-  ticks.innerHTML = '<span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>';
-
-  // Wire mode buttons
   document.querySelectorAll('input[name="tmode"]').forEach(r => {
     r.addEventListener('change', () => onModeChange());
   });
 
-  // Wire slider
   slider.addEventListener('input', () => {
-    document.getElementById('slider-val-display').textContent = `${parseFloat(slider.value).toFixed(0)}%`;
+    renderSliderValue();
     updateBinarisation();
   });
 
@@ -413,39 +484,64 @@ function initBinarisation() {
   onModeChange();
 }
 
+function renderSliderValue() {
+  const slider = document.getElementById('threshold-slider');
+  const v = parseFloat(slider.value);
+  document.getElementById('slider-val-display').textContent =
+    dtmData.mode === 'ranking' ? `level ${v.toFixed(0)}` : `${v.toFixed(0)}%`;
+}
+
 function onModeChange() {
   const mode   = document.querySelector('input[name="tmode"]:checked').value;
   const slider = document.getElementById('threshold-slider');
   const sliderRow = document.getElementById('slider-row');
+  const isRating = dtmData.mode === 'ranking';
 
   if (mode === 'auto') {
-    slider.value = ((parseFloat(slider.dataset.autoThreshold) || 0.5) * 100).toFixed(1);
-    document.getElementById('slider-val-display').textContent = `${parseFloat(slider.value).toFixed(0)}%`;
-    sliderRow.style.opacity    = '0.5';
+    slider.value = Math.max(1, Math.round((parseFloat(slider.dataset.autoThreshold) || 0.5) * 100)).toString();
+    sliderRow.style.opacity = '0.5';
     sliderRow.style.pointerEvents = 'none';
-    document.getElementById('bin-status').textContent = 'Default — half the mean of non-zero normalised scores';
+    document.getElementById('bin-status').textContent =
+      'Default \u2014 half the mean of the non-zero normalised scores';
   } else if (mode === 'fixed') {
-    document.getElementById('slider-val-display').textContent = '> 1 (raw)';
-    sliderRow.style.opacity    = '0.5';
+    slider.value = '2';
+    sliderRow.style.opacity = '0.5';
     sliderRow.style.pointerEvents = 'none';
-    document.getElementById('bin-status').textContent = 'Ranking method — raw score boundary (> 1)';
+    document.getElementById('bin-status').textContent =
+      'Default \u2014 level 2 and above, on the raw ratings (scores > 1)';
   } else {
-    sliderRow.style.opacity    = '1';
+    sliderRow.style.opacity = '1';
     sliderRow.style.pointerEvents = 'auto';
-    document.getElementById('bin-status').textContent = 'Manual — percentage of each document’s own maximum';
+    document.getElementById('bin-status').textContent = isRating
+      ? 'Your own level \u2014 the lowest rating that counts as important'
+      : 'Your own threshold \u2014 a percentage of each document\u2019s own maximum';
   }
 
+  renderSliderValue();
   updateBinarisation();
 }
 
-// "Fixed" (ranking method) returns a raw-scale threshold; "auto" and
-// "manual" return a normalised fraction (0-1) — the slider's own units
-// are 0-100%, converted here.
+// Returns what the chosen mode is actually compared against: a raw boundary
+// for a rating scale, a fraction of the row maximum for counts. A rating
+// LEVEL of L is the boundary "> L-1", so level 3 means "> 2" rather than a
+// threshold nothing can clear.
 function getCurrentThreshold() {
   const mode   = document.querySelector('input[name="tmode"]:checked').value;
   const slider = document.getElementById('threshold-slider');
-  if (mode === 'fixed') return 1.0;
+  if (dtmData.mode === 'ranking') {
+    const level = mode === 'fixed' ? 2 : (parseFloat(slider.value) || 2);
+    return level - 1;
+  }
   return (parseFloat(slider.value) || 50) / 100;
+}
+
+// What the researcher chose, in the units the backend validates: a level for
+// a rating scale, a fraction for counts. Sent only when the mode is manual.
+function getManualThresholdParam() {
+  const slider = document.getElementById('threshold-slider');
+  return dtmData.mode === 'ranking'
+    ? (parseFloat(slider.value) || 2)
+    : (parseFloat(slider.value) || 50) / 100;
 }
 
 function updateBinarisation() {
@@ -457,7 +553,7 @@ function updateBinarisation() {
   // method binarises against the raw scores; default/manual binarise
   // against the row-normalised scores — normalisation runs before
   // binarisation, not the other way round.
-  const source = mode === 'fixed' ? dtmData.matrix : normalisedMatrix;
+  const source = dtmData.mode === 'ranking' ? dtmData.matrix : normalisedMatrix;
   binaryMatrix = source.map(row => row.map(val => val > t ? 1 : 0));
 
   renderBinStats(t, mode);
@@ -535,7 +631,9 @@ function renderBinStats(t, mode) {
       </span>
     </div>`;
 
-  const thresholdLabel = mode === 'fixed' ? `${t.toFixed(1)} (raw)` : `${(t * 100).toFixed(0)}% (normalised)`;
+  const thresholdLabel = dtmData.mode === 'ranking'
+    ? `level ${(t + 1).toFixed(0)} and above (raw scores > ${t.toFixed(0)})`
+    : `${(t * 100).toFixed(0)}% of each document\u2019s maximum`;
   document.getElementById('confirm-bin-note').textContent =
     `Threshold: ${thresholdLabel} · ${ones} important cells · ${(density*100).toFixed(1)}% density`;
 }
@@ -599,7 +697,9 @@ function renderServerBinStats(b) {
       </span>
     </div>`;
 
-  const serverThresholdLabel = b.normalised ? `${(b.threshold * 100).toFixed(0)}% (normalised)` : `${b.threshold.toFixed(1)} (raw)`;
+  const serverThresholdLabel = b.normalised
+    ? `${(b.threshold * 100).toFixed(0)}% of each document\u2019s maximum`
+    : `level ${(b.threshold + 1).toFixed(0)} and above (raw scores > ${b.threshold.toFixed(0)})`;
   document.getElementById('confirm-bin-note').textContent =
     `Threshold: ${serverThresholdLabel} (${b.threshold_mode}) · confirmed by server · ${(b.density * 100).toFixed(1)}% density`;
 }
@@ -609,7 +709,7 @@ function renderHeatmap(t, mode) {
   const ctx      = canvas.getContext('2d');
   const nDocs    = dtmData.matrix.length;
   const nConcepts = dtmData.concepts.length;
-  const isRating = dtmData.mode !== 'frequency';
+  const isRating = dtmData.mode === 'ranking';
 
   // Sort: columns by total importance, rows by total importance
   const colTotals = dtmData.concepts.map((_, ci) =>
@@ -636,7 +736,7 @@ function renderHeatmap(t, mode) {
       // not-important boundary reflects whichever basis the selected
       // mode actually binarises against - raw for ranking method,
       // row-normalised for default/manual (matches updateBinarisation()).
-      const basisVal  = mode === 'fixed' ? val : ((normalisedMatrix[ri] || [])[ci] || 0);
+      const basisVal  = dtmData.mode === 'ranking' ? val : ((normalisedMatrix[ri] || [])[ci] || 0);
       const important = basisVal > t;
       const ratio     = val / maxVal;
 
@@ -695,8 +795,9 @@ async function buildTTMServer() {
     rows,
   };
   const params = {
+    scale_mode: dtmData.mode,
     threshold_mode: thresholdMode,
-    manual_threshold: thresholdMode === 'manual' ? t : null,
+    manual_threshold: thresholdMode === 'manual' ? getManualThresholdParam() : null,
   };
 
   document.getElementById('ttm-body').innerHTML =
