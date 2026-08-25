@@ -138,6 +138,24 @@
   .tmode-opt input:checked + label { background: var(--ink); color: var(--paper); }
   .tmode-opt input:checked + label .tmode-sub { color: var(--paper-dark); }
 
+  /* The two answers to "ratings or counts?", asked only when the file is
+     genuinely ambiguous. Same visual language as the threshold options
+     above, but a real button: this is a decision, not a live control. */
+  .scale-mode-btn {
+    flex: 1 1 14rem; display: flex; flex-direction: column; gap: 0.3rem;
+    padding: 0.7rem 0.85rem; cursor: pointer; text-align: left;
+    background: white; color: var(--ink);
+    border: 1px solid var(--paper-dark); border-radius: 3px;
+    font-family: var(--font-body); font-size: 0.78rem; font-weight: 600;
+    letter-spacing: 0.03em; transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .scale-mode-btn span {
+    font-family: var(--font-mono); font-size: 0.62rem; font-weight: 400;
+    color: var(--ink-light); letter-spacing: 0; line-height: 1.45;
+  }
+  .scale-mode-btn:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .scale-mode-btn:hover span { color: var(--paper-dark); }
+
   .slider-row {
     display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem;
     padding: 0.85rem 1rem; background: var(--paper); border-radius: 3px;
