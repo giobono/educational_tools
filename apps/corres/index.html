@@ -56,7 +56,7 @@
 <div class="callout">
 <strong>What you need — one CSV</strong><br/>
 A matrix of documents by concepts. One row per document, one column per concept, and a score or null in every cell:<br/>
-Which scores count as "important" is a choice you make below, once your matrix is loaded — by default, half the mean of the matrix's non-zero scores, or a fixed ranking-method boundary, or a threshold you set yourself. The server applies whichever you choose; nothing is assumed in the browser.
+Each document's scores are first put on the same footing — every cell measured as a percentage of that document's own highest score — since a frequency count and a rating scale don't otherwise mean the same thing. Which scores then count as "important" is a choice you make below, once your matrix is loaded: by default, half the mean of the matrix's non-zero normalised scores; or, for a rating-scale matrix only, a fixed ranking-method boundary on the raw scores; or a threshold you set yourself. The server applies whichever you choose; nothing is assumed in the browser.
 <table class="cr-scale">
 <tr><td><strong>0</strong></td><td>Absent</td><td>the concept does not appear</td></tr>
 <tr><td><strong>1</strong></td><td>Mentioned</td><td>brief reference only</td></tr>
@@ -132,9 +132,9 @@ Which scores count as "important" is a choice you make below, once your matrix i
 <input checked="" id="tmode-auto" name="tmode" type="radio" value="auto"/>
 <label for="tmode-auto">Default<span class="tmode-sub">half the mean of non-zero</span></label>
 </div>
-<div class="tmode-opt">
+<div class="tmode-opt" id="tmode-fixed-opt">
 <input id="tmode-fixed" name="tmode" type="radio" value="fixed"/>
-<label for="tmode-fixed">Ranking method<span class="tmode-sub">scores &gt; 2</span></label>
+<label for="tmode-fixed">Ranking method<span class="tmode-sub">scores &gt; 1</span></label>
 </div>
 <div class="tmode-opt">
 <input id="tmode-manual" name="tmode" type="radio" value="manual"/>
@@ -146,12 +146,12 @@ Which scores count as "important" is a choice you make below, once your matrix i
 <div class="slider-row" id="slider-row">
 <span class="slider-label">Threshold</span>
 <div class="slider-track">
-<input class="threshold-slider" id="threshold-slider" max="3" min="0" step="0.05" type="range" value="2"/>
+<input class="threshold-slider" id="threshold-slider" max="100" min="0" step="1" type="range" value="50"/>
 <div class="slider-tick-labels" id="slider-ticks">
-<span>0</span><span>0.5</span><span>1</span><span>1.5</span><span>2</span><span>2.5</span><span>3</span>
+<span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
 </div>
 </div>
-<span class="slider-val" id="slider-val-display">2.00</span>
+<span class="slider-val" id="slider-val-display">50%</span>
 </div>
 <!-- Stats grid -->
 <div class="bin-stats-grid" id="bin-stats-grid"></div>
@@ -344,39 +344,57 @@ function docKey(doc) {
   return doc.id || doc.name;
 }
 
+// Row-max normalisation (Geoff's ruling, 25 Aug 2026, post-BNE): each
+// document's cell values divided by that document's own maximum cell
+// value, putting frequency counts and rating scores on the same 0-1
+// scale before any threshold is applied. Mirrors build_ttm.py's
+// _row_max_normalise() exactly, for the live preview only — the
+// authoritative computation is server-side once confirmed. An all-zero
+// row normalises to all zeros, not division by zero.
+function rowMaxNormalise(matrix) {
+  return matrix.map(row => {
+    const rowMax = Math.max(...row, 0);
+    return rowMax > 0 ? row.map(v => v / rowMax) : row.map(() => 0);
+  });
+}
+
+let normalisedMatrix = [];
+
 // ── Step 4.1: Binarisation ────────────────────────────────────────────
 function initBinarisation() {
-  const isRating  = dtmData.mode !== 'frequency';
-  const allScores = dtmData.matrix.flat().filter(v => v > 0);
-  // Default mode (SD brief, 25 Aug 2026 restore): half the mean of
-  // non-zero cell values, not the full mean — the front end declares
-  // this choice of mode to the backend, which is the sole place the
-  // threshold value is actually computed (build_ttm.py's
-  // _resolve_threshold); this local copy exists only to drive the live
-  // slider preview before the researcher confirms.
-  const autoThreshold = allScores.length
-    ? 0.5 * (allScores.reduce((a, b) => a + b, 0) / allScores.length)
-    : 1.0;
-  const maxScore = Math.max(...dtmData.matrix.flat(), 1);
+  const isRating = dtmData.mode !== 'frequency';
+  normalisedMatrix = rowMaxNormalise(dtmData.matrix);
 
-  // Slider always runs 0 to the DTM's actual max cell value — not a
-  // hardcoded 0-3 assumption about the rating scale.
+  // Default mode: half the mean of non-zero NORMALISED cell values, not
+  // raw ones — applies whether the DTM is frequency counts or a rating
+  // scale, since normalisation already puts both on the same footing.
+  const allNormalisedScores = normalisedMatrix.flat().filter(v => v > 0);
+  const autoThreshold = allNormalisedScores.length
+    ? 0.5 * (allNormalisedScores.reduce((a, b) => a + b, 0) / allNormalisedScores.length)
+    : 0.5;
+
+  // "Ranking method" only has a comparable semantic on a bounded rating
+  // scale (its raw boundary of 1 means nothing fixed on unbounded
+  // frequency counts) — hidden, not just disabled, for frequency DTMs.
+  const fixedOpt = document.getElementById('tmode-fixed-opt');
+  fixedOpt.style.display = isRating ? '' : 'none';
+  if (!isRating && document.getElementById('tmode-fixed').checked) {
+    document.getElementById('tmode-auto').checked = true;
+  }
+
+  // Slider runs 0-100%, the row-normalised scale — not raw units. Only
+  // meaningful for auto/manual; "fixed" (ranking method) bypasses
+  // normalisation entirely and does not use the slider.
   const slider = document.getElementById('threshold-slider');
-  slider.min   = '0';
-  slider.max   = String(maxScore);
-  slider.step  = isRating ? '0.05' : '1';
+  slider.min  = '0';
+  slider.max  = '100';
+  slider.step = '1';
+  slider.dataset.autoThreshold = autoThreshold.toFixed(4);
+  slider.value = (autoThreshold * 100).toFixed(1);
+  document.getElementById('slider-val-display').textContent = `${(autoThreshold * 100).toFixed(0)}%`;
 
-  // Tick labels, evenly spaced across the actual range.
   const ticks = document.getElementById('slider-ticks');
-  ticks.innerHTML = Array.from({ length: Math.min(maxScore + 1, 8) }, (_, i) =>
-    `<span>${Math.round(i * maxScore / Math.min(maxScore, 7))}</span>`).join('');
-
-  // Store auto threshold for reference
-  slider.dataset.autoThreshold = autoThreshold.toFixed(3);
-
-  // Set initial value to auto threshold
-  slider.value = autoThreshold.toFixed(3);
-  document.getElementById('slider-val-display').textContent = autoThreshold.toFixed(2);
+  ticks.innerHTML = '<span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>';
 
   // Wire mode buttons
   document.querySelectorAll('input[name="tmode"]').forEach(r => {
@@ -385,7 +403,7 @@ function initBinarisation() {
 
   // Wire slider
   slider.addEventListener('input', () => {
-    document.getElementById('slider-val-display').textContent = parseFloat(slider.value).toFixed(2);
+    document.getElementById('slider-val-display').textContent = `${parseFloat(slider.value).toFixed(0)}%`;
     updateBinarisation();
   });
 
@@ -401,46 +419,52 @@ function onModeChange() {
   const sliderRow = document.getElementById('slider-row');
 
   if (mode === 'auto') {
-    slider.value = slider.dataset.autoThreshold || '1';
-    document.getElementById('slider-val-display').textContent = parseFloat(slider.value).toFixed(2);
+    slider.value = ((parseFloat(slider.dataset.autoThreshold) || 0.5) * 100).toFixed(1);
+    document.getElementById('slider-val-display').textContent = `${parseFloat(slider.value).toFixed(0)}%`;
     sliderRow.style.opacity    = '0.5';
     sliderRow.style.pointerEvents = 'none';
-    document.getElementById('bin-status').textContent = 'Default — half the mean of non-zero scores';
+    document.getElementById('bin-status').textContent = 'Default — half the mean of non-zero normalised scores';
   } else if (mode === 'fixed') {
-    slider.value = '2';
-    document.getElementById('slider-val-display').textContent = '2.00';
+    document.getElementById('slider-val-display').textContent = '> 1 (raw)';
     sliderRow.style.opacity    = '0.5';
     sliderRow.style.pointerEvents = 'none';
-    document.getElementById('bin-status').textContent = 'Ranking method — fixed boundary (scores > 2)';
+    document.getElementById('bin-status').textContent = 'Ranking method — raw score boundary (> 1)';
   } else {
     sliderRow.style.opacity    = '1';
     sliderRow.style.pointerEvents = 'auto';
-    document.getElementById('bin-status').textContent = 'Manual — researcher set threshold';
+    document.getElementById('bin-status').textContent = 'Manual — percentage of each document’s own maximum';
   }
 
   updateBinarisation();
 }
 
+// "Fixed" (ranking method) returns a raw-scale threshold; "auto" and
+// "manual" return a normalised fraction (0-1) — the slider's own units
+// are 0-100%, converted here.
 function getCurrentThreshold() {
   const mode   = document.querySelector('input[name="tmode"]:checked').value;
   const slider = document.getElementById('threshold-slider');
-  if (mode === 'fixed') return 2.0;
-  return parseFloat(slider.value) || 1.0;
+  if (mode === 'fixed') return 1.0;
+  return (parseFloat(slider.value) || 50) / 100;
 }
 
 function updateBinarisation() {
+  const mode = document.querySelector('input[name="tmode"]:checked').value;
   const t = getCurrentThreshold();
 
   // Live preview only (PSI §2) — the authoritative binarisation is
-  // computed server-side once confirmed; see buildTTMServer(). Strictly
-  // greater than the threshold, not >=.
-  binaryMatrix = dtmData.matrix.map(row => row.map(val => val > t ? 1 : 0));
+  // computed server-side once confirmed; see buildTTMServer(). Ranking
+  // method binarises against the raw scores; default/manual binarise
+  // against the row-normalised scores — normalisation runs before
+  // binarisation, not the other way round.
+  const source = mode === 'fixed' ? dtmData.matrix : normalisedMatrix;
+  binaryMatrix = source.map(row => row.map(val => val > t ? 1 : 0));
 
-  renderBinStats(t);
-  renderHeatmap(t);
+  renderBinStats(t, mode);
+  renderHeatmap(t, mode);
 }
 
-function renderBinStats(t) {
+function renderBinStats(t, mode) {
   const nDocs     = binaryMatrix.length;
   const nConcepts = dtmData.concepts.length;
   const total     = nDocs * nConcepts;
@@ -511,8 +535,9 @@ function renderBinStats(t) {
       </span>
     </div>`;
 
+  const thresholdLabel = mode === 'fixed' ? `${t.toFixed(1)} (raw)` : `${(t * 100).toFixed(0)}% (normalised)`;
   document.getElementById('confirm-bin-note').textContent =
-    `Threshold: ${t.toFixed(2)} · ${ones} important cells · ${(density*100).toFixed(1)}% density`;
+    `Threshold: ${thresholdLabel} · ${ones} important cells · ${(density*100).toFixed(1)}% density`;
 }
 
 // Redraws the same panel renderBinStats() draws, but every number here is
@@ -574,11 +599,12 @@ function renderServerBinStats(b) {
       </span>
     </div>`;
 
+  const serverThresholdLabel = b.normalised ? `${(b.threshold * 100).toFixed(0)}% (normalised)` : `${b.threshold.toFixed(1)} (raw)`;
   document.getElementById('confirm-bin-note').textContent =
-    `Threshold: ${b.threshold.toFixed(2)} (${b.threshold_mode}) · confirmed by server · ${(b.density * 100).toFixed(1)}% density`;
+    `Threshold: ${serverThresholdLabel} (${b.threshold_mode}) · confirmed by server · ${(b.density * 100).toFixed(1)}% density`;
 }
 
-function renderHeatmap(t) {
+function renderHeatmap(t, mode) {
   const canvas   = document.getElementById('dtm-heatmap');
   const ctx      = canvas.getContext('2d');
   const nDocs    = dtmData.matrix.length;
@@ -605,8 +631,13 @@ function renderHeatmap(t) {
 
   rowOrder.forEach((ri, row) => {
     colOrder.forEach((ci, col) => {
-      const val       = dtmData.matrix[ri][ci] || 0;
-      const important = val > t;
+      const val = dtmData.matrix[ri][ci] || 0;
+      // Colour intensity always reflects the raw score; the important/
+      // not-important boundary reflects whichever basis the selected
+      // mode actually binarises against - raw for ranking method,
+      // row-normalised for default/manual (matches updateBinarisation()).
+      const basisVal  = mode === 'fixed' ? val : ((normalisedMatrix[ri] || [])[ci] || 0);
+      const important = basisVal > t;
       const ratio     = val / maxVal;
 
       let r, g, b;
