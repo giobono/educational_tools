@@ -16,7 +16,7 @@
 <script>window.enforceAppActive();</script>
 <link href="/ebono_brand.css?v=202608231842" rel="stylesheet"/>
 <link href="/edu_common.css?v=202608231842" rel="stylesheet"/>
-<link href="corres.css?v=202608260915" rel="stylesheet"/></head>
+<link href="corres.css?v=202608260933" rel="stylesheet"/></head>
 <body>
 <div id="edu-header" class="cr-nav"></div>
 <!-- ── Front page ──
@@ -61,7 +61,7 @@ A matrix of documents by concepts. One row per document, one column per concept,
      scheme the code no longer runs. Written by the development seat because
      leaving a false description standing was the worse of the two faults -
      it is flagged here rather than passed off as sighted copy. -->
-corres accepts two kinds of matrix, and reads them differently. <strong>Rating levels</strong> — the 0–3 scale below — are kept on their own scale: by default a concept counts as important where it scores above 1, and you can set that to level 1, 2 or 3 instead. <strong>Counts</strong> — how many times something occurs, or how many annotators marked it — have no fixed ceiling, so each cell is first measured as a percentage of that document's own highest count; by default a concept counts as important above half the mean of those percentages, and you can set your own percentage instead. If your matrix contains a value above 3 it is read as counts. Otherwise, if the file says which it is, that is used; if it says nothing, corres asks you rather than assuming. The server applies whichever you choose; nothing is decided in the browser.
+corres accepts two kinds of matrix, and reads them differently. <strong>Rating levels</strong> — the 0–3 scale below — are kept on their own scale: by default a concept counts as important where it scores above 1, and you can set that to level 1, 2 or 3 instead. <strong>Counts</strong> — how many times something occurs — have no fixed ceiling, so each cell is first measured as a percentage of that document's own highest count; by default a concept counts as important above half the mean of those percentages, and you can set your own percentage instead. If your matrix contains a value above 3 it is read as counts. Otherwise, if the file says which it is, that is used; if it says nothing, corres asks you rather than assuming. The server applies whichever you choose; nothing is decided in the browser.
 <table class="cr-scale">
 <tr><td><strong>0</strong></td><td>Absent</td><td>the concept does not appear</td></tr>
 <tr><td><strong>1</strong></td><td>Mentioned</td><td>brief reference only</td></tr>
@@ -134,7 +134,7 @@ corres accepts two kinds of matrix, and reads them differently. <strong>Rating l
 <p id="scale-mode-ask-detail" style="margin:0 0 0.85rem;font-size:0.9rem;color:var(--ink-light);"></p>
 <div style="display:flex;gap:0.6rem;flex-wrap:wrap;">
 <button data-scale-mode="ranking" type="button" class="scale-mode-btn">Rating levels<span>0 absent → 3 central. Kept on their own scale.</span></button>
-<button data-scale-mode="frequency" type="button" class="scale-mode-btn">Counts<span>how many times, or how many annotators. Read as a proportion of each document’s own maximum.</span></button>
+<button data-scale-mode="frequency" type="button" class="scale-mode-btn">Counts<span>how many times something occurs. Read as a proportion of each document’s own maximum.</span></button>
 </div>
 </div>
 <div id="bin-controls" style="display:none;">
@@ -391,7 +391,7 @@ function parseDTMCSV(text) {
   //   2. else an explicit declaration in a leading "#" comment;
   //   3. else genuinely ambiguous, and the researcher is asked.
   // The third case is a real answer, not a failure: the certified
-  // benchmark is annotator counts whose maximum happens to be 3, so no
+  // benchmark is count data whose maximum happens to be 3, so no
   // value-range test on its own can separate it from a rating scale.
   const maxValue = matrix.reduce((m, row) => Math.max(m, ...row), 0);
   let mode = null, modeReason = '';
