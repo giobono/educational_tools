@@ -298,6 +298,10 @@
   .param-item { display: flex; flex-direction: column; gap: 0.15rem; }
   .param-label { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
   .param-val { font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink); font-weight: 500; }
+  /* What the setting does, in the researcher's terms. Added 26 Aug 2026:
+     the panel previously gave a name, a number and a status word, none of
+     which told the reader what the number governed. */
+  .param-does { font-family: var(--font-body); font-size: 0.68rem; line-height: 1.45; color: var(--ink-light); }
   .param-status {
     font-size: 0.52rem; letter-spacing: 0.04em; padding: 0.05rem 0.35rem;
     border-radius: 2px; text-transform: uppercase;

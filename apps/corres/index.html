@@ -16,7 +16,7 @@
 <script>window.enforceAppActive();</script>
 <link href="/ebono_brand.css?v=202608231842" rel="stylesheet"/>
 <link href="/edu_common.css?v=202608231842" rel="stylesheet"/>
-<link href="corres.css?v=202608260953" rel="stylesheet"/></head>
+<link href="corres.css?v=202608261145" rel="stylesheet"/></head>
 <body>
 <div id="edu-header" class="cr-nav"></div>
 <!-- ── Front page ──
@@ -1010,36 +1010,58 @@ function renderProcessControls() {
 //                9 Aug per R2 — never editable, but status Open, not
 //                Fixed; applies in the unstable branch only). Both shown
 //                with their working value, flagged as unconfirmed.
-function paramRow(label, value, status) {
-  const cls = status === 'Fixed' ? 'param-fixed' : status === 'Open' ? 'param-open' : 'param-calibrated';
+// One setting: what it is called, what it is set to, what it does, and how
+// firmly it is settled. The third of those is the part a researcher can
+// actually act on and was previously absent.
+function paramRow(label, value, status, does) {
+  const cls = status === 'Set by the method' ? 'param-fixed'
+            : status === 'Provisional'       ? 'param-open'
+            : 'param-calibrated';
   return `<div class="param-item">
     <span class="param-label">${label} <span class="param-status ${cls}">${status}</span></span>
     <span class="param-val">${value}</span>
+    <span class="param-does">${does}</span>
   </div>`;
 }
 
 function renderParamsPanel() {
   const p = processParams;
   let html = `
-    ${paramRow('Block count (k)', p.n_clusters, 'Calibrated')}
-    ${paramRow('Resample splits', p.n_splits, 'Calibrated')}
-    ${paramRow('Stability threshold (τσ)', p.stability_threshold, 'Calibrated')}
-    ${paramRow('Residual spread threshold', p.spread_threshold, 'Calibrated')}
-    ${paramRow('Reliability threshold (τrel)', p.tau_rel, 'Open')}
-    ${paramRow('Bridging ratio threshold (ρ = max(others)/own)', BRIDGING_RATIO, 'Fixed')}
-    ${paramRow('Weak/boundary magnitude companion (spec §4 item 9, unstable branch only)', WEAK_MAX_ABS_THRESHOLD, 'Open')}
-    ${paramRow('Weak own-affinity threshold', p.weak_own_threshold, 'Open')}`;
+    ${paramRow('Concept groups looked for (k)', p.n_clusters, 'Calibrated elsewhere',
+      'How many groups the analysis tries to divide your concepts into.')}
+    ${paramRow('Split-half repeats', p.n_splits, 'Calibrated elsewhere',
+      'How many times your documents are split in half and the grouping rerun, to test whether it survives.')}
+    ${paramRow('Stability threshold (τσ)', p.stability_threshold, 'Calibrated elsewhere',
+      'How consistently a concept must land in the same group across those repeats before it counts as stable.')}
+    ${paramRow('Residual spread threshold', p.spread_threshold, 'Calibrated elsewhere',
+      'How much structure your matrix must show before the analysis will proceed at all. Below this it stops and says so.')}
+    ${paramRow('Reliability threshold (τrel)', p.tau_rel, 'Provisional',
+      'How closely two independent halves of your corpus must agree before the grouping is reported rather than refused.')}
+    ${paramRow('Bridging ratio (ρ)', BRIDGING_RATIO, 'Set by the method',
+      'How strongly a concept must also reach into other groups before it is called bridging rather than distinguishing.')}
+    ${paramRow('Weak/boundary magnitude', WEAK_MAX_ABS_THRESHOLD, 'Provisional',
+      'Applies only where a concept did not reach the stability threshold: how far from zero its associations must sit to be called weak rather than orthogonal.')}
+    ${paramRow('Weak own-group threshold', p.weak_own_threshold, 'Provisional',
+      'Applies in the same unstable case: how much affinity a concept must have with its own group to be separated from the boundary.')}`;
 
-  // Backend-proposed values (spec §2.7/§2.8), shown alongside the
-  // declared value once a real run has returned them — display only,
-  // per Annex A §A5; the researcher still doesn't choose here.
+  // Shown beside the declared value once a real run has returned it. The
+  // back end derives this from the chance baseline (spec §2.7); the
+  // researcher still does not choose here (Annex A §A5).
   if (serverTtm && serverTtm.consensus && serverTtm.consensus.tau_sigma_proposed) {
-    html += `<div class="param-item"><span class="param-label">Backend-proposed τσ <span class="param-status param-calibrated">Proposed</span></span><span class="param-val">${serverTtm.consensus.tau_sigma_proposed.toFixed(4)}</span></div>`;
+    html += `<div class="param-item"><span class="param-label">Stability threshold this corpus suggests <span class="param-status param-calibrated">From your data</span></span><span class="param-val">${serverTtm.consensus.tau_sigma_proposed.toFixed(4)}</span><span class="param-does">Derived from your own matrix, for comparison with the declared value above. Not applied.</span></div>`;
   }
 
-  html += `<p class="vocab-note" style="grid-column:1/-1;margin:0.5rem 0 0;">Declared values sourced from <code>corres_fixture_17jul_verified.json</code> and AD's 28 Jul amendment (spread/reliability thresholds) — the τσ-proposing endpoint now exists server-side (wired below) but this remains a read-only display, not the elicitation interface (Annex A §A5).</p>`;
-
-  document.getElementById('process-params-panel').innerHTML = html;
+  // Provenance of these numbers is deliberately not on screen. They are
+  // declared from corres_fixture_17jul_verified.json (ebono_governance/
+  // briefs/dndev/) and AD's amendment of 28 July for the spread and
+  // reliability thresholds. Which file they came from tells a researcher
+  // nothing they can act on; what the settings DO, and how firmly they are
+  // settled, is what changes how a result should be read - so that is what
+  // the panel carries instead. BRIDGING_RATIO and WEAK_MAX_ABS_THRESHOLD
+  // are not sent to the back end at all: they mirror the constants in
+  // classify_roles.py (0.6 and 2.0) and would silently disagree if either
+  // side moved. Every other value on this panel is sent and used.
+  html += `<p class="vocab-note" style="grid-column:1/-1;margin:0.5rem 0 0;"><strong>These are the settings this run uses.</strong> corres does not choose them from your matrix — they are set in advance and applied to every run, and your result depends on them. <em>Set by the method</em> means part of the method itself and not adjustable. <em>Calibrated elsewhere</em> means chosen against a reference corpus rather than yours. <em>Provisional</em> means still under review and liable to change — a result that turns on one of these should be read with that in mind. None of them can be changed here yet.</p>`;
 }
 
 // Real chain, rewritten 4 Aug against the v3.0 ratio-rule/anchoring/
@@ -1393,11 +1415,18 @@ function renderWarnings(rolesInfo) {
     html += `<div class="warning-banner warning-pass"><strong>UNRESOLVED count: 0</strong> — clean run (spec §2.11).</div>`;
   }
 
-  // Cross-corpus parameter import: never fires this session (every value
-  // here is declared from this corpus's own 17 Jul fixture, not
-  // transferred from another corpus) — surfaced as a checked, passing
-  // condition rather than omitted.
-  html += `<div class="warning-banner warning-pass"><strong>No parameter imported from another corpus.</strong> All declared values sourced from this corpus's own 17 Jul verification fixture.</div>`;
+  // Cross-corpus parameter import (spec section 3.3). This banner previously
+  // reported a pass, on the reasoning that the declared values came from
+  // "this corpus's own" verification file. That was true while the only
+  // corpus anyone ran was the benchmark itself. It stopped being true the
+  // moment a researcher could upload their own matrix: k, the stability
+  // threshold, the spread threshold and the reliability threshold were all
+  // calibrated on the reference corpus, which for any uploaded matrix is a
+  // different corpus. A pass here was a false reassurance in exactly the
+  // slot the specification created to prevent one. Uses warning-unavailable
+  // rather than warning-fail: it is a condition to carry into reading the
+  // result, not a failed run.
+  html += `<div class="warning-banner warning-unavailable"><strong>Settings calibrated on a reference corpus, not yours.</strong> The group count, stability threshold, spread threshold and reliability threshold were set against a benchmark corpus. They have not been derived from your matrix, and corres cannot yet propose them from it.</div>`;
 
   html += '</div>';
   return html;
