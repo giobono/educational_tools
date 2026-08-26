@@ -876,7 +876,6 @@ function exportTTM() {
 
 // ── CorRes Process: Stages 2-5 (Addie's method) ─────────────────────────
 // Instance brief 2026-07-24 (briefs/d1dev/2026-07-24_briefs_od_d1dev_corres-frontend-buildout.md).
-// FIXTURE DATA this build — backend reachability for the four new
 // computed here - the back end computes, this declares (spec section 1).
 // The values below are shaped exactly like the real API
 // schemas (artie/apps/corres/workflows/build_ttm.py's ResidualsInfo/
@@ -1212,7 +1211,7 @@ async function runProcessChain() {
 // A real, backend-reported failure — one of the spec's own halt
 // conditions (residual_matrix_inadmissible, reliability_gate_failed), or
 // a generic workflow error. Rendered as a prominent diagnostic, never
-// silently swapped for fixture data. tau_bridge_interval_empty retired
+// never papered over with substitute data. tau_bridge_interval_empty retired
 // 4 Aug along with the endpoint it came from — the ratio rule that
 // replaced it has no admissible-interval concept to fail empty.
 // reliability_gate_failed wording corrected 9 Aug (R5, joining the surface
@@ -1294,12 +1293,13 @@ function renderProcessResults() {
   html += `<div id="stage-1"></div><div id="stage-2"></div><div id="stage-2b"></div><div id="stage-3"></div><div id="stage-4"></div><div id="stage-5"></div>`;
 
   resultsDiv.innerHTML = html;
-  // Real path: backend-rendered PNGs (figuresResult, set in
-  // runRealProcessChain() after classify-roles/bea-order). Fixture path:
-  // this build's own SVG rendering — figures/render needs a real backend
-  // round trip; the client-side SVG renderers that once served the
-  // figures handoff). Six panels now, not five (4 Aug: panel B' inserted
-  // after B, no baked-in titles — see each renderer's caption line).
+  // Figures come from the back end: runRealProcessChain() calls
+  // /v1/corres/figures/render after classify-roles and bea-order and
+  // displays the matplotlib PNGs artie returns. This is the only
+  // rendering path - the client-side SVG renderers that once served the
+  // offline demo were deleted 26 August 2026 with the substitute-data
+  // path. Six panels, not five (4 Aug: panel B' inserted after B, no
+  // baked-in titles - see each renderer's caption line).
     renderStage1RawMatrix(document.getElementById('stage-1'));
     renderStage2Residuals(document.getElementById('stage-2'));
     renderStage2bBlockOrder(document.getElementById('stage-2b'));
