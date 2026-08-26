@@ -302,6 +302,23 @@
      the panel previously gave a name, a number and a status word, none of
      which told the reader what the number governed. */
   .param-does { font-family: var(--font-body); font-size: 0.68rem; line-height: 1.45; color: var(--ink-light); }
+
+  /* The split-half scan behind the gate statistic. The operating block
+     count is marked so a reader can see at a glance whether the k in use is
+     where the grid actually peaks. */
+  .ari-scan { margin-top: 0.7rem; padding-top: 0.6rem; border-top: 1px solid var(--rule); }
+  .ari-scan-title {
+    font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink-light); margin-bottom: 0.4rem;
+  }
+  .ari-scan-scroll { overflow-x: auto; }
+  .ari-table { border-collapse: collapse; font-family: var(--font-mono); font-size: 0.68rem; }
+  .ari-table th, .ari-table td { padding: 0.2rem 0.5rem; text-align: right; white-space: nowrap; }
+  .ari-table thead th { color: var(--ink-light); font-weight: 500; border-bottom: 1px solid var(--rule); }
+  .ari-table tbody th { text-align: left; color: var(--ink-light); font-weight: 500; }
+  .ari-table .ari-operating { background: var(--paper-dark); }
+  .ari-table td.ari-best { font-weight: 600; color: var(--accent); }
+  .ari-scan-note { font-family: var(--font-body); font-size: 0.68rem; line-height: 1.5; color: var(--ink-light); margin: 0.5rem 0 0; }
   .param-status {
     font-size: 0.52rem; letter-spacing: 0.04em; padding: 0.05rem 0.35rem;
     border-radius: 2px; text-transform: uppercase;

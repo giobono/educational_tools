@@ -16,7 +16,7 @@
 <script>window.enforceAppActive();</script>
 <link href="/ebono_brand.css?v=202608231842" rel="stylesheet"/>
 <link href="/edu_common.css?v=202608231842" rel="stylesheet"/>
-<link href="corres.css?v=202608261145" rel="stylesheet"/></head>
+<link href="corres.css?v=202608262318" rel="stylesheet"/></head>
 <body>
 <div id="edu-header" class="cr-nav"></div>
 <!-- ── Front page ──
@@ -1341,6 +1341,43 @@ function renderProcessResults() {
 // Either way spec's "never hide" instruction holds: an absent warning
 // slot is indistinguishable from a checked-and-passing one, so the
 // unavailable case stays visible rather than omitted.
+// The scan the gate statistic is a maximum over. It was always computed - a
+// maximum cannot be taken without one - and always persisted on the
+// artefact, but only the maximum was ever shown, so a reader could not see
+// whether the block count actually in use was the best on the grid or
+// merely one that cleared the threshold. On a corpus large enough for the
+// block count to be in doubt that distinction is the whole question.
+// Surfaced 26 August 2026 at AD's request.
+function renderAriTable(rel) {
+  const t = rel.ari_table;
+  if (!t || !Object.keys(t).length) return '';
+  const methods = Object.keys(t).sort();
+  const ks = Object.keys(t[methods[0]]).map(Number).sort((a, b) => a - b);
+  const operating = processParams.n_clusters;
+  let best = { v: -Infinity, k: null, m: null };
+  methods.forEach(m => ks.forEach(k => {
+    const v = t[m][String(k)];
+    if (typeof v === 'number' && v > best.v) best = { v, k, m };
+  }));
+
+  const head = ks.map(k => `<th${k === operating ? ' class="ari-operating"' : ''}>${k}</th>`).join('');
+  const body = methods.map(m => `<tr><th>${escHtml(m)}</th>` + ks.map(k => {
+    const v = t[m][String(k)];
+    const cls = [k === operating ? 'ari-operating' : '', (m === best.m && k === best.k) ? 'ari-best' : ''].filter(Boolean).join(' ');
+    return `<td${cls ? ` class="${cls}"` : ''}>${typeof v === 'number' ? v.toFixed(3) : '\u2014'}</td>`;
+  }).join('') + '</tr>').join('');
+
+  const note = best.k === operating
+    ? `The grid maximum falls at the block count in use (k = ${operating}).`
+    : `<strong>The grid maximum falls at k = ${best.k}, method ${escHtml(best.m)}, not at the k = ${operating} this run used.</strong> The block count is a declared setting rather than one chosen from your data, so a higher score elsewhere on the grid is a signal about that setting, not about your corpus.`;
+
+  return `<div class="ari-scan">
+    <div class="ari-scan-title">Split-half ARI by block count and clustering method</div>
+    <div class="ari-scan-scroll"><table class="ari-table"><thead><tr><th>method</th>${head}</tr></thead><tbody>${body}</tbody></table></div>
+    <p class="ari-scan-note">${note} Scan conditions: ${rel.n_splits} splits, seed ${rel.seed}, k from ${rel.k_min} to ${rel.k_max}. A maximum rises with grid size on noise alone, so this statistic compares between runs only where these conditions match.</p>
+  </div>`;
+}
+
 function renderWarnings(rolesInfo) {
   let html = '<div class="warnings-block">';
 
@@ -1382,6 +1419,7 @@ function renderWarnings(rolesInfo) {
     html += `<div class="warning-banner ${cls}">
       <strong>Reliability gate (spec §2.9) — ${rel.passed ? 'passed' : 'FAILED'}</strong>
       Maximum split-half ARI across candidate k = ${rel.k_min}–${rel.k_max}: ${rel.max_ari.toFixed(3)} against τrel ${rel.tau_rel.toFixed(3)} (provisional, spec §4 item 8). This is the gate statistic, not the reliability of the displayed partition.
+      ${renderAriTable(rel)}
     </div>`;
   } else {
     html += `<div class="warning-banner warning-unavailable">
