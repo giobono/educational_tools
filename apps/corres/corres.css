@@ -319,6 +319,22 @@
   .ari-table .ari-operating { background: var(--paper-dark); }
   .ari-table td.ari-best { font-weight: 600; color: var(--accent); }
   .ari-scan-note { font-family: var(--font-body); font-size: 0.68rem; line-height: 1.5; color: var(--ink-light); margin: 0.5rem 0 0; }
+
+  /* Stability distribution across concepts. Bars below the threshold are
+     drawn in the warning colour so the split is readable without counting. */
+  .stability-dist { margin-bottom: 1.25rem; padding: 0.8rem 0.9rem; border: 1px solid var(--rule); border-radius: 3px; }
+  .sd-title {
+    font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink-light); margin-bottom: 0.6rem;
+  }
+  .sd-chart { display: flex; align-items: flex-end; gap: 3px; height: 78px; }
+  .sd-bar { flex: 1; display: flex; flex-direction: column; height: 100%; }
+  .sd-col { flex: 1; display: flex; align-items: flex-end; }
+  .sd-fill { width: 100%; min-height: 1px; border-radius: 1px 1px 0 0; }
+  .sd-fill.sd-under { background: var(--warning); }
+  .sd-fill.sd-over  { background: var(--accent); }
+  .sd-tick { font-family: var(--font-mono); font-size: 0.52rem; color: var(--ink-light); text-align: center; padding-top: 0.2rem; }
+  .sd-note { font-family: var(--font-body); font-size: 0.68rem; line-height: 1.5; color: var(--ink-light); margin: 0.6rem 0 0; }
   .param-status {
     font-size: 0.52rem; letter-spacing: 0.04em; padding: 0.05rem 0.35rem;
     border-radius: 2px; text-transform: uppercase;

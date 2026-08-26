@@ -16,7 +16,7 @@
 <script>window.enforceAppActive();</script>
 <link href="/ebono_brand.css?v=202608231842" rel="stylesheet"/>
 <link href="/edu_common.css?v=202608231842" rel="stylesheet"/>
-<link href="corres.css?v=202608262318" rel="stylesheet"/></head>
+<link href="corres.css?v=202608262348" rel="stylesheet"/></head>
 <body>
 <div id="edu-header" class="cr-nav"></div>
 <!-- ── Front page ──
@@ -937,7 +937,16 @@ const WEAK_MAX_ABS_THRESHOLD = 2.0; // spec §2.6/§2.7, §4 item 9: status Open
 let processParams = {
   n_clusters: 3,          // fixture: block_sizes [7,2,6], k=3
   n_splits: 25,
+  // Three stages resample independently and each carries its own declared
+  // seed, taken from that workflow's own default: the split-half scan
+  // (reliability_gate.py, 11), the consensus ensemble (consensus_cluster.py,
+  // 7) and the seriation null (bea_order.py, 13). They are deliberately
+  // different - the scan runs once per corpus before the ensemble, not as
+  // part of it - but spec section 2.4 requires any reported value of A to
+  // carry the split count and seed that produced it, so all three are
+  // declared on the panel rather than left to be inferred from one.
   seed: 7,
+  reliability_seed: 11,
   bea_seed: 13,
   // 2000, not 500 - corrected 28 Jul against CorRes_Article_Headline_Draft_
   // v0_6.md's own reported figure ("across two thousand permutations",
@@ -1042,7 +1051,13 @@ function renderParamsPanel() {
     ${paramRow('Weak/boundary magnitude', WEAK_MAX_ABS_THRESHOLD, 'Provisional',
       'Applies only where a concept did not reach the stability threshold: how far from zero its associations must sit to be called weak rather than orthogonal.')}
     ${paramRow('Weak own-group threshold', p.weak_own_threshold, 'Provisional',
-      'Applies in the same unstable case: how much affinity a concept must have with its own group to be separated from the boundary.')}`;
+      'Applies in the same unstable case: how much affinity a concept must have with its own group to be separated from the boundary.')}
+    ${paramRow('Random seed — split-half scan', p.reliability_seed, 'Set by the method',
+      'Fixes the resampling for the stability scan, so the same matrix gives the same scan every time.')}
+    ${paramRow('Random seed — consensus ensemble', p.seed, 'Set by the method',
+      'A separate resampling from the scan above, and deliberately a different seed: the scan runs once before the ensemble rather than as part of it.')}
+    ${paramRow('Random seed — seriation null', p.bea_seed, 'Set by the method',
+      'Fixes the permutations the block ordering is tested against.')}`;
 
   // Shown beside the declared value once a real run has returned it. The
   // back end derives this from the chance baseline (spec §2.7); the
@@ -1100,8 +1115,8 @@ async function runRealProcessChain() {
     // reject their absence (only tau_rel is fenced with no default).
     k_min: 2,
     k_max: 10,
-    n_splits: 25,
-    seed: 11,
+    n_splits: processParams.n_splits,
+    seed: processParams.reliability_seed,
     tau_rel: processParams.tau_rel,
   };
   const consensusParams = {
@@ -1299,6 +1314,8 @@ function renderProcessResults() {
   // result, not an error — kept as its own banner, not folded into the
   // warnings block, since it isn't an error condition the way the four
   // spec §3.3 warnings are).
+
+  html += renderStabilityDistribution(roles, conceptIds);
   if (certified.length === 0) {
     html += `<div class="cert-none-banner"><span class="cert-icon not-earned">◇</span> No concept earned a stability certificate at these settings — a legitimate result, not an error. Consider more splits or a different block count before concluding the structure is unstable.</div>`;
   } else {
@@ -1348,6 +1365,87 @@ function renderProcessResults() {
 // merely one that cleared the threshold. On a corpus large enough for the
 // block count to be in doubt that distinction is the whole question.
 // Surfaced 26 August 2026 at AD's request.
+// Specification section 2.4 and section 2.11 require two figures, not one.
+// A is the maximum over every (k, method) pair, so it establishes only that
+// SOME partition of the corpus is reproducible - it does not describe the
+// partition on screen. Where the maximum falls at a different k from the one
+// in use, "the value at the certified k is the quantity that describes the
+// partition being shown, and both are reported". That conflation is the
+// defect v2.5 repaired in the specification's own fixture row, where the
+// maximum sat at k=2 while the certified partition was k=3. The
+// implementation reported only the maximum until 26 August 2026, so it
+// carried the same defect the document had already fixed.
+function renderReliabilityPair(rel) {
+  const t = rel.ari_table || {};
+  const methods = Object.keys(t);
+  const operating = processParams.n_clusters;
+  let best = { v: -Infinity, k: null, m: null };
+  methods.forEach(m => Object.keys(t[m]).forEach(ks => {
+    const v = t[m][ks];
+    if (typeof v === 'number' && v > best.v) best = { v, k: Number(ks), m };
+  }));
+
+  const conds = `${rel.n_splits} splits, seed ${rel.seed}, k from ${rel.k_min} to ${rel.k_max}`;
+  if (best.k === null) {
+    return `Maximum split-half ARI: ${rel.max_ari.toFixed(4)} against \u03c4rel ${rel.tau_rel.toFixed(3)} (provisional, spec \u00a74 item 8). Conditions: ${conds}.`;
+  }
+  const atOperating = t[best.m] ? t[best.m][String(operating)] : undefined;
+  const gateLine = `<strong>Gate statistic A = ${best.v.toFixed(4)}</strong>, at k = ${best.k}, method ${escHtml(best.m)}, against \u03c4rel ${rel.tau_rel.toFixed(3)} (provisional, spec \u00a74 item 8). This establishes that <em>some</em> partition of your corpus is reproducible.`;
+  const partLine = (typeof atOperating === 'number')
+    ? (best.k === operating
+        ? `The partition on screen is at that same k, so this figure describes it.`
+        : `<strong>The partition on screen is at k = ${operating}, where the same method scores ${atOperating.toFixed(4)}.</strong> That is the figure describing the partition you are being shown; A above describes a different one.`)
+    : `The scan does not carry a value at k = ${operating}, so no figure describing the displayed partition is available.`;
+  return `${gateLine}<br/>${partLine}<br/><span style="color:var(--ink-light);">Conditions: ${conds}. A resampling statistic quoted without these is not reproducible.</span>`;
+}
+
+// How stability is distributed across concepts, not just how many cleared
+// the line. The count alone cannot distinguish a corpus whose uncertified
+// concepts sit just under the threshold from one where they are scattered
+// far below it, and those call for different readings. Every value is on the
+// artefact as roles.roles[cid].stability; the panel computed the count from
+// them and discarded the rest. Added 26 August 2026 at AD's request, after a
+// run certified 24 of 56 with no way to see the shape behind the ratio.
+function renderStabilityDistribution(roles, conceptIds) {
+  const tau = processParams.stability_threshold;
+  const vals = conceptIds
+    .map(cid => (roles[cid] || {}).stability)
+    .filter(v => typeof v === 'number')
+    .sort((a, b) => a - b);
+  if (!vals.length) return '';
+
+  const bins = 10;
+  const counts = new Array(bins).fill(0);
+  vals.forEach(v => {
+    const i = Math.min(bins - 1, Math.max(0, Math.floor(v * bins)));
+    counts[i]++;
+  });
+  const peak = Math.max(...counts, 1);
+  const below = vals.filter(v => v < tau).length;
+  const median = vals[Math.floor((vals.length - 1) / 2)];
+  const nearMiss = vals.filter(v => v < tau && v >= tau - 0.05).length;
+
+  const bars = counts.map((n, i) => {
+    const lo = i / bins, hi = (i + 1) / bins;
+    const under = hi <= tau;
+    return `<div class="sd-bar" title="${lo.toFixed(1)}\u2013${hi.toFixed(1)}: ${n} concept${n === 1 ? '' : 's'}">
+      <div class="sd-col"><div class="sd-fill ${under ? 'sd-under' : 'sd-over'}" style="height:${Math.round(100 * n / peak)}%"></div></div>
+      <div class="sd-tick">${lo.toFixed(1)}</div></div>`;
+  }).join('');
+
+  const shape = below === 0
+    ? `Every concept cleared the threshold.`
+    : (nearMiss >= Math.ceil(below / 2)
+        ? `Most of the uncertified sit within 0.05 of the line, so the count is sensitive to exactly where the threshold is set.`
+        : `The uncertified are spread well below the line rather than bunched just under it, so the count is not an artefact of where the threshold sits.`);
+
+  return `<div class="stability-dist">
+    <div class="sd-title">Stability (\u03a3) across all ${vals.length} concepts \u2014 threshold ${tau}</div>
+    <div class="sd-chart">${bars}</div>
+    <p class="sd-note">${below} of ${vals.length} concepts fall below ${tau}. Median \u03a3 ${median.toFixed(3)}, range ${vals[0].toFixed(3)} to ${vals[vals.length - 1].toFixed(3)}. ${shape} The threshold is a declared setting calibrated on a reference corpus, not derived from yours.</p>
+  </div>`;
+}
+
 function renderAriTable(rel) {
   const t = rel.ari_table;
   if (!t || !Object.keys(t).length) return '';
@@ -1418,7 +1516,7 @@ function renderWarnings(rolesInfo) {
     const cls = rel.passed ? 'warning-pass' : 'warning-fail';
     html += `<div class="warning-banner ${cls}">
       <strong>Reliability gate (spec §2.9) — ${rel.passed ? 'passed' : 'FAILED'}</strong>
-      Maximum split-half ARI across candidate k = ${rel.k_min}–${rel.k_max}: ${rel.max_ari.toFixed(3)} against τrel ${rel.tau_rel.toFixed(3)} (provisional, spec §4 item 8). This is the gate statistic, not the reliability of the displayed partition.
+      ${renderReliabilityPair(rel)}
       ${renderAriTable(rel)}
     </div>`;
   } else {
