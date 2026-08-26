@@ -16,7 +16,7 @@
 <script>window.enforceAppActive();</script>
 <link href="/ebono_brand.css?v=202608231842" rel="stylesheet"/>
 <link href="/edu_common.css?v=202608231842" rel="stylesheet"/>
-<link href="corres.css?v=202608231842" rel="stylesheet"/></head>
+<link href="corres.css?v=202608261145" rel="stylesheet"/></head>
 <body>
 <div id="edu-header" class="cr-nav"></div>
 <!-- ── Front page ──
@@ -56,7 +56,14 @@
 <div class="callout">
 <strong>What you need — one CSV</strong><br/>
 A matrix of documents by concepts. One row per document, one column per concept, and a score or null in every cell:<br/>
-The system was built to cope with frequency counts at a paragraph or document level, or a ranking process as described below. For test purposes at the moment, any concept that appears more than once is treated as important.  
+<!-- [CD/AD] Factual description of the binarisation step, rewritten 26 Aug
+     2026 to match the ruling of that date. Written by the development seat
+     because leaving a false description standing was the worse of the two
+     faults - it is flagged here rather than passed off as sighted copy. -->
+corres does not know how you arrived at the number in a cell. It might be how often something occurs, a position on a scale like the one below, or a measure of your own. Because it cannot know, it does not guess: you make two choices, and the server applies them.<br/>
+<strong>First, whether to normalise.</strong> Normalising divides each cell by the largest value in its own document, so every document is read as a percentage of its own maximum. That helps when documents differ in length or in how heavily they were coded, and hurts when your numbers already sit on a fixed scale that means the same thing in every document.<br/>
+<strong>Second, where “important” starts.</strong> Half the largest value suits a fixed scale — on a 0–3 scale that is 1.5, so the top half counts. Half the average of the non-zero values suits counts, which have no ceiling to take half of. Or set your own number. Whichever you choose is shown against the data before you commit, and reported back with the result.<br/>
+The scale below is one common way of coding, not a requirement:
 <table class="cr-scale">
 <tr><td><strong>0</strong></td><td>Absent</td><td>the concept does not appear</td></tr>
 <tr><td><strong>1</strong></td><td>Mentioned</td><td>brief reference only</td></tr>
@@ -126,19 +133,24 @@ The system was built to cope with frequency counts at a paragraph or document le
 <div id="bin-controls" style="display:none;">
 <!-- Mode selector -->
 <div style="margin-bottom:0.75rem;">
-<div style="font-family:var(--font-mono);font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-light);margin-bottom:0.6rem;">Threshold method</div>
+<div style="font-family:var(--font-mono);font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-light);margin-bottom:0.6rem;">Put every document on the same scale?</div>
+<label class="normalise-row" for="normalise-toggle">
+<input id="normalise-toggle" type="checkbox"/>
+<span><strong>Normalise</strong> — divide each cell by the largest value in its own document, so every document is measured 0–100% of its own maximum. Useful when documents differ in length or in how heavily they were coded; wrong if your numbers are already on a fixed scale that means the same thing everywhere.</span>
+</label>
+<div style="font-family:var(--font-mono);font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-light);margin:1rem 0 0.6rem;">Where does “important” start?</div>
 <div class="threshold-modes">
 <div class="tmode-opt">
-<input checked="" id="tmode-auto" name="tmode" type="radio" value="auto"/>
-<label for="tmode-auto">Auto — mean of non-zero<span class="tmode-sub">experimental</span></label>
+<input checked="" id="tmode-half-max" name="tmode" type="radio" value="half_max"/>
+<label for="tmode-half-max">Half the largest value<span class="tmode-sub">suits a fixed scale</span></label>
 </div>
 <div class="tmode-opt">
-<input id="tmode-fixed" name="tmode" type="radio" value="fixed"/>
-<label for="tmode-fixed">Fixed — rating boundary<span class="tmode-sub">scores ≥ 2</span></label>
+<input id="tmode-half-mean" name="tmode" type="radio" value="half_mean"/>
+<label for="tmode-half-mean">Half the average<span class="tmode-sub">of the non-zero values · suits counts</span></label>
 </div>
 <div class="tmode-opt">
 <input id="tmode-manual" name="tmode" type="radio" value="manual"/>
-<label for="tmode-manual">Manual — set threshold<span class="tmode-sub">researcher judgement</span></label>
+<label for="tmode-manual">Set it yourself<span class="tmode-sub">researcher judgement</span></label>
 </div>
 </div>
 </div>
@@ -146,12 +158,12 @@ The system was built to cope with frequency counts at a paragraph or document le
 <div class="slider-row" id="slider-row">
 <span class="slider-label">Threshold</span>
 <div class="slider-track">
-<input class="threshold-slider" id="threshold-slider" max="3" min="0" step="0.05" type="range" value="2"/>
+<input class="threshold-slider" id="threshold-slider" max="100" min="0" step="1" type="range" value="50"/>
 <div class="slider-tick-labels" id="slider-ticks">
-<span>0</span><span>0.5</span><span>1</span><span>1.5</span><span>2</span><span>2.5</span><span>3</span>
+<span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
 </div>
 </div>
-<span class="slider-val" id="slider-val-display">2.00</span>
+<span class="slider-val" id="slider-val-display">50%</span>
 </div>
 <!-- Stats grid -->
 <div class="bin-stats-grid" id="bin-stats-grid"></div>
@@ -162,7 +174,7 @@ The system was built to cope with frequency counts at a paragraph or document le
 <div class="heatmap-header">
 <span class="heatmap-label">DTM heatmap — rows: documents · columns: concepts (sorted by importance)</span>
 <div class="heatmap-legend">
-<div class="legend-item"><div class="legend-swatch" style="background:#f0f7f3;border:1px solid #b8d9c8;"></div>Important (≥ threshold)</div>
+<div class="legend-item"><div class="legend-swatch" style="background:#f0f7f3;border:1px solid #b8d9c8;"></div>Important (&gt; threshold)</div>
 <div class="legend-item"><div class="legend-swatch" style="background:#f7f4ef;border:1px solid #ddd8cf;"></div>Not important</div>
 <div class="legend-item" id="legend-score3"><div class="legend-swatch" style="background:#8b3a2a;"></div>Score 3</div>
 </div>
@@ -208,7 +220,6 @@ The system was built to cope with frequency counts at a paragraph or document le
 <span class="step-num" id="num-process">2–5</span>
 <span class="step-name">Stability, Roles &amp; Seriation</span>
 </div>
-<span class="fixture-flag" id="fixture-flag" style="display:none;" title="The real backend call failed and this run fell back to fixture data (mocked, built to the real API schemas) rather than a live pipeline result.">FIXTURE DATA — backend unreachable, showing fixture data</span>
 </div>
 <div class="step-card-body" id="process-body">
 <p style="font-family:var(--font-display);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for term-term matrix…</p>
@@ -220,7 +231,7 @@ The system was built to cope with frequency counts at a paragraph or document le
 let dtmData       = null;  // {mode, docs:[{id,name}], concepts:[str], conceptIds:[int], matrix:[[num]]}
 let binaryMatrix  = null;  // [[0|1]] rows=docs, cols=concepts — live slider preview, then the server-confirmed matrix after Step 4.1
 let ttmData       = null;  // {concepts:[str], matrix:[[num]], sorted:[idx], totals:[num]} — reconstructed from serverTtm for the existing display code
-let serverTtm     = null;  // the TTMArtefact returned by /build, then enriched in place with residuals/consensus/roles/bea (FIXTURE DATA this build — see corres.css's .fixture-flag)
+let serverTtm     = null;  // the TTMArtefact returned by /build, then enriched in place with residuals/consensus/roles/bea - always from the back end
 let figuresResult = null;  // FiguresArtefact from /v1/corres/figures/render (real backend path only — see 2026-07-29 figures handoff, ebono_governance/briefs/d1dev/)
 
 function setStatus(state, msg) {
@@ -253,8 +264,7 @@ async function loadDTM(file) {
     dtmZone.classList.add('loaded');
     dtmZone.querySelector('.upload-icon').textContent = '✓';
     dtmZone.querySelector('.upload-body strong').textContent = file.name;
-    document.getElementById('dtm-stats').textContent =
-      `${dtmData.docs.length} documents · ${dtmData.concepts.length} concepts · ${dtmData.mode} mode`;
+    renderDTMStats();
 
     if (!dtmZone.querySelector('.upload-clear')) {
       const cb = document.createElement('button');
@@ -274,17 +284,23 @@ async function loadDTM(file) {
     initBinarisation();
   } catch (err) { showError('Could not load DTM: ' + err.message); }
 }
+
+function renderDTMStats() {
+  document.getElementById('dtm-stats').textContent =
+    `${dtmData.docs.length} documents \u00b7 ${dtmData.concepts.length} concepts \u00b7 values 0 to ${dtmData.maxValue}`;
+}
+
 function parseDTMCSV(text) {
   let headers = null, colDocId = -1, colFilename = -1, colMethod = -1;
   const docs = [], matrix = [];
-  let mode = 'rating';
+  const commentLines = [];
   let conceptIdsLine = null;
 
   for (const rawLine of text.split('\n')) {
     const line = rawLine.trim();
     if (!line) continue;
     if (line.startsWith('#')) {
-      if (line.toLowerCase().includes('frequency')) mode = 'frequency';
+      commentLines.push(line);
       // sanzognie's exportDTM (13 Jul 2026 wiring pass) writes concept_ids
       // in column order as "# Concept_IDs: 1,2,3,..." — this is how corres
       // recovers the backend's required identifier without a separate
@@ -334,7 +350,8 @@ function parseDTMCSV(text) {
     conceptIds = assignConceptIds(concepts.map(term => ({ term }))).items.map(c => c.concept_id);
   }
 
-  return { mode, docs, concepts, conceptIds, matrix };
+  const maxValue = matrix.reduce((m, row) => Math.max(m, ...row), 0);
+  return { maxValue, docs, concepts, conceptIds, matrix };
 }
 
 // A document's identifier for the backend request/response — Doc_ID when
@@ -344,98 +361,140 @@ function docKey(doc) {
   return doc.id || doc.name;
 }
 
+// Row-max normalisation (Geoff's ruling, 25 Aug 2026, post-BNE): each
+// document's cell values divided by that document's own maximum cell
+// value, putting frequency counts and rating scores on the same 0-1
+// scale before any threshold is applied. Mirrors build_ttm.py's
+// _row_max_normalise() exactly, for the live preview only — the
+// authoritative computation is server-side once confirmed. An all-zero
+// row normalises to all zeros, not division by zero.
+function rowMaxNormalise(matrix) {
+  return matrix.map(row => {
+    const rowMax = Math.max(...row, 0);
+    return rowMax > 0 ? row.map(v => v / rowMax) : row.map(() => 0);
+  });
+}
+
+let normalisedMatrix = [];
+
 // ── Step 4.1: Binarisation ────────────────────────────────────────────
+// The values the threshold is compared against: the row-max-normalised
+// matrix when the researcher asked for normalisation, the raw one otherwise.
+function currentBasis() {
+  return document.getElementById('normalise-toggle').checked ? normalisedMatrix : dtmData.matrix;
+}
+
 function initBinarisation() {
-  const isRating  = dtmData.mode !== 'frequency';
-  const allScores = dtmData.matrix.flat().filter(v => v > 0);
-  const autoThreshold = allScores.length
-    ? allScores.reduce((a, b) => a + b, 0) / allScores.length
-    : 2.0;
-  const maxScore = Math.max(...dtmData.matrix.flat(), 1);
-
-  // Configure slider range
-  const slider = document.getElementById('threshold-slider');
-  slider.min   = isRating ? '0' : '0';
-  slider.max   = isRating ? '3' : String(maxScore);
-  slider.step  = isRating ? '0.05' : '1';
-
-  // Tick labels
-  const ticks = document.getElementById('slider-ticks');
-  if (isRating) {
-    ticks.innerHTML = '<span>0</span><span>0.5</span><span>1</span><span>1.5</span><span>2</span><span>2.5</span><span>3</span>';
-  } else {
-    ticks.innerHTML = Array.from({ length: Math.min(maxScore + 1, 8) }, (_, i) =>
-      `<span>${Math.round(i * maxScore / Math.min(maxScore, 7))}</span>`).join('');
-  }
-
-  // Store auto threshold for reference
-  slider.dataset.autoThreshold = autoThreshold.toFixed(3);
-
-  // Set initial value to auto threshold
-  slider.value = autoThreshold.toFixed(3);
-  document.getElementById('slider-val-display').textContent = autoThreshold.toFixed(2);
-
-  // Wire mode buttons
+  normalisedMatrix = rowMaxNormalise(dtmData.matrix);
+  document.getElementById('normalise-toggle').addEventListener('change', () => {
+    configureSlider();
+    onModeChange();
+  });
   document.querySelectorAll('input[name="tmode"]').forEach(r => {
     r.addEventListener('change', () => onModeChange());
   });
-
-  // Wire slider
-  slider.addEventListener('input', () => {
-    document.getElementById('slider-val-display').textContent = parseFloat(slider.value).toFixed(2);
+  document.getElementById('threshold-slider').addEventListener('input', () => {
+    renderSliderValue();
     updateBinarisation();
   });
 
+  configureSlider();
   document.getElementById('bin-waiting').style.display  = 'none';
   document.getElementById('bin-controls').style.display = 'block';
-
   onModeChange();
 }
 
+// The slider spans the basis actually in use, so its units always match what
+// the number is compared against - percentages under normalisation, the
+// matrix's own units otherwise.
+function configureSlider() {
+  const slider = document.getElementById('threshold-slider');
+  const norm   = document.getElementById('normalise-toggle').checked;
+  const ceil   = Math.max(...currentBasis().flat(), 0);
+  const prev   = parseFloat(slider.value);
+  const frac   = isFinite(prev) && parseFloat(slider.max) > 0 ? prev / parseFloat(slider.max) : 0.5;
+
+  slider.min  = '0';
+  slider.max  = norm ? '1' : String(ceil);
+  slider.step = norm ? '0.01' : (Number.isInteger(ceil) && ceil <= 10 ? '0.1' : String(ceil / 100));
+  slider.value = String(frac * parseFloat(slider.max));
+
+  document.getElementById('slider-ticks').innerHTML = norm
+    ? '<span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>'
+    : [0, 0.25, 0.5, 0.75, 1].map(f => `<span>${(f * ceil).toFixed(ceil <= 10 ? 1 : 0)}</span>`).join('');
+  renderSliderValue();
+}
+
+function renderSliderValue() {
+  const slider = document.getElementById('threshold-slider');
+  const v = parseFloat(slider.value);
+  document.getElementById('slider-val-display').textContent =
+    document.getElementById('normalise-toggle').checked
+      ? `${(v * 100).toFixed(0)}%`
+      : v.toFixed(parseFloat(slider.max) <= 10 ? 2 : 1);
+}
+
+// The two recommended rules, computed on whichever basis is in use. Neither
+// is applied automatically: the researcher picks, and the recommendation is
+// only a label, since corres cannot know what the numbers mean.
+function halfMax() {
+  const vals = currentBasis().flat().filter(v => v > 0);
+  return vals.length ? 0.5 * Math.max(...vals) : 0.5;
+}
+function halfMean() {
+  const vals = currentBasis().flat().filter(v => v > 0);
+  return vals.length ? 0.5 * (vals.reduce((a, b) => a + b, 0) / vals.length) : 0.5;
+}
+
 function onModeChange() {
-  const mode   = document.querySelector('input[name="tmode"]:checked').value;
+  const mode = document.querySelector('input[name="tmode"]:checked').value;
   const slider = document.getElementById('threshold-slider');
   const sliderRow = document.getElementById('slider-row');
+  const norm = document.getElementById('normalise-toggle').checked;
+  const basisNote = norm ? 'of each document\u2019s own maximum' : 'in the matrix\u2019s own units';
 
-  if (mode === 'auto') {
-    slider.value = slider.dataset.autoThreshold || '2';
-    document.getElementById('slider-val-display').textContent = parseFloat(slider.value).toFixed(2);
-    sliderRow.style.opacity    = '0.5';
-    sliderRow.style.pointerEvents = 'none';
-    document.getElementById('bin-status').textContent = 'Auto — mean of non-zero scores (experimental)';
-  } else if (mode === 'fixed') {
-    slider.value = '2';
-    document.getElementById('slider-val-display').textContent = '2.00';
-    sliderRow.style.opacity    = '0.5';
-    sliderRow.style.pointerEvents = 'none';
-    document.getElementById('bin-status').textContent = 'Fixed — rating mode boundary (scores ≥ 2)';
-  } else {
-    sliderRow.style.opacity    = '1';
+  if (mode === 'manual') {
+    sliderRow.style.opacity = '1';
     sliderRow.style.pointerEvents = 'auto';
-    document.getElementById('bin-status').textContent = 'Manual — researcher set threshold';
+    document.getElementById('bin-status').textContent = `Your own threshold \u2014 ${basisNote}`;
+  } else {
+    const t = mode === 'half_max' ? halfMax() : halfMean();
+    slider.value = String(t);
+    sliderRow.style.opacity = '0.5';
+    sliderRow.style.pointerEvents = 'none';
+    document.getElementById('bin-status').textContent = mode === 'half_max'
+      ? `Half the largest value \u2014 ${basisNote}`
+      : `Half the mean of the non-zero values \u2014 ${basisNote}`;
   }
 
+  renderSliderValue();
   updateBinarisation();
 }
 
 function getCurrentThreshold() {
-  const mode   = document.querySelector('input[name="tmode"]:checked').value;
-  const slider = document.getElementById('threshold-slider');
-  if (mode === 'fixed') return 2.0;
-  return parseFloat(slider.value) || 2.0;
+  const mode = document.querySelector('input[name="tmode"]:checked').value;
+  if (mode === 'half_max')  return halfMax();
+  if (mode === 'half_mean') return halfMean();
+  return parseFloat(document.getElementById('threshold-slider').value) || 0;
 }
 
 function updateBinarisation() {
+  const mode = document.querySelector('input[name="tmode"]:checked').value;
   const t = getCurrentThreshold();
 
-  // Compute binary matrix
-  binaryMatrix = dtmData.matrix.map(row => row.map(val => val >= t ? 1 : 0));
+  // Live preview only (PSI §2) — the authoritative binarisation is
+  // computed server-side once confirmed; see buildTTMServer(). Ranking
+  // method binarises against the raw scores; default/manual binarise
+  // against the row-normalised scores — normalisation runs before
+  // binarisation, not the other way round.
+  const source = currentBasis();
+  binaryMatrix = source.map(row => row.map(val => val > t ? 1 : 0));
 
-  renderBinStats(t);
-  renderHeatmap(t);
+  renderBinStats(t, mode);
+  renderHeatmap(t, mode);
 }
 
-function renderBinStats(t) {
+function renderBinStats(t, mode) {
   const nDocs     = binaryMatrix.length;
   const nConcepts = dtmData.concepts.length;
   const total     = nDocs * nConcepts;
@@ -506,16 +565,85 @@ function renderBinStats(t) {
       </span>
     </div>`;
 
+  const norm = document.getElementById('normalise-toggle').checked;
+  const thresholdLabel = norm
+    ? `${(t * 100).toFixed(0)}% of each document\u2019s maximum`
+    : `${t.toFixed(2)} in the matrix\u2019s own units`;
   document.getElementById('confirm-bin-note').textContent =
-    `Threshold: ${t.toFixed(2)} · ${ones} important cells · ${(density*100).toFixed(1)}% density`;
+    `Threshold: ${thresholdLabel} · ${ones} important cells · ${(density*100).toFixed(1)}% density`;
 }
 
-function renderHeatmap(t) {
+// Redraws the same panel renderBinStats() draws, but every number here is
+// read from the backend's returned BinarisationInfo (build_ttm.py) — none
+// of it recomputed client-side. Called once the server confirms the build
+// (buildTTMServer()), replacing the live client-side preview shown while
+// the researcher was still choosing a threshold (spec §3.1: the front end
+// declares and displays, the back end computes; nothing displayed after
+// confirmation may be a front-end derivation).
+function renderServerBinStats(b) {
+  const nConcepts = dtmData.concepts.length;
+
+  const crit1 = b.calibration_concept_spread_ok;
+  const crit2 = b.calibration_density_ok;
+  const densityClass    = b.density > 0.15 && b.density < 0.6 ? 'good' : 'warn';
+  const nDocsAdmitted    = Object.keys(serverTtm.binary_matrix || {}).length || binaryMatrix.length;
+  const sparseClass      = b.sparse_documents > nDocsAdmitted * 0.2 ? 'warn' : 'good';
+  const peripheralClass  = b.peripheral_concepts > nConcepts * 0.3 ? 'warn' : 'good';
+
+  document.getElementById('bin-stats-grid').innerHTML = `
+    <div class="bin-stat-card ${densityClass}">
+      <div class="bsc-val ${densityClass}">${(b.density * 100).toFixed(1)}%</div>
+      <div class="bsc-label">Matrix density<br>(important cells)</div>
+    </div>
+    <div class="bin-stat-card">
+      <div class="bsc-val">${b.mean_important_per_doc.toFixed(1)} <span style="font-size:0.7rem;color:var(--ink-light);">± ${b.sd_important_per_doc.toFixed(1)}</span></div>
+      <div class="bsc-label">Avg important concepts<br>per document</div>
+    </div>
+    <div class="bin-stat-card ${sparseClass}">
+      <div class="bsc-val ${sparseClass}">${b.sparse_documents}</div>
+      <div class="bsc-label">Sparse documents<br>(&lt; mean − 1SD)</div>
+    </div>
+    <div class="bin-stat-card">
+      <div class="bsc-val">${b.dense_documents}</div>
+      <div class="bsc-label">Dense documents<br>(&gt; mean + 1SD)</div>
+    </div>
+    <div class="bin-stat-card">
+      <div class="bsc-val">${b.concepts_above_half}<span style="font-size:0.7rem;color:var(--ink-light);"> / ${nConcepts}</span></div>
+      <div class="bsc-label">Concepts important<br>in &gt;50% of documents</div>
+    </div>
+    <div class="bin-stat-card ${peripheralClass}">
+      <div class="bsc-val ${peripheralClass}">${b.peripheral_concepts}</div>
+      <div class="bsc-label">Peripheral concepts<br>(&lt;10% of documents)</div>
+    </div>`;
+
+  document.getElementById('cal-checks').innerHTML = `
+    <div class="cal-check">
+      <span class="cal-icon">${crit1 ? '✓' : '✗'}</span>
+      <span style="color:${crit1 ? 'var(--success)' : 'var(--accent)'};">
+        ${crit1 ? 'Met' : 'Not met'}: more than half the concepts are important in more than half the documents
+        (${b.concepts_above_half} of ${nConcepts} concepts)
+      </span>
+    </div>
+    <div class="cal-check">
+      <span class="cal-icon">${crit2 ? '✓' : '✗'}</span>
+      <span style="color:${crit2 ? 'var(--success)' : 'var(--accent)'};">
+        ${crit2 ? 'Met' : 'Not met'}: matrix density sufficient for co-occurrence analysis
+        (${(b.density * 100).toFixed(1)}% — target 15–60%)
+      </span>
+    </div>`;
+
+  const serverThresholdLabel = b.normalised
+    ? `${(b.threshold * 100).toFixed(0)}% of each document\u2019s maximum`
+    : `${b.threshold.toFixed(2)} in the matrix\u2019s own units`;
+  document.getElementById('confirm-bin-note').textContent =
+    `Threshold: ${serverThresholdLabel} (${b.threshold_mode}) · confirmed by server · ${(b.density * 100).toFixed(1)}% density`;
+}
+
+function renderHeatmap(t, mode) {
   const canvas   = document.getElementById('dtm-heatmap');
   const ctx      = canvas.getContext('2d');
   const nDocs    = dtmData.matrix.length;
   const nConcepts = dtmData.concepts.length;
-  const isRating = dtmData.mode !== 'frequency';
 
   // Sort: columns by total importance, rows by total importance
   const colTotals = dtmData.concepts.map((_, ci) =>
@@ -533,18 +661,25 @@ function renderHeatmap(t) {
   canvas.style.width  = canvas.width  + 'px';
   canvas.style.height = canvas.height + 'px';
 
-  const maxVal = isRating ? 3 : Math.max(...dtmData.matrix.flat(), 1);
+  // The colour scale spans whatever the matrix actually contains - nothing
+  // here assumes a 0-3 ceiling any more.
+  const maxVal = Math.max(...dtmData.matrix.flat(), 1);
 
   rowOrder.forEach((ri, row) => {
     colOrder.forEach((ci, col) => {
-      const val       = dtmData.matrix[ri][ci] || 0;
-      const important = val >= t;
+      const val = dtmData.matrix[ri][ci] || 0;
+      // Colour intensity always reflects the raw score; the important/
+      // not-important boundary reflects whichever basis the selected
+      // mode actually binarises against - raw for ranking method,
+      // row-normalised for default/manual (matches updateBinarisation()).
+      const basisVal  = (currentBasis()[ri] || [])[ci] || 0;
+      const important = basisVal > t;
       const ratio     = val / maxVal;
 
       let r, g, b;
       if (important) {
-        if (isRating && val === 3) {
-          // Score 3: accent red
+        if (val === maxVal) {
+          // Top of whatever scale this matrix uses: accent red
           r = Math.round(139 + (255 - 139) * (1 - ratio));
           g = Math.round(58  * (1 - ratio * 0.5));
           b = Math.round(42  * (1 - ratio * 0.5));
@@ -596,6 +731,7 @@ async function buildTTMServer() {
     rows,
   };
   const params = {
+    normalise: document.getElementById('normalise-toggle').checked,
     threshold_mode: thresholdMode,
     manual_threshold: thresholdMode === 'manual' ? t : null,
   };
@@ -615,6 +751,12 @@ async function buildTTMServer() {
       dtmData.conceptIds.map(cid => (serverTtm.binary_matrix[docKey(doc)] || {})[String(cid)] || 0)
     );
     ttmData = reconstructTtmDataFromServer(serverTtm);
+
+    // Redraw the binarisation panel itself from the server's returned
+    // BinarisationInfo — the stats shown while the researcher was
+    // adjusting the slider were a client-side preview; once confirmed,
+    // every number on screen must come from the backend's artefact.
+    renderServerBinStats(serverTtm.binarisation);
 
     renderTTM();
     markStepDone('42');
@@ -734,9 +876,8 @@ function exportTTM() {
 
 // ── CorRes Process: Stages 2-5 (Addie's method) ─────────────────────────
 // Instance brief 2026-07-24 (briefs/d1dev/2026-07-24_briefs_od_d1dev_corres-frontend-buildout.md).
-// FIXTURE DATA this build — backend reachability for the four new
-// endpoints wasn't resolved this session (see corres.css's .fixture-flag).
-// Mock generators below produce data shaped exactly like the real API
+// computed here - the back end computes, this declares (spec section 1).
+// The values below are shaped exactly like the real API
 // schemas (artie/apps/corres/workflows/build_ttm.py's ResidualsInfo/
 // ConsensusInfo/ConceptRole/BeaInfo), and the classification/BEA logic is
 // ported faithfully from classify_roles.py/bea_order.py so the demo
@@ -807,7 +948,7 @@ let processParams = {
   stability_threshold: 0.75,
   // weak_own_threshold - spec §4.1: the "0.5" own-affinity companion is
   // OPEN, unconfirmed since v1.0. Fenced per Working Arrangements §4.5:
-  // no default, no fallback. 0.5 shown here is the fixture's own working
+  // no default. 0.5 shown here is the 17 July verification file's own working
   // value, not a confirmed constant - flagged as such in the read-only
   // display, never silently presented as settled.
   weak_own_threshold: 0.5,
@@ -825,23 +966,12 @@ let processParams = {
   tau_rel: 0.5,
 };
 
-// Seeded PRNG (mulberry32) so fixture results are stable across reloads
-// rather than reshuffling on every run.
-function mulberry32(seed) {
-  let a = seed >>> 0;
-  return function () {
-    a |= 0; a = (a + 0x6D2B79F5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 function renderProcessControls() {
   const body = document.getElementById('process-body');
   body.innerHTML = `
     <p style="font-family:var(--font-display);font-size:0.85rem;color:var(--ink-mid);margin-bottom:1.25rem;">
-      Runs Addie's four-stage process over the confirmed term-term matrix: standardised residuals against an independence baseline, consensus-ensemble clustering across resampled splits, role classification, and BEA seriation. Parameters below are declared in advance and shown read-only for this demonstration (Annex A §A5) — the full elicitation interface is deferred past the holiday.
+      Runs our published four-stage process over the confirmed term-term matrix: standardised residuals against an independence baseline, consensus-ensemble clustering across resampled splits, role classification, and block presentation.
     </p>
     <div class="params-panel" id="process-params-panel"></div>
     <!-- Contact capture (12 Aug) - Annex A item 3 as amended (A2):
@@ -880,36 +1010,58 @@ function renderProcessControls() {
 //                9 Aug per R2 — never editable, but status Open, not
 //                Fixed; applies in the unstable branch only). Both shown
 //                with their working value, flagged as unconfirmed.
-function paramRow(label, value, status) {
-  const cls = status === 'Fixed' ? 'param-fixed' : status === 'Open' ? 'param-open' : 'param-calibrated';
+// One setting: what it is called, what it is set to, what it does, and how
+// firmly it is settled. The third of those is the part a researcher can
+// actually act on and was previously absent.
+function paramRow(label, value, status, does) {
+  const cls = status === 'Set by the method' ? 'param-fixed'
+            : status === 'Provisional'       ? 'param-open'
+            : 'param-calibrated';
   return `<div class="param-item">
     <span class="param-label">${label} <span class="param-status ${cls}">${status}</span></span>
     <span class="param-val">${value}</span>
+    <span class="param-does">${does}</span>
   </div>`;
 }
 
 function renderParamsPanel() {
   const p = processParams;
   let html = `
-    ${paramRow('Block count (k)', p.n_clusters, 'Calibrated')}
-    ${paramRow('Resample splits', p.n_splits, 'Calibrated')}
-    ${paramRow('Stability threshold (τσ)', p.stability_threshold, 'Calibrated')}
-    ${paramRow('Residual spread threshold', p.spread_threshold, 'Calibrated')}
-    ${paramRow('Reliability threshold (τrel)', p.tau_rel, 'Open')}
-    ${paramRow('Bridging ratio threshold (ρ = max(others)/own)', BRIDGING_RATIO, 'Fixed')}
-    ${paramRow('Weak/boundary magnitude companion (spec §4 item 9, unstable branch only)', WEAK_MAX_ABS_THRESHOLD, 'Open')}
-    ${paramRow('Weak own-affinity threshold', p.weak_own_threshold, 'Open')}`;
+    ${paramRow('Concept groups looked for (k)', p.n_clusters, 'Calibrated elsewhere',
+      'How many groups the analysis tries to divide your concepts into.')}
+    ${paramRow('Split-half repeats', p.n_splits, 'Calibrated elsewhere',
+      'How many times your documents are split in half and the grouping rerun, to test whether it survives.')}
+    ${paramRow('Stability threshold (τσ)', p.stability_threshold, 'Calibrated elsewhere',
+      'How consistently a concept must land in the same group across those repeats before it counts as stable.')}
+    ${paramRow('Residual spread threshold', p.spread_threshold, 'Calibrated elsewhere',
+      'How much structure your matrix must show before the analysis will proceed at all. Below this it stops and says so.')}
+    ${paramRow('Reliability threshold (τrel)', p.tau_rel, 'Provisional',
+      'How closely two independent halves of your corpus must agree before the grouping is reported rather than refused.')}
+    ${paramRow('Bridging ratio (ρ)', BRIDGING_RATIO, 'Set by the method',
+      'How strongly a concept must also reach into other groups before it is called bridging rather than distinguishing.')}
+    ${paramRow('Weak/boundary magnitude', WEAK_MAX_ABS_THRESHOLD, 'Provisional',
+      'Applies only where a concept did not reach the stability threshold: how far from zero its associations must sit to be called weak rather than orthogonal.')}
+    ${paramRow('Weak own-group threshold', p.weak_own_threshold, 'Provisional',
+      'Applies in the same unstable case: how much affinity a concept must have with its own group to be separated from the boundary.')}`;
 
-  // Backend-proposed values (spec §2.7/§2.8), shown alongside the
-  // declared value once a real run has returned them — display only,
-  // per Annex A §A5; the researcher still doesn't choose here.
+  // Shown beside the declared value once a real run has returned it. The
+  // back end derives this from the chance baseline (spec §2.7); the
+  // researcher still does not choose here (Annex A §A5).
   if (serverTtm && serverTtm.consensus && serverTtm.consensus.tau_sigma_proposed) {
-    html += `<div class="param-item"><span class="param-label">Backend-proposed τσ <span class="param-status param-calibrated">Proposed</span></span><span class="param-val">${serverTtm.consensus.tau_sigma_proposed.toFixed(4)}</span></div>`;
+    html += `<div class="param-item"><span class="param-label">Stability threshold this corpus suggests <span class="param-status param-calibrated">From your data</span></span><span class="param-val">${serverTtm.consensus.tau_sigma_proposed.toFixed(4)}</span><span class="param-does">Derived from your own matrix, for comparison with the declared value above. Not applied.</span></div>`;
   }
 
-  html += `<p class="vocab-note" style="grid-column:1/-1;margin:0.5rem 0 0;">Declared values sourced from <code>corres_fixture_17jul_verified.json</code> and AD's 28 Jul amendment (spread/reliability thresholds) — the τσ-proposing endpoint now exists server-side (wired below) but this remains a read-only display, not the elicitation interface (Annex A §A5).</p>`;
-
-  document.getElementById('process-params-panel').innerHTML = html;
+  // Provenance of these numbers is deliberately not on screen. They are
+  // declared from corres_fixture_17jul_verified.json (ebono_governance/
+  // briefs/dndev/) and AD's amendment of 28 July for the spread and
+  // reliability thresholds. Which file they came from tells a researcher
+  // nothing they can act on; what the settings DO, and how firmly they are
+  // settled, is what changes how a result should be read - so that is what
+  // the panel carries instead. BRIDGING_RATIO and WEAK_MAX_ABS_THRESHOLD
+  // are not sent to the back end at all: they mirror the constants in
+  // classify_roles.py (0.6 and 2.0) and would silently disagree if either
+  // side moved. Every other value on this panel is sent and used.
+  html += `<p class="vocab-note" style="grid-column:1/-1;margin:0.5rem 0 0;"><strong>These are the settings this run uses.</strong> corres does not choose them from your matrix — they are set in advance and applied to every run, and your result depends on them. <em>Set by the method</em> means part of the method itself and not adjustable. <em>Calibrated elsewhere</em> means chosen against a reference corpus rather than yours. <em>Provisional</em> means still under review and liable to change — a result that turns on one of these should be read with that in mind. None of them can be changed here yet.</p>`;
 }
 
 // Real chain, rewritten 4 Aug against the v3.0 ratio-rule/anchoring/
@@ -934,7 +1086,7 @@ function renderParamsPanel() {
 // diagnostic, do not proceed silently" instruction. pollTask() surfaces
 // that .code on the Error it throws (edu_common.js). runProcessChain()'s
 // caller distinguishes this from a connectivity failure and must not
-// paper over it with a fixture fallback — a real gate failure is a
+  // paper over it - a real gate failure is a
 // finding, not an unreachable backend.
 async function runRealProcessChain() {
   const admissibilityParams = {
@@ -1006,7 +1158,6 @@ async function runRealProcessChain() {
   figuresResult = await pollTask('corres', created.task_id, { routeSegment: 'figures' });
 }
 
-let lastRunWasFixture = false;
 
 // Contact capture (12 Aug, Annex A item 3/A2): fire-and-forget on
 // submission, not a precondition of it - a visitor who leaves the field
@@ -1038,37 +1189,33 @@ async function runProcessChain() {
 
   try {
     let backendFailure = null;
+    let connectivityFailure = null;
     try {
       await runRealProcessChain();
-      lastRunWasFixture = false;
     } catch (backendErr) {
-      // Two very different failure shapes, distinguished by whether the
-      // backend was actually reached (err.code present — pollTask/
-      // callAppAPI set this from a real HTTP/task response, per
-      // edu_common.js) or not (a raw fetch/network exception, no .code —
-      // e.g. CORS, connection refused, wrong apiBase). Only the second
-      // is a reachability problem safe to paper over with fixture data.
-      // The first is a genuine methodological finding (an inadmissible
-      // matrix, a failed reliability gate) and spec's own instruction is
-      // to "halt with a prominent
-      // diagnostic, do not proceed silently" — swapping in fixture data
-      // for that would be exactly the silent failure the spec forbids.
+      // Two failure shapes, distinguished by whether the back end was
+      // actually reached: err.code is set by pollTask/callAppAPI from a
+      // real HTTP or task response (edu_common.js); a raw fetch or network
+      // exception carries none (CORS, connection refused, wrong apiBase).
+      //
+      // Both now stop, and neither produces a result. The unreachable case
+      // previously substituted client-side fixture data, which reported
+      // zero exclusions because nothing had been computed - on screen
+      // indistinguishable from a clean analysis, and non-compliant under
+      // specification section 2.1, which makes a run that excludes without
+      // reporting invalid. Removed 26 August 2026 under SD's gate brief;
+      // the generators are deleted, not disabled.
       if (backendErr.code) {
         backendFailure = backendErr;
       } else {
-        console.warn('Backend unreachable, falling back to fixture data:', backendErr);
-        const conceptIds = dtmData.conceptIds.map(String);
-        const conceptAdmission = mockConceptAdmission(conceptIds);
-        const residuals = mockComputeResiduals(conceptIds, processParams.seed);
-        const consensus = mockConsensusCluster(conceptIds, residuals, processParams);
-        const roles = mockClassifyRoles(conceptIds, residuals, consensus, processParams);
-        const bea = mockBeaOrder(conceptIds, residuals, consensus.blocks, processParams);
-        serverTtm = Object.assign({}, serverTtm, { concept_admission: conceptAdmission, residuals, consensus, roles, bea });
-        lastRunWasFixture = true;
+        connectivityFailure = backendErr;
       }
     }
 
-    if (backendFailure) {
+    if (connectivityFailure) {
+      renderConnectivityFailure();
+      markStepActive('process');
+    } else if (backendFailure) {
       renderBackendFailure(backendFailure);
       markStepActive('process');
     } else {
@@ -1086,7 +1233,7 @@ async function runProcessChain() {
 // A real, backend-reported failure — one of the spec's own halt
 // conditions (residual_matrix_inadmissible, reliability_gate_failed), or
 // a generic workflow error. Rendered as a prominent diagnostic, never
-// silently swapped for fixture data. tau_bridge_interval_empty retired
+// never papered over with substitute data. tau_bridge_interval_empty retired
 // 4 Aug along with the endpoint it came from — the ratio rule that
 // replaced it has no admissible-interval concept to fail empty.
 // reliability_gate_failed wording corrected 9 Aug (R5, joining the surface
@@ -1095,8 +1242,20 @@ async function runProcessChain() {
 // (spec §4 item 11) is open. Proceed-with-caveat was ruled in principle 8
 // Aug but its implementation is deferred past promotion, so this halt is
 // the live behaviour for both Brisbane and Zurich, not a placeholder.
+// The back end could not be reached at all - no HTTP response, so nothing
+// was computed and there is nothing to report. Rendered where the result
+// would have been, per specification section 3.3: visible to the person
+// reading the result, not logged. No partial render and no substitute
+// data of any kind.
+function renderConnectivityFailure() {
+  document.getElementById('process-results').innerHTML = `
+    <div class="warning-banner warning-fail">
+      <strong>No result was produced</strong>
+      <p style="margin:0.4rem 0 0;">There is a connection issue preventing access to the back end code. Please try again later.</p>
+    </div>`;
+}
+
 function renderBackendFailure(err) {
-  document.getElementById('fixture-flag').style.display = 'none';
   const known = {
     residual_matrix_inadmissible: 'Residual matrix admissibility (spec §2.2a) failed — the corpus reads as degenerate ("blur" or "blob"; see the message below for spread/mean/eff_dim).',
     reliability_gate_failed: 'Reliability gate (spec §2.9) failed — no candidate k shows adequate split-half stability for this corpus. A failing corpus halts by design; the proceed-or-block policy is spec §4 item 11, which is open.',
@@ -1110,203 +1269,13 @@ function renderBackendFailure(err) {
     </div>`;
 }
 
-// ── Mock generators (FIXTURE DATA — see corres.css's .fixture-flag) ─────
 
-// Concept admission (spec §2.1, amended 3 Aug: bipartite). The fixture
-// path has no D1/D2/X1/X2/X3 rule engine to port — no exclusion logic is
-// invented here, per the 4 Aug handoff's own instruction. Synthesizes the
-// clean-run shape (matches the fixed MFC-A benchmark expectation: zero
-// concepts excluded) so downstream code exercises the real field shape.
-function mockConceptAdmission(conceptIds) {
-  return {
-    excluded: [],
-    admitted_concept_ids: conceptIds,
-    admitted_doc_ids: dtmData.docs.map(d => String(d.id)),
-    passes: 1,
-  };
-}
 
-function mockComputeResiduals(conceptIds, seed) {
-  const rng = mulberry32(seed * 1000 + 1);
-  const matrix = {};
-  conceptIds.forEach(ci => { matrix[ci] = {}; });
-  for (let i = 0; i < conceptIds.length; i++) {
-    for (let j = i; j < conceptIds.length; j++) {
-      const ci = conceptIds[i], cj = conceptIds[j];
-      if (i === j) { matrix[ci][cj] = 0; continue; }
-      const v = (rng() * 2 - 1) * 4; // roughly -4..4, occasional strong bridges
-      matrix[ci][cj] = v; matrix[cj][ci] = v;
-    }
-  }
-  return { convention: 'ca_margins', matrix };
-}
 
-function mockConsensusCluster(conceptIds, residuals, params) {
-  const rng = mulberry32(params.seed);
-  const blocks = {};
-  conceptIds.forEach((cid, i) => { blocks[cid] = i % params.n_clusters; });
-  // Nudge a few concepts toward their strongest residual partner's block,
-  // so membership isn't purely a round-robin artefact.
-  conceptIds.forEach(cid => {
-    let best = null, bestVal = -Infinity;
-    conceptIds.forEach(o => {
-      if (o !== cid && residuals.matrix[cid][o] > bestVal) { bestVal = residuals.matrix[cid][o]; best = o; }
-    });
-    if (best && bestVal > 2.5 && rng() > 0.5) blocks[cid] = blocks[best];
-  });
 
-  const matrix = {};
-  conceptIds.forEach(ci => {
-    matrix[ci] = {};
-    conceptIds.forEach(cj => {
-      if (ci === cj) { matrix[ci][cj] = 1; return; }
-      const sameBlock = blocks[ci] === blocks[cj];
-      const base = sameBlock ? 0.72 : 0.18;
-      matrix[ci][cj] = Math.min(1, Math.max(0, base + (rng() - 0.5) * 0.3));
-    });
-  });
 
-  // Rough proportional stand-in for fixture runs only — NOT Proposition
-  // 2's exact combinatorial formula (added to ConsensusInfo 24 Jul; that
-  // formula needs the real backend, which computes it from the actual
-  // discovered block sizes). Good enough to exercise the UI, not to cite.
-  const blockSizes = {};
-  Object.values(blocks).forEach(b => { blockSizes[b] = (blockSizes[b] || 0) + 1; });
-  const n = conceptIds.length;
-  const chanceBaseline = n > 1
-    ? Object.values(blockSizes).reduce((s, sz) => s + sz * (sz - 1), 0) / (n * (n - 1))
-    : 0;
 
-  return { n_splits: params.n_splits, n_clusters: params.n_clusters, seed: params.seed, matrix, blocks, chance_baseline: chanceBaseline };
-}
 
-// Faithful port of classify_roles.py's _classify_one, rewritten 4 Aug
-// against the ratio rule + fifth-role ruling
-// (2026-08-03_briefs_ad_d2dev_fifth_role_anchoring_ruled_v1_0.md §3),
-// which amends spec §2.6 in place — superseding both this file's own 28
-// Jul version (tau_bridge magnitude test) and the withdrawn 24 Jul one.
-// tau_bridge is gone entirely, not just hidden: the bridging test is now
-// a scale-invariant ratio, rho = max(others)/own >= 0.6 (BRIDGING_RATIO),
-// not a magnitude test against a calibrated per-corpus threshold.
-//
-// THE FIX this rewrite carries forward: own<=0 is checked BEFORE
-// bridging — reversing this order pulls a negative-own-affinity concept
-// into bridging on the benchmark, contradicting the certified
-// classification (hand-verified against corres_fixture_17jul_verified
-// .json's "External regulation" row, own=-1.27).
-//
-// Returns one of five leaf strings — never null. The classification is
-// now exhaustive by construction (every stable, positively-anchored
-// concept reaches a leaf): `anchoring` replaces UNRESOLVED as the
-// terminal branch. UNRESOLVED remains an error condition only (spec
-// §2.6) — this function reaching it would itself be a defect to report,
-// not a normal outcome, so it deliberately has nothing left to return
-// for that case.
-//
-// `others` is the cross-block affinity list, own block excluded — does
-// NOT include `own`.
-function classifyOne(own, others, stability, params) {
-  if (stability >= params.stability_threshold) {                    // STABLE
-    if (own <= 0) return 'orthogonal';
-    const rho = Math.max(...others) / own;
-    if (rho >= BRIDGING_RATIO) return 'bridging';
-    if (Math.min(...others) < 0) return 'distinguishing';
-    return 'anchoring';
-  }
-  // UNSTABLE
-  if (own <= params.weak_own_threshold && Math.max(...[own, ...others].map(v => Math.abs(v))) < WEAK_MAX_ABS_THRESHOLD) return 'weak';
-  return 'orthogonal';
-}
-
-// Returns RolesInfo-shaped output ({roles, unresolved_concept_ids}),
-// matching build_ttm.py's RolesInfo exactly — role is null for any
-// concept classifyOne returns null for, and its concept_id is collected
-// into unresolved_concept_ids per spec §2.11's output-contract
-// requirement ("the count of UNRESOLVED concepts, which must be zero
-// for a clean run").
-function mockClassifyRoles(conceptIds, residuals, consensus, params) {
-  const blocks = consensus.blocks;
-  const co = consensus.matrix;
-  const resid = residuals.matrix;
-  const roles = {};
-  const unresolvedConceptIds = [];
-
-  conceptIds.forEach(cid => {
-    const ownBlock = blocks[cid];
-    const sameBlock = conceptIds.filter(c => blocks[c] === ownBlock && c !== cid);
-    const stability = sameBlock.length ? sameBlock.reduce((s, c) => s + co[cid][c], 0) / sameBlock.length : 0;
-
-    const othersAll = conceptIds.filter(c => c !== cid);
-    const magnitude = othersAll.length ? othersAll.reduce((s, c) => s + Math.abs(resid[cid][c]), 0) / othersAll.length : 0;
-
-    const affinity = {};
-    for (let b = 0; b < params.n_clusters; b++) {
-      const members = conceptIds.filter(c => blocks[c] === b && c !== cid);
-      affinity[String(b)] = members.length ? members.reduce((s, c) => s + resid[cid][c], 0) / members.length : 0;
-    }
-    const ownAffinity = affinity[String(ownBlock)];
-    const otherAffinities = Object.entries(affinity).filter(([b]) => Number(b) !== ownBlock).map(([, v]) => v);
-    const role = classifyOne(ownAffinity, otherAffinities.length ? otherAffinities : [0], stability, params);
-    if (role === null) unresolvedConceptIds.push(cid);
-
-    roles[cid] = { stability, magnitude, affinity, role };
-  });
-  return { roles, unresolved_concept_ids: unresolvedConceptIds };
-}
-
-// Faithful port of bea_order.py's _bea() (broken-bond-corrected insertion gain).
-function beaOrderConcepts(conceptIds, positiveResid) {
-  const rem = new Set(conceptIds);
-  let bestI = null, bestJ = null, bestV = -Infinity;
-  conceptIds.forEach(i => conceptIds.forEach(j => {
-    if (i !== j && positiveResid[i][j] > bestV) { bestV = positiveResid[i][j]; bestI = i; bestJ = j; }
-  }));
-  const order = [bestI, bestJ];
-  rem.delete(bestI); rem.delete(bestJ);
-  while (rem.size) {
-    let best = { gain: -Infinity, c: null, pos: null };
-    rem.forEach(c => {
-      for (let pos = 0; pos <= order.length; pos++) {
-        let gain = (pos > 0 ? positiveResid[order[pos - 1]][c] : 0) + (pos < order.length ? positiveResid[c][order[pos]] : 0);
-        if (pos > 0 && pos < order.length) gain -= positiveResid[order[pos - 1]][order[pos]];
-        if (gain > best.gain) best = { gain, c, pos };
-      }
-    });
-    order.splice(best.pos, 0, best.c);
-    rem.delete(best.c);
-  }
-  return order;
-}
-
-function mockBeaOrder(conceptIds, residuals, blocks, params) {
-  const rng = mulberry32(params.bea_seed);
-  const n = conceptIds.length;
-  const positive = {};
-  conceptIds.forEach(ci => {
-    positive[ci] = {};
-    conceptIds.forEach(cj => { positive[ci][cj] = Math.max(0, residuals.matrix[ci][cj]); });
-  });
-
-  const order = beaOrderConcepts(conceptIds, positive);
-  const blockSeq = order.map(cid => blocks[cid]);
-  const adjacency = n > 1 ? blockSeq.slice(0, -1).filter((b, i) => b === blockSeq[i + 1]).length / (n - 1) : 0;
-
-  const nullAdj = [];
-  const blockArr = conceptIds.map(cid => blocks[cid]);
-  for (let k = 0; k < params.n_null; k++) {
-    const perm = [...blockArr];
-    for (let i = perm.length - 1; i > 0; i--) {
-      const j = Math.floor(rng() * (i + 1));
-      [perm[i], perm[j]] = [perm[j], perm[i]];
-    }
-    nullAdj.push(n > 1 ? perm.slice(0, -1).filter((b, i) => b === perm[i + 1]).length / (n - 1) : 0);
-  }
-  nullAdj.sort((a, b) => a - b);
-  const nullMean = nullAdj.reduce((a, b) => a + b, 0) / nullAdj.length;
-  const p95Idx = Math.min(nullAdj.length - 1, Math.floor(0.95 * nullAdj.length));
-
-  return { order, adjacency, null_mean: nullMean, null_p95: nullAdj[p95Idx] };
-}
 
 // ── Rendering: certificate summary, vocabulary note, panel tabs ─────────
 
@@ -1323,7 +1292,6 @@ function renderProcessResults() {
   const certified = conceptIds.filter(cid => roles[cid].role !== null && roles[cid].stability >= processParams.stability_threshold);
   const resultsDiv = document.getElementById('process-results');
 
-  document.getElementById('fixture-flag').style.display = lastRunWasFixture ? 'inline-block' : 'none';
 
   let html = renderWarnings(rolesInfo);
 
@@ -1347,27 +1315,19 @@ function renderProcessResults() {
   html += `<div id="stage-1"></div><div id="stage-2"></div><div id="stage-2b"></div><div id="stage-3"></div><div id="stage-4"></div><div id="stage-5"></div>`;
 
   resultsDiv.innerHTML = html;
-  // Real path: backend-rendered PNGs (figuresResult, set in
-  // runRealProcessChain() after classify-roles/bea-order). Fixture path:
-  // this build's own SVG rendering — figures/render needs a real backend
-  // round-trip and cannot run against mock data at all (2026-07-29
-  // figures handoff). Six panels now, not five (4 Aug: panel B' inserted
-  // after B, no baked-in titles — see each renderer's caption line).
-  if (lastRunWasFixture) {
-    renderStage1RawMatrixSvg(document.getElementById('stage-1'));
-    renderStage2ResidualsSvg(document.getElementById('stage-2'));
-    renderStage2bBlockOrderSvg(document.getElementById('stage-2b'));
-    renderStage3ConsensusSvg(document.getElementById('stage-3'));
-    renderStage4RoleSpaceSvg(document.getElementById('stage-4'));
-    renderStage5BeaSvg(document.getElementById('stage-5'));
-  } else {
+  // Figures come from the back end: runRealProcessChain() calls
+  // /v1/corres/figures/render after classify-roles and bea-order and
+  // displays the matplotlib PNGs artie returns. This is the only
+  // rendering path - the client-side SVG renderers that once served the
+  // offline demo were deleted 26 August 2026 with the substitute-data
+  // path. Six panels, not five (4 Aug: panel B' inserted after B, no
+  // baked-in titles - see each renderer's caption line).
     renderStage1RawMatrix(document.getElementById('stage-1'));
     renderStage2Residuals(document.getElementById('stage-2'));
     renderStage2bBlockOrder(document.getElementById('stage-2b'));
     renderStage3Consensus(document.getElementById('stage-3'));
     renderStage4RoleSpace(document.getElementById('stage-4'));
     renderStage5Bea(document.getElementById('stage-5'));
-  }
 }
 
 // Spec §3.3: four warnings, "not logged — visible to the person reading
@@ -1376,7 +1336,7 @@ function renderProcessResults() {
 // ratified 28 Jul) are now wired into the real path (29 Jul, artie
 // commit 4ab59ce) — shown as real pass/fail when serverTtm carries the
 // result (a completed real run), and as explicit "not yet available"
-// only when it doesn't (the fixture-fallback path, whose mock generators
+// only when it doesn't - which, since the substitute-data path was removed
 // don't compute either — a true statement, not a stale placeholder).
 // Either way spec's "never hide" instruction holds: an absent warning
 // slot is indistinguishable from a checked-and-passing one, so the
@@ -1412,7 +1372,7 @@ function renderWarnings(rolesInfo) {
   } else {
     html += `<div class="warning-banner warning-unavailable">
       <strong>Concept admission (spec §2.1) — not available this run</strong>
-      Fixture-fallback path only; the real endpoint exists and is wired, but this run didn't reach it. This is not a clean-admission result; it is unchecked.
+      The back end did not return this field, so nothing was checked. This is not a clean-admission result; it is unchecked.
     </div>`;
   }
 
@@ -1426,7 +1386,7 @@ function renderWarnings(rolesInfo) {
   } else {
     html += `<div class="warning-banner warning-unavailable">
       <strong>Reliability gate (spec §2.9) — not available this run</strong>
-      Fixture-fallback path only; the real endpoint exists and is wired, but this run didn't reach it. This is not a pass; it is unchecked.
+      The back end did not return this field, so nothing was checked. This is not a pass; it is unchecked.
     </div>`;
   }
 
@@ -1440,7 +1400,7 @@ function renderWarnings(rolesInfo) {
   } else {
     html += `<div class="warning-banner warning-unavailable">
       <strong>Residual-matrix admissibility (spec §2.2a) — not available this run</strong>
-      Fixture-fallback path only; the real endpoint exists and is wired, but this run didn't reach it. This is not a pass; it is unchecked.
+      The back end did not return this field, so nothing was checked. This is not a pass; it is unchecked.
     </div>`;
   }
 
@@ -1455,11 +1415,18 @@ function renderWarnings(rolesInfo) {
     html += `<div class="warning-banner warning-pass"><strong>UNRESOLVED count: 0</strong> — clean run (spec §2.11).</div>`;
   }
 
-  // Cross-corpus parameter import: never fires this session (every value
-  // here is declared from this corpus's own 17 Jul fixture, not
-  // transferred from another corpus) — surfaced as a checked, passing
-  // condition rather than omitted.
-  html += `<div class="warning-banner warning-pass"><strong>No parameter imported from another corpus.</strong> All declared values sourced from this corpus's own 17 Jul verification fixture.</div>`;
+  // Cross-corpus parameter import (spec section 3.3). This banner previously
+  // reported a pass, on the reasoning that the declared values came from
+  // "this corpus's own" verification file. That was true while the only
+  // corpus anyone ran was the benchmark itself. It stopped being true the
+  // moment a researcher could upload their own matrix: k, the stability
+  // threshold, the spread threshold and the reliability threshold were all
+  // calibrated on the reference corpus, which for any uploaded matrix is a
+  // different corpus. A pass here was a false reassurance in exactly the
+  // slot the specification created to prevent one. Uses warning-unavailable
+  // rather than warning-fail: it is a condition to carry into reading the
+  // result, not a failed run.
+  html += `<div class="warning-banner warning-unavailable"><strong>Settings calibrated on a reference corpus, not yours.</strong> The group count, stability threshold, spread threshold and reliability threshold were set against a benchmark corpus. They have not been derived from your matrix, and corres cannot yet propose them from it.</div>`;
 
   html += '</div>';
   return html;
@@ -1470,251 +1437,12 @@ function statusTagHtml(stability) {
   return `<span class="status-tag ${certified ? 'status-certified' : 'status-exploratory'}">${certified ? 'Certified' : 'Exploratory'}</span>`;
 }
 
-// Stage 1 — raw matrix, two panels (article v0.6 Figure 1; reference
-// image panelA.png). CORRECTED 28 Jul: this was built as a sorted list of
-// numbers, not a matrix — reconciled against the actual reference image
-// and the article text ("The left panel displays the term–term matrix...
-// concepts in alphabetical order... The right panel shows the same
-// matrix sorted by total co-occurrence — and the result looks
-// compellingly like structure, but the reading is an illusion... This is
-// the specific trap Stage 2 exists to spring."). Both panels are the same
-// kind of figure — a concept x concept co-occurrence-count matrix — just
-// in two different concept orders. Grayscale, matching panelA.png; no
-// residuals/consensus/roles needed, only the Stage-1 TTM matrix/totals.
-//
-// SVG renderers below (renderStageN*Svg): fixture-fallback path only,
-// since 2026-07-29 (figures handoff). The real path now calls
-// /v1/corres/figures/render and displays matplotlib PNGs from artie —
-// one source of truth instead of two implementations that already
-// drifted once (this build's role-space axis was |own-block affinity|,
-// spec §2.5-correct; Addie's original scripts used mean|residual| across
-// all blocks — artie's new figures.py was written to follow this build's
-// definition, not the older one). Kept alive, not deleted, because the
-// new endpoint requires a real backend round-trip and cannot serve the
-// offline/fixture demo at all — see runProcessResults()'s dispatch.
-function renderStage1RawMatrixSvg(target) {
-  const termById = {};
-  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
-  const ids = dtmData.conceptIds.map(String);
-  const alpha = [...ids].sort((a, b) => termById[a].localeCompare(termById[b]));
-  const byCooccurrence = [...ids].sort((a, b) => (serverTtm.totals[b] || 0) - (serverTtm.totals[a] || 0));
-  const cell = Math.max(4, Math.min(18, Math.floor(420 / ids.length)));
-  const max = Math.max(1, ...ids.flatMap(ci => ids.map(cj => serverTtm.matrix[ci][cj] || 0)));
 
-  const matrixSvg = (order) => {
-    let rects = '';
-    order.forEach((ci, ri) => order.forEach((cj, cj2) => {
-      const v = serverTtm.matrix[ci][cj] || 0;
-      const grey = Math.round(255 - (v / max) * 255);
-      rects += `<rect x="${cj2*cell}" y="${ri*cell}" width="${cell}" height="${cell}" fill="rgb(${grey},${grey},${grey})"><title>${escHtml(termById[ci])} × ${escHtml(termById[cj])}: ${v}</title></rect>`;
-    }));
-    return `<svg width="${order.length*cell}" height="${order.length*cell}">${rects}</svg>`;
-  };
 
-  target.innerHTML = `
-    <div class="stage-head"><span class="stage-num">Stage 1</span><span class="stage-name">Raw matrix — two panels</span></div>
-    <p class="panel-sub">Any sufficiently large matrix looks structured — this display proves nothing. Left: alphabetical order, deliberately, because at this stage nothing has been measured. Right: the same matrix sorted by total co-occurrence — this is the specific trap Stage 2 exists to spring, not a better view.</p>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
-      <div><div class="panel-sub" style="margin-bottom:0.5rem;">Alphabetical</div><div class="role-space-wrap" style="overflow:auto;">${matrixSvg(alpha)}</div></div>
-      <div><div class="panel-sub" style="margin-bottom:0.5rem;">Sorted by co-occurrence</div><div class="role-space-wrap" style="overflow:auto;">${matrixSvg(byCooccurrence)}</div></div>
-    </div>`;
-}
 
-// Stage 2 — standardised residuals, alphabetical (brief §3.6 item 2).
-// Colour convention per brief: "Red resonance, blue dissonance" — red for
-// positive (co-occurs more than chance expects), blue for negative.
-function renderStage2ResidualsSvg(target) {
-  const { residuals } = serverTtm;
-  const termById = {};
-  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
-  const ids = dtmData.conceptIds.map(String);
-  const alpha = [...ids].sort((a, b) => termById[a].localeCompare(termById[b]));
-  const cell = Math.max(4, Math.min(18, Math.floor(560 / alpha.length)));
-  const max = Math.max(1, ...alpha.flatMap(ci => alpha.map(cj => Math.abs(residuals.matrix[ci][cj]))));
 
-  let rects = '';
-  alpha.forEach((ci, ri) => alpha.forEach((cj, cj2) => {
-    const v = residuals.matrix[ci][cj];
-    const intensity = Math.min(1, Math.abs(v) / max);
-    const color = v >= 0 ? `rgba(178,34,34,${intensity})` : `rgba(28,122,156,${intensity})`;
-    rects += `<rect x="${cj2*cell}" y="${ri*cell}" width="${cell}" height="${cell}" fill="${color}"><title>${escHtml(termById[ci])} × ${escHtml(termById[cj])}: ${v.toFixed(2)}</title></rect>`;
-  }));
 
-  target.innerHTML = `
-    <div class="stage-head"><span class="stage-num">Stage 2</span><span class="stage-name">Standardised residuals</span></div>
-    <p class="panel-sub">Alphabetical order. Red = resonance (co-occurs more than the independence baseline expects); blue = dissonance (less).</p>
-    <div class="role-space-wrap" style="overflow:auto;"><svg width="${alpha.length*cell}" height="${alpha.length*cell}">${rects}</svg></div>`;
-}
 
-// Stage 2b — Panel B' (new 4 Aug): the same standardised residuals as
-// Stage 2, reordered into consensus-block order instead of alphabetical,
-// with no certification strips (that's Panel E's job) - just the block
-// permutation applied to the same matrix and colour convention.
-function renderStage2bBlockOrderSvg(target) {
-  const { residuals, consensus } = serverTtm;
-  const termById = {};
-  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
-  const ids = dtmData.conceptIds.map(String);
-  const byBlock = [...ids].sort((a, b) => (consensus.blocks[a] - consensus.blocks[b]) || termById[a].localeCompare(termById[b]));
-  const cell = Math.max(4, Math.min(18, Math.floor(560 / byBlock.length)));
-  const max = Math.max(1, ...byBlock.flatMap(ci => byBlock.map(cj => Math.abs(residuals.matrix[ci][cj]))));
-
-  let rects = '';
-  byBlock.forEach((ci, ri) => byBlock.forEach((cj, cj2) => {
-    const v = residuals.matrix[ci][cj];
-    const intensity = Math.min(1, Math.abs(v) / max);
-    const color = v >= 0 ? `rgba(178,34,34,${intensity})` : `rgba(28,122,156,${intensity})`;
-    rects += `<rect x="${cj2*cell}" y="${ri*cell}" width="${cell}" height="${cell}" fill="${color}"><title>${escHtml(termById[ci])} × ${escHtml(termById[cj])}: ${v.toFixed(2)}</title></rect>`;
-  }));
-
-  target.innerHTML = `
-    <div class="stage-head"><span class="stage-num">Stage 2'</span><span class="stage-name">Standardised residuals — block order</span></div>
-    <p class="panel-sub">Same matrix and colour convention as Stage 2, reordered into consensus-block order — no certification strips (Stage 5 carries those).</p>
-    <div class="role-space-wrap" style="overflow:auto;"><svg width="${byBlock.length*cell}" height="${byBlock.length*cell}">${rects}</svg></div>`;
-}
-
-// Stage 3 — consensus co-classification, sorted by block (brief §3.6 item 3).
-function renderStage3ConsensusSvg(target) {
-  const { consensus } = serverTtm;
-  const termById = {};
-  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
-  const ids = dtmData.conceptIds.map(String);
-  const byBlock = [...ids].sort((a, b) => (consensus.blocks[a] - consensus.blocks[b]) || termById[a].localeCompare(termById[b]));
-  const cell = Math.max(4, Math.min(18, Math.floor(560 / byBlock.length)));
-
-  let rects = '';
-  byBlock.forEach((ci, ri) => byBlock.forEach((cj, cj2) => {
-    const v = consensus.matrix[ci][cj];
-    rects += `<rect x="${cj2*cell}" y="${ri*cell}" width="${cell}" height="${cell}" fill="rgba(28,122,156,${v.toFixed(2)})"><title>${escHtml(termById[ci])} × ${escHtml(termById[cj])}: ${v.toFixed(2)}</title></rect>`;
-  }));
-
-  target.innerHTML = `
-    <div class="stage-head"><span class="stage-num">Stage 3</span><span class="stage-name">Consensus co-classification</span></div>
-    <p class="panel-sub">Sorted by consensus block. Darker = higher co-classification rate across the resampled ensemble.</p>
-    <div class="role-space-wrap" style="overflow:auto;"><svg width="${byBlock.length*cell}" height="${byBlock.length*cell}">${rects}</svg></div>`;
-}
-
-// Stage 4 — role space (brief §3.6 item 4; spec §2.5/§3.4). x = stability,
-// y = ABSOLUTE own-block affinity (not general magnitude — spec §2.5 is
-// explicit that the absolute value is load-bearing, since orthogonal
-// concepts carry non-positive own-block affinity by definition and must
-// share visual space with what they're compared against). Shape AND
-// colour distinguish the four roles (spec §3.4 — greyscale/print/colour-
-// blind legibility).
-function renderStage4RoleSpaceSvg(target) {
-  const roles = serverTtm.roles.roles;
-  const conceptIds = dtmData.conceptIds.map(String);
-  const termById = {};
-  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
-
-  const w = 640, h = 420, pad = 40;
-  const ownAffinity = (cid) => {
-    const r = roles[cid];
-    const ownBlock = serverTtm.consensus.blocks[cid];
-    return Math.abs(r.affinity[String(ownBlock)] || 0);
-  };
-  const maxAff = Math.max(1, ...conceptIds.map(ownAffinity));
-
-  const markerSvg = (shape, x, y, size, fill, opacity, stroke) => {
-    if (shape === 'circle') return `<circle cx="${x}" cy="${y}" r="${size}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="1.5"/>`;
-    if (shape === 'square') return `<rect x="${x-size}" y="${y-size}" width="${size*2}" height="${size*2}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="1.5"/>`;
-    if (shape === 'triangle') return `<polygon points="${x},${y-size*1.2} ${x-size*1.1},${y+size*0.8} ${x+size*1.1},${y+size*0.8}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="1.5"/>`;
-    if (shape === 'diamond') return `<polygon points="${x},${y-size*1.2} ${x+size*1.2},${y} ${x},${y+size*1.2} ${x-size*1.2},${y}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="1.5"/>`;
-    // cross (orthogonal)
-    return `<g stroke="${fill}" stroke-opacity="${opacity}" stroke-width="${size*0.6}"><line x1="${x-size}" y1="${y-size}" x2="${x+size}" y2="${y+size}"/><line x1="${x-size}" y1="${y+size}" x2="${x+size}" y2="${y-size}"/></g>`;
-  };
-
-  const points = conceptIds.map(cid => {
-    const r = roles[cid];
-    if (r.role === null) return ''; // UNRESOLVED — surfaced via the warnings block, not plotted as a role
-    const x = pad + r.stability * (w - 2*pad);
-    const y = h - pad - (ownAffinity(cid) / maxAff) * (h - 2*pad);
-    const color = ROLE_COLOR[r.role];
-    const certified = r.stability >= processParams.stability_threshold;
-    const title = `<title>${escHtml(termById[cid])} — ${ROLE_TIER[r.role]} · ${ROLE_LABEL[r.role]} (σ=${r.stability.toFixed(2)}, |own affinity|=${ownAffinity(cid).toFixed(2)})</title>`;
-    return `<g>${markerSvg(ROLE_MARKER[r.role], x.toFixed(1), y.toFixed(1), certified ? 6 : 4.5, color, certified ? 0.9 : 0.45, certified ? color : 'none')}${title}</g>`;
-  }).join('');
-
-  const threshX = pad + processParams.stability_threshold * (w - 2*pad);
-
-  target.innerHTML = `
-    <div class="stage-head"><span class="stage-num">Stage 4</span><span class="stage-name">Role space — primary evidentiary weight</span></div>
-    <p class="panel-sub">Stability (x) vs. absolute own-block affinity (y). Shape and colour both distinguish role (spec §3.4). Filled markers passed the stability threshold; faint markers did not.</p>
-    <div class="role-space-wrap">
-      <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-        <line x1="${threshX}" y1="${pad}" x2="${threshX}" y2="${h-pad}" stroke="var(--rule)" stroke-dasharray="4 3"/>
-        <line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="var(--ink-light)"/>
-        <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${h-pad}" stroke="var(--ink-light)"/>
-        <text x="${w/2}" y="${h-8}" font-size="10" fill="var(--ink-light)" text-anchor="middle" font-family="var(--font-mono)">stability (σ) →</text>
-        ${points}
-      </svg>
-      <div class="role-space-legend">
-        <div class="legend-item"><span style="width:10px;height:10px;border-radius:50%;background:#2a6b4a;display:inline-block;"></span>● Distinguishing</div>
-        <div class="legend-item"><span style="width:10px;height:10px;background:#1c7a9c;display:inline-block;"></span>■ Bridging</div>
-        <div class="legend-item"><span style="width:10px;height:10px;background:#7a5c1a;display:inline-block;"></span>▲ Weak</div>
-        <div class="legend-item"><span style="width:10px;height:10px;background:#9a9490;display:inline-block;"></span>✕ Orthogonal</div>
-      </div>
-    </div>`;
-}
-
-// Shared block-colour palette — small hash-based list, not tied to any
-// particular n_clusters. Used by Stage 5's block strip.
-const BLOCK_PALETTE = ['#2a4a7a', '#2a6b4a', '#7a3a6a', '#5a4a1a', '#1a5a6b', '#7a2a2a', '#4a2a7a', '#2a7a5a', '#7a5a2a', '#2a5a7a'];
-
-// Stage 5 — BEA seriation with block/stability/role strips (brief §3.6
-// item 5). "BEA rendering is unchanged and safe — do not rewrite it";
-// only the role strip's vocabulary/colours changed (four roles, no
-// unclassified_core).
-function renderStage5BeaSvg(target) {
-  const { bea, residuals, consensus } = serverTtm;
-  const roles = serverTtm.roles.roles;
-  const order = bea.order; // never re-sorted here
-  const termById = {};
-  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
-
-  const cell = Math.max(4, Math.min(18, Math.floor(560 / order.length)));
-  const stripH = 10;
-  const matrixW = order.length * cell;
-  const max = Math.max(1, ...order.flatMap(ci => order.map(cj => Math.abs(residuals.matrix[ci][cj]))));
-
-  const blockStrip = order.map((cid, i) => `<rect x="${i*cell}" y="0" width="${cell}" height="${stripH}" fill="${BLOCK_PALETTE[consensus.blocks[cid] % BLOCK_PALETTE.length]}"><title>${escHtml(termById[cid])} — block ${consensus.blocks[cid]}</title></rect>`).join('');
-  const stabilityStrip = order.map((cid, i) => `<rect x="${i*cell}" y="0" width="${cell}" height="${stripH}" fill="rgba(28,122,156,${roles[cid].stability.toFixed(2)})"><title>${escHtml(termById[cid])} — σ=${roles[cid].stability.toFixed(2)}</title></rect>`).join('');
-  const roleStrip = order.map((cid, i) => {
-    const role = roles[cid].role;
-    const fill = role === null ? '#ccc' : ROLE_COLOR[role];
-    const label = role === null ? 'UNRESOLVED' : ROLE_LABEL[role];
-    return `<rect x="${i*cell}" y="0" width="${cell}" height="${stripH}" fill="${fill}"><title>${escHtml(termById[cid])} — ${label}</title></rect>`;
-  }).join('');
-  let matrixRects = '';
-  order.forEach((ci, ri) => order.forEach((cj, ci2) => {
-    const v = residuals.matrix[ci][cj];
-    const sameBlock = consensus.blocks[ci] === consensus.blocks[cj];
-    const intensity = Math.min(1, Math.abs(v) / max);
-    const color = v >= 0 ? `rgba(178,34,34,${(sameBlock?0.9:0.5)*intensity})` : `rgba(28,122,156,${(sameBlock?0.9:0.5)*intensity})`;
-    matrixRects += `<rect x="${ci2*cell}" y="${ri*cell}" width="${cell}" height="${cell}" fill="${color}"/>`;
-  }));
-
-  target.innerHTML = `
-    <div class="stage-head"><span class="stage-num">Stage 5</span><span class="stage-name">Bond-energy seriation</span></div>
-    <p class="panel-sub">Rows and columns are sorted by block, most stable first within each block — the certified partition (spec §2.10). Bond-energy seriation places concepts within that order to maximise adjacent positive-residual bond strength; it is computed separately as corroborating evidence, not an independent test of the partition, and its block-adjacency statistic and permutation null are reported in the sidecar.</p>
-    <div class="bea-adjacency-stat" style="margin-bottom:1rem;">
-      <div class="stat-item"><span class="stat-val">${(bea.adjacency*100).toFixed(0)}%</span><span class="stat-label">Same-block adjacency, observed</span></div>
-      <div class="stat-item"><span class="stat-val">${(bea.null_mean*100).toFixed(0)}%</span><span class="stat-label">Null mean (${processParams.n_null} permutations)</span></div>
-      <div class="stat-item"><span class="stat-val">${(bea.null_p95*100).toFixed(0)}%</span><span class="stat-label">Null 95th percentile</span></div>
-    </div>
-    <div class="bea-order-strip">
-      ${order.map((cid, i) => `<span class="bea-order-item">${i+1}. ${escHtml(termById[cid])}</span>`).join('')}
-    </div>
-    <div class="role-space-wrap" style="overflow:auto;">
-      <div style="font-family:var(--font-mono);font-size:0.58rem;color:var(--ink-light);margin-bottom:2px;">Block</div>
-      <svg width="${matrixW}" height="${stripH}" style="display:block;">${blockStrip}</svg>
-      <div style="font-family:var(--font-mono);font-size:0.58rem;color:var(--ink-light);margin:4px 0 2px;">Stability</div>
-      <svg width="${matrixW}" height="${stripH}" style="display:block;">${stabilityStrip}</svg>
-      <div style="font-family:var(--font-mono);font-size:0.58rem;color:var(--ink-light);margin:4px 0 2px;">Role</div>
-      <svg width="${matrixW}" height="${stripH}" style="display:block;margin-bottom:6px;">${roleStrip}</svg>
-      <svg width="${matrixW}" height="${order.length*cell}">${matrixRects}</svg>
-    </div>`;
-}
 
 // Real-path renderers (2026-07-29 figures handoff, panel set widened to
 // six 4 Aug): one <img> each, off figuresResult (set in
