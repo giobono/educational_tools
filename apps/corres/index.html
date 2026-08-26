@@ -220,7 +220,6 @@ The scale below is one common way of coding, not a requirement:
 <span class="step-num" id="num-process">2–5</span>
 <span class="step-name">Stability, Roles &amp; Seriation</span>
 </div>
-<span class="fixture-flag" id="fixture-flag" style="display:none;" title="The real backend call failed and this run fell back to fixture data (mocked, built to the real API schemas) rather than a live pipeline result.">FIXTURE DATA — backend unreachable, showing fixture data</span>
 </div>
 <div class="step-card-body" id="process-body">
 <p style="font-family:var(--font-display);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for term-term matrix…</p>
@@ -232,7 +231,7 @@ The scale below is one common way of coding, not a requirement:
 let dtmData       = null;  // {mode, docs:[{id,name}], concepts:[str], conceptIds:[int], matrix:[[num]]}
 let binaryMatrix  = null;  // [[0|1]] rows=docs, cols=concepts — live slider preview, then the server-confirmed matrix after Step 4.1
 let ttmData       = null;  // {concepts:[str], matrix:[[num]], sorted:[idx], totals:[num]} — reconstructed from serverTtm for the existing display code
-let serverTtm     = null;  // the TTMArtefact returned by /build, then enriched in place with residuals/consensus/roles/bea (FIXTURE DATA this build — see corres.css's .fixture-flag)
+let serverTtm     = null;  // the TTMArtefact returned by /build, then enriched in place with residuals/consensus/roles/bea - always from the back end
 let figuresResult = null;  // FiguresArtefact from /v1/corres/figures/render (real backend path only — see 2026-07-29 figures handoff, ebono_governance/briefs/d1dev/)
 
 function setStatus(state, msg) {
@@ -878,8 +877,8 @@ function exportTTM() {
 // ── CorRes Process: Stages 2-5 (Addie's method) ─────────────────────────
 // Instance brief 2026-07-24 (briefs/d1dev/2026-07-24_briefs_od_d1dev_corres-frontend-buildout.md).
 // FIXTURE DATA this build — backend reachability for the four new
-// endpoints wasn't resolved this session (see corres.css's .fixture-flag).
-// Mock generators below produce data shaped exactly like the real API
+// computed here - the back end computes, this declares (spec section 1).
+// The values below are shaped exactly like the real API
 // schemas (artie/apps/corres/workflows/build_ttm.py's ResidualsInfo/
 // ConsensusInfo/ConceptRole/BeaInfo), and the classification/BEA logic is
 // ported faithfully from classify_roles.py/bea_order.py so the demo
@@ -950,7 +949,7 @@ let processParams = {
   stability_threshold: 0.75,
   // weak_own_threshold - spec §4.1: the "0.5" own-affinity companion is
   // OPEN, unconfirmed since v1.0. Fenced per Working Arrangements §4.5:
-  // no default, no fallback. 0.5 shown here is the fixture's own working
+  // no default. 0.5 shown here is the 17 July verification file's own working
   // value, not a confirmed constant - flagged as such in the read-only
   // display, never silently presented as settled.
   weak_own_threshold: 0.5,
@@ -968,17 +967,6 @@ let processParams = {
   tau_rel: 0.5,
 };
 
-// Seeded PRNG (mulberry32) so fixture results are stable across reloads
-// rather than reshuffling on every run.
-function mulberry32(seed) {
-  let a = seed >>> 0;
-  return function () {
-    a |= 0; a = (a + 0x6D2B79F5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 function renderProcessControls() {
   const body = document.getElementById('process-body');
@@ -1077,7 +1065,7 @@ function renderParamsPanel() {
 // diagnostic, do not proceed silently" instruction. pollTask() surfaces
 // that .code on the Error it throws (edu_common.js). runProcessChain()'s
 // caller distinguishes this from a connectivity failure and must not
-// paper over it with a fixture fallback — a real gate failure is a
+  // paper over it - a real gate failure is a
 // finding, not an unreachable backend.
 async function runRealProcessChain() {
   const admissibilityParams = {
@@ -1149,7 +1137,6 @@ async function runRealProcessChain() {
   figuresResult = await pollTask('corres', created.task_id, { routeSegment: 'figures' });
 }
 
-let lastRunWasFixture = false;
 
 // Contact capture (12 Aug, Annex A item 3/A2): fire-and-forget on
 // submission, not a precondition of it - a visitor who leaves the field
@@ -1181,37 +1168,33 @@ async function runProcessChain() {
 
   try {
     let backendFailure = null;
+    let connectivityFailure = null;
     try {
       await runRealProcessChain();
-      lastRunWasFixture = false;
     } catch (backendErr) {
-      // Two very different failure shapes, distinguished by whether the
-      // backend was actually reached (err.code present — pollTask/
-      // callAppAPI set this from a real HTTP/task response, per
-      // edu_common.js) or not (a raw fetch/network exception, no .code —
-      // e.g. CORS, connection refused, wrong apiBase). Only the second
-      // is a reachability problem safe to paper over with fixture data.
-      // The first is a genuine methodological finding (an inadmissible
-      // matrix, a failed reliability gate) and spec's own instruction is
-      // to "halt with a prominent
-      // diagnostic, do not proceed silently" — swapping in fixture data
-      // for that would be exactly the silent failure the spec forbids.
+      // Two failure shapes, distinguished by whether the back end was
+      // actually reached: err.code is set by pollTask/callAppAPI from a
+      // real HTTP or task response (edu_common.js); a raw fetch or network
+      // exception carries none (CORS, connection refused, wrong apiBase).
+      //
+      // Both now stop, and neither produces a result. The unreachable case
+      // previously substituted client-side fixture data, which reported
+      // zero exclusions because nothing had been computed - on screen
+      // indistinguishable from a clean analysis, and non-compliant under
+      // specification section 2.1, which makes a run that excludes without
+      // reporting invalid. Removed 26 August 2026 under SD's gate brief;
+      // the generators are deleted, not disabled.
       if (backendErr.code) {
         backendFailure = backendErr;
       } else {
-        console.warn('Backend unreachable, falling back to fixture data:', backendErr);
-        const conceptIds = dtmData.conceptIds.map(String);
-        const conceptAdmission = mockConceptAdmission(conceptIds);
-        const residuals = mockComputeResiduals(conceptIds, processParams.seed);
-        const consensus = mockConsensusCluster(conceptIds, residuals, processParams);
-        const roles = mockClassifyRoles(conceptIds, residuals, consensus, processParams);
-        const bea = mockBeaOrder(conceptIds, residuals, consensus.blocks, processParams);
-        serverTtm = Object.assign({}, serverTtm, { concept_admission: conceptAdmission, residuals, consensus, roles, bea });
-        lastRunWasFixture = true;
+        connectivityFailure = backendErr;
       }
     }
 
-    if (backendFailure) {
+    if (connectivityFailure) {
+      renderConnectivityFailure();
+      markStepActive('process');
+    } else if (backendFailure) {
       renderBackendFailure(backendFailure);
       markStepActive('process');
     } else {
@@ -1238,8 +1221,20 @@ async function runProcessChain() {
 // (spec §4 item 11) is open. Proceed-with-caveat was ruled in principle 8
 // Aug but its implementation is deferred past promotion, so this halt is
 // the live behaviour for both Brisbane and Zurich, not a placeholder.
+// The back end could not be reached at all - no HTTP response, so nothing
+// was computed and there is nothing to report. Rendered where the result
+// would have been, per specification section 3.3: visible to the person
+// reading the result, not logged. No partial render and no substitute
+// data of any kind.
+function renderConnectivityFailure() {
+  document.getElementById('process-results').innerHTML = `
+    <div class="warning-banner warning-fail">
+      <strong>No result was produced</strong>
+      <p style="margin:0.4rem 0 0;">There is a connection issue preventing access to the back end code. Please try again later.</p>
+    </div>`;
+}
+
 function renderBackendFailure(err) {
-  document.getElementById('fixture-flag').style.display = 'none';
   const known = {
     residual_matrix_inadmissible: 'Residual matrix admissibility (spec §2.2a) failed — the corpus reads as degenerate ("blur" or "blob"; see the message below for spread/mean/eff_dim).',
     reliability_gate_failed: 'Reliability gate (spec §2.9) failed — no candidate k shows adequate split-half stability for this corpus. A failing corpus halts by design; the proceed-or-block policy is spec §4 item 11, which is open.',
@@ -1253,203 +1248,13 @@ function renderBackendFailure(err) {
     </div>`;
 }
 
-// ── Mock generators (FIXTURE DATA — see corres.css's .fixture-flag) ─────
 
-// Concept admission (spec §2.1, amended 3 Aug: bipartite). The fixture
-// path has no D1/D2/X1/X2/X3 rule engine to port — no exclusion logic is
-// invented here, per the 4 Aug handoff's own instruction. Synthesizes the
-// clean-run shape (matches the fixed MFC-A benchmark expectation: zero
-// concepts excluded) so downstream code exercises the real field shape.
-function mockConceptAdmission(conceptIds) {
-  return {
-    excluded: [],
-    admitted_concept_ids: conceptIds,
-    admitted_doc_ids: dtmData.docs.map(d => String(d.id)),
-    passes: 1,
-  };
-}
 
-function mockComputeResiduals(conceptIds, seed) {
-  const rng = mulberry32(seed * 1000 + 1);
-  const matrix = {};
-  conceptIds.forEach(ci => { matrix[ci] = {}; });
-  for (let i = 0; i < conceptIds.length; i++) {
-    for (let j = i; j < conceptIds.length; j++) {
-      const ci = conceptIds[i], cj = conceptIds[j];
-      if (i === j) { matrix[ci][cj] = 0; continue; }
-      const v = (rng() * 2 - 1) * 4; // roughly -4..4, occasional strong bridges
-      matrix[ci][cj] = v; matrix[cj][ci] = v;
-    }
-  }
-  return { convention: 'ca_margins', matrix };
-}
 
-function mockConsensusCluster(conceptIds, residuals, params) {
-  const rng = mulberry32(params.seed);
-  const blocks = {};
-  conceptIds.forEach((cid, i) => { blocks[cid] = i % params.n_clusters; });
-  // Nudge a few concepts toward their strongest residual partner's block,
-  // so membership isn't purely a round-robin artefact.
-  conceptIds.forEach(cid => {
-    let best = null, bestVal = -Infinity;
-    conceptIds.forEach(o => {
-      if (o !== cid && residuals.matrix[cid][o] > bestVal) { bestVal = residuals.matrix[cid][o]; best = o; }
-    });
-    if (best && bestVal > 2.5 && rng() > 0.5) blocks[cid] = blocks[best];
-  });
 
-  const matrix = {};
-  conceptIds.forEach(ci => {
-    matrix[ci] = {};
-    conceptIds.forEach(cj => {
-      if (ci === cj) { matrix[ci][cj] = 1; return; }
-      const sameBlock = blocks[ci] === blocks[cj];
-      const base = sameBlock ? 0.72 : 0.18;
-      matrix[ci][cj] = Math.min(1, Math.max(0, base + (rng() - 0.5) * 0.3));
-    });
-  });
 
-  // Rough proportional stand-in for fixture runs only — NOT Proposition
-  // 2's exact combinatorial formula (added to ConsensusInfo 24 Jul; that
-  // formula needs the real backend, which computes it from the actual
-  // discovered block sizes). Good enough to exercise the UI, not to cite.
-  const blockSizes = {};
-  Object.values(blocks).forEach(b => { blockSizes[b] = (blockSizes[b] || 0) + 1; });
-  const n = conceptIds.length;
-  const chanceBaseline = n > 1
-    ? Object.values(blockSizes).reduce((s, sz) => s + sz * (sz - 1), 0) / (n * (n - 1))
-    : 0;
 
-  return { n_splits: params.n_splits, n_clusters: params.n_clusters, seed: params.seed, matrix, blocks, chance_baseline: chanceBaseline };
-}
 
-// Faithful port of classify_roles.py's _classify_one, rewritten 4 Aug
-// against the ratio rule + fifth-role ruling
-// (2026-08-03_briefs_ad_d2dev_fifth_role_anchoring_ruled_v1_0.md §3),
-// which amends spec §2.6 in place — superseding both this file's own 28
-// Jul version (tau_bridge magnitude test) and the withdrawn 24 Jul one.
-// tau_bridge is gone entirely, not just hidden: the bridging test is now
-// a scale-invariant ratio, rho = max(others)/own >= 0.6 (BRIDGING_RATIO),
-// not a magnitude test against a calibrated per-corpus threshold.
-//
-// THE FIX this rewrite carries forward: own<=0 is checked BEFORE
-// bridging — reversing this order pulls a negative-own-affinity concept
-// into bridging on the benchmark, contradicting the certified
-// classification (hand-verified against corres_fixture_17jul_verified
-// .json's "External regulation" row, own=-1.27).
-//
-// Returns one of five leaf strings — never null. The classification is
-// now exhaustive by construction (every stable, positively-anchored
-// concept reaches a leaf): `anchoring` replaces UNRESOLVED as the
-// terminal branch. UNRESOLVED remains an error condition only (spec
-// §2.6) — this function reaching it would itself be a defect to report,
-// not a normal outcome, so it deliberately has nothing left to return
-// for that case.
-//
-// `others` is the cross-block affinity list, own block excluded — does
-// NOT include `own`.
-function classifyOne(own, others, stability, params) {
-  if (stability >= params.stability_threshold) {                    // STABLE
-    if (own <= 0) return 'orthogonal';
-    const rho = Math.max(...others) / own;
-    if (rho >= BRIDGING_RATIO) return 'bridging';
-    if (Math.min(...others) < 0) return 'distinguishing';
-    return 'anchoring';
-  }
-  // UNSTABLE
-  if (own <= params.weak_own_threshold && Math.max(...[own, ...others].map(v => Math.abs(v))) < WEAK_MAX_ABS_THRESHOLD) return 'weak';
-  return 'orthogonal';
-}
-
-// Returns RolesInfo-shaped output ({roles, unresolved_concept_ids}),
-// matching build_ttm.py's RolesInfo exactly — role is null for any
-// concept classifyOne returns null for, and its concept_id is collected
-// into unresolved_concept_ids per spec §2.11's output-contract
-// requirement ("the count of UNRESOLVED concepts, which must be zero
-// for a clean run").
-function mockClassifyRoles(conceptIds, residuals, consensus, params) {
-  const blocks = consensus.blocks;
-  const co = consensus.matrix;
-  const resid = residuals.matrix;
-  const roles = {};
-  const unresolvedConceptIds = [];
-
-  conceptIds.forEach(cid => {
-    const ownBlock = blocks[cid];
-    const sameBlock = conceptIds.filter(c => blocks[c] === ownBlock && c !== cid);
-    const stability = sameBlock.length ? sameBlock.reduce((s, c) => s + co[cid][c], 0) / sameBlock.length : 0;
-
-    const othersAll = conceptIds.filter(c => c !== cid);
-    const magnitude = othersAll.length ? othersAll.reduce((s, c) => s + Math.abs(resid[cid][c]), 0) / othersAll.length : 0;
-
-    const affinity = {};
-    for (let b = 0; b < params.n_clusters; b++) {
-      const members = conceptIds.filter(c => blocks[c] === b && c !== cid);
-      affinity[String(b)] = members.length ? members.reduce((s, c) => s + resid[cid][c], 0) / members.length : 0;
-    }
-    const ownAffinity = affinity[String(ownBlock)];
-    const otherAffinities = Object.entries(affinity).filter(([b]) => Number(b) !== ownBlock).map(([, v]) => v);
-    const role = classifyOne(ownAffinity, otherAffinities.length ? otherAffinities : [0], stability, params);
-    if (role === null) unresolvedConceptIds.push(cid);
-
-    roles[cid] = { stability, magnitude, affinity, role };
-  });
-  return { roles, unresolved_concept_ids: unresolvedConceptIds };
-}
-
-// Faithful port of bea_order.py's _bea() (broken-bond-corrected insertion gain).
-function beaOrderConcepts(conceptIds, positiveResid) {
-  const rem = new Set(conceptIds);
-  let bestI = null, bestJ = null, bestV = -Infinity;
-  conceptIds.forEach(i => conceptIds.forEach(j => {
-    if (i !== j && positiveResid[i][j] > bestV) { bestV = positiveResid[i][j]; bestI = i; bestJ = j; }
-  }));
-  const order = [bestI, bestJ];
-  rem.delete(bestI); rem.delete(bestJ);
-  while (rem.size) {
-    let best = { gain: -Infinity, c: null, pos: null };
-    rem.forEach(c => {
-      for (let pos = 0; pos <= order.length; pos++) {
-        let gain = (pos > 0 ? positiveResid[order[pos - 1]][c] : 0) + (pos < order.length ? positiveResid[c][order[pos]] : 0);
-        if (pos > 0 && pos < order.length) gain -= positiveResid[order[pos - 1]][order[pos]];
-        if (gain > best.gain) best = { gain, c, pos };
-      }
-    });
-    order.splice(best.pos, 0, best.c);
-    rem.delete(best.c);
-  }
-  return order;
-}
-
-function mockBeaOrder(conceptIds, residuals, blocks, params) {
-  const rng = mulberry32(params.bea_seed);
-  const n = conceptIds.length;
-  const positive = {};
-  conceptIds.forEach(ci => {
-    positive[ci] = {};
-    conceptIds.forEach(cj => { positive[ci][cj] = Math.max(0, residuals.matrix[ci][cj]); });
-  });
-
-  const order = beaOrderConcepts(conceptIds, positive);
-  const blockSeq = order.map(cid => blocks[cid]);
-  const adjacency = n > 1 ? blockSeq.slice(0, -1).filter((b, i) => b === blockSeq[i + 1]).length / (n - 1) : 0;
-
-  const nullAdj = [];
-  const blockArr = conceptIds.map(cid => blocks[cid]);
-  for (let k = 0; k < params.n_null; k++) {
-    const perm = [...blockArr];
-    for (let i = perm.length - 1; i > 0; i--) {
-      const j = Math.floor(rng() * (i + 1));
-      [perm[i], perm[j]] = [perm[j], perm[i]];
-    }
-    nullAdj.push(n > 1 ? perm.slice(0, -1).filter((b, i) => b === perm[i + 1]).length / (n - 1) : 0);
-  }
-  nullAdj.sort((a, b) => a - b);
-  const nullMean = nullAdj.reduce((a, b) => a + b, 0) / nullAdj.length;
-  const p95Idx = Math.min(nullAdj.length - 1, Math.floor(0.95 * nullAdj.length));
-
-  return { order, adjacency, null_mean: nullMean, null_p95: nullAdj[p95Idx] };
-}
 
 // ── Rendering: certificate summary, vocabulary note, panel tabs ─────────
 
@@ -1466,7 +1271,6 @@ function renderProcessResults() {
   const certified = conceptIds.filter(cid => roles[cid].role !== null && roles[cid].stability >= processParams.stability_threshold);
   const resultsDiv = document.getElementById('process-results');
 
-  document.getElementById('fixture-flag').style.display = lastRunWasFixture ? 'inline-block' : 'none';
 
   let html = renderWarnings(rolesInfo);
 
@@ -1493,24 +1297,15 @@ function renderProcessResults() {
   // Real path: backend-rendered PNGs (figuresResult, set in
   // runRealProcessChain() after classify-roles/bea-order). Fixture path:
   // this build's own SVG rendering — figures/render needs a real backend
-  // round-trip and cannot run against mock data at all (2026-07-29
+  // round trip; the client-side SVG renderers that once served the
   // figures handoff). Six panels now, not five (4 Aug: panel B' inserted
   // after B, no baked-in titles — see each renderer's caption line).
-  if (lastRunWasFixture) {
-    renderStage1RawMatrixSvg(document.getElementById('stage-1'));
-    renderStage2ResidualsSvg(document.getElementById('stage-2'));
-    renderStage2bBlockOrderSvg(document.getElementById('stage-2b'));
-    renderStage3ConsensusSvg(document.getElementById('stage-3'));
-    renderStage4RoleSpaceSvg(document.getElementById('stage-4'));
-    renderStage5BeaSvg(document.getElementById('stage-5'));
-  } else {
     renderStage1RawMatrix(document.getElementById('stage-1'));
     renderStage2Residuals(document.getElementById('stage-2'));
     renderStage2bBlockOrder(document.getElementById('stage-2b'));
     renderStage3Consensus(document.getElementById('stage-3'));
     renderStage4RoleSpace(document.getElementById('stage-4'));
     renderStage5Bea(document.getElementById('stage-5'));
-  }
 }
 
 // Spec §3.3: four warnings, "not logged — visible to the person reading
@@ -1519,7 +1314,7 @@ function renderProcessResults() {
 // ratified 28 Jul) are now wired into the real path (29 Jul, artie
 // commit 4ab59ce) — shown as real pass/fail when serverTtm carries the
 // result (a completed real run), and as explicit "not yet available"
-// only when it doesn't (the fixture-fallback path, whose mock generators
+// only when it doesn't - which, since the substitute-data path was removed
 // don't compute either — a true statement, not a stale placeholder).
 // Either way spec's "never hide" instruction holds: an absent warning
 // slot is indistinguishable from a checked-and-passing one, so the
@@ -1555,7 +1350,7 @@ function renderWarnings(rolesInfo) {
   } else {
     html += `<div class="warning-banner warning-unavailable">
       <strong>Concept admission (spec §2.1) — not available this run</strong>
-      Fixture-fallback path only; the real endpoint exists and is wired, but this run didn't reach it. This is not a clean-admission result; it is unchecked.
+      The back end did not return this field, so nothing was checked. This is not a clean-admission result; it is unchecked.
     </div>`;
   }
 
@@ -1569,7 +1364,7 @@ function renderWarnings(rolesInfo) {
   } else {
     html += `<div class="warning-banner warning-unavailable">
       <strong>Reliability gate (spec §2.9) — not available this run</strong>
-      Fixture-fallback path only; the real endpoint exists and is wired, but this run didn't reach it. This is not a pass; it is unchecked.
+      The back end did not return this field, so nothing was checked. This is not a pass; it is unchecked.
     </div>`;
   }
 
@@ -1583,7 +1378,7 @@ function renderWarnings(rolesInfo) {
   } else {
     html += `<div class="warning-banner warning-unavailable">
       <strong>Residual-matrix admissibility (spec §2.2a) — not available this run</strong>
-      Fixture-fallback path only; the real endpoint exists and is wired, but this run didn't reach it. This is not a pass; it is unchecked.
+      The back end did not return this field, so nothing was checked. This is not a pass; it is unchecked.
     </div>`;
   }
 
@@ -1613,251 +1408,12 @@ function statusTagHtml(stability) {
   return `<span class="status-tag ${certified ? 'status-certified' : 'status-exploratory'}">${certified ? 'Certified' : 'Exploratory'}</span>`;
 }
 
-// Stage 1 — raw matrix, two panels (article v0.6 Figure 1; reference
-// image panelA.png). CORRECTED 28 Jul: this was built as a sorted list of
-// numbers, not a matrix — reconciled against the actual reference image
-// and the article text ("The left panel displays the term–term matrix...
-// concepts in alphabetical order... The right panel shows the same
-// matrix sorted by total co-occurrence — and the result looks
-// compellingly like structure, but the reading is an illusion... This is
-// the specific trap Stage 2 exists to spring."). Both panels are the same
-// kind of figure — a concept x concept co-occurrence-count matrix — just
-// in two different concept orders. Grayscale, matching panelA.png; no
-// residuals/consensus/roles needed, only the Stage-1 TTM matrix/totals.
-//
-// SVG renderers below (renderStageN*Svg): fixture-fallback path only,
-// since 2026-07-29 (figures handoff). The real path now calls
-// /v1/corres/figures/render and displays matplotlib PNGs from artie —
-// one source of truth instead of two implementations that already
-// drifted once (this build's role-space axis was |own-block affinity|,
-// spec §2.5-correct; Addie's original scripts used mean|residual| across
-// all blocks — artie's new figures.py was written to follow this build's
-// definition, not the older one). Kept alive, not deleted, because the
-// new endpoint requires a real backend round-trip and cannot serve the
-// offline/fixture demo at all — see runProcessResults()'s dispatch.
-function renderStage1RawMatrixSvg(target) {
-  const termById = {};
-  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
-  const ids = dtmData.conceptIds.map(String);
-  const alpha = [...ids].sort((a, b) => termById[a].localeCompare(termById[b]));
-  const byCooccurrence = [...ids].sort((a, b) => (serverTtm.totals[b] || 0) - (serverTtm.totals[a] || 0));
-  const cell = Math.max(4, Math.min(18, Math.floor(420 / ids.length)));
-  const max = Math.max(1, ...ids.flatMap(ci => ids.map(cj => serverTtm.matrix[ci][cj] || 0)));
 
-  const matrixSvg = (order) => {
-    let rects = '';
-    order.forEach((ci, ri) => order.forEach((cj, cj2) => {
-      const v = serverTtm.matrix[ci][cj] || 0;
-      const grey = Math.round(255 - (v / max) * 255);
-      rects += `<rect x="${cj2*cell}" y="${ri*cell}" width="${cell}" height="${cell}" fill="rgb(${grey},${grey},${grey})"><title>${escHtml(termById[ci])} × ${escHtml(termById[cj])}: ${v}</title></rect>`;
-    }));
-    return `<svg width="${order.length*cell}" height="${order.length*cell}">${rects}</svg>`;
-  };
 
-  target.innerHTML = `
-    <div class="stage-head"><span class="stage-num">Stage 1</span><span class="stage-name">Raw matrix — two panels</span></div>
-    <p class="panel-sub">Any sufficiently large matrix looks structured — this display proves nothing. Left: alphabetical order, deliberately, because at this stage nothing has been measured. Right: the same matrix sorted by total co-occurrence — this is the specific trap Stage 2 exists to spring, not a better view.</p>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
-      <div><div class="panel-sub" style="margin-bottom:0.5rem;">Alphabetical</div><div class="role-space-wrap" style="overflow:auto;">${matrixSvg(alpha)}</div></div>
-      <div><div class="panel-sub" style="margin-bottom:0.5rem;">Sorted by co-occurrence</div><div class="role-space-wrap" style="overflow:auto;">${matrixSvg(byCooccurrence)}</div></div>
-    </div>`;
-}
 
-// Stage 2 — standardised residuals, alphabetical (brief §3.6 item 2).
-// Colour convention per brief: "Red resonance, blue dissonance" — red for
-// positive (co-occurs more than chance expects), blue for negative.
-function renderStage2ResidualsSvg(target) {
-  const { residuals } = serverTtm;
-  const termById = {};
-  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
-  const ids = dtmData.conceptIds.map(String);
-  const alpha = [...ids].sort((a, b) => termById[a].localeCompare(termById[b]));
-  const cell = Math.max(4, Math.min(18, Math.floor(560 / alpha.length)));
-  const max = Math.max(1, ...alpha.flatMap(ci => alpha.map(cj => Math.abs(residuals.matrix[ci][cj]))));
 
-  let rects = '';
-  alpha.forEach((ci, ri) => alpha.forEach((cj, cj2) => {
-    const v = residuals.matrix[ci][cj];
-    const intensity = Math.min(1, Math.abs(v) / max);
-    const color = v >= 0 ? `rgba(178,34,34,${intensity})` : `rgba(28,122,156,${intensity})`;
-    rects += `<rect x="${cj2*cell}" y="${ri*cell}" width="${cell}" height="${cell}" fill="${color}"><title>${escHtml(termById[ci])} × ${escHtml(termById[cj])}: ${v.toFixed(2)}</title></rect>`;
-  }));
 
-  target.innerHTML = `
-    <div class="stage-head"><span class="stage-num">Stage 2</span><span class="stage-name">Standardised residuals</span></div>
-    <p class="panel-sub">Alphabetical order. Red = resonance (co-occurs more than the independence baseline expects); blue = dissonance (less).</p>
-    <div class="role-space-wrap" style="overflow:auto;"><svg width="${alpha.length*cell}" height="${alpha.length*cell}">${rects}</svg></div>`;
-}
 
-// Stage 2b — Panel B' (new 4 Aug): the same standardised residuals as
-// Stage 2, reordered into consensus-block order instead of alphabetical,
-// with no certification strips (that's Panel E's job) - just the block
-// permutation applied to the same matrix and colour convention.
-function renderStage2bBlockOrderSvg(target) {
-  const { residuals, consensus } = serverTtm;
-  const termById = {};
-  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
-  const ids = dtmData.conceptIds.map(String);
-  const byBlock = [...ids].sort((a, b) => (consensus.blocks[a] - consensus.blocks[b]) || termById[a].localeCompare(termById[b]));
-  const cell = Math.max(4, Math.min(18, Math.floor(560 / byBlock.length)));
-  const max = Math.max(1, ...byBlock.flatMap(ci => byBlock.map(cj => Math.abs(residuals.matrix[ci][cj]))));
-
-  let rects = '';
-  byBlock.forEach((ci, ri) => byBlock.forEach((cj, cj2) => {
-    const v = residuals.matrix[ci][cj];
-    const intensity = Math.min(1, Math.abs(v) / max);
-    const color = v >= 0 ? `rgba(178,34,34,${intensity})` : `rgba(28,122,156,${intensity})`;
-    rects += `<rect x="${cj2*cell}" y="${ri*cell}" width="${cell}" height="${cell}" fill="${color}"><title>${escHtml(termById[ci])} × ${escHtml(termById[cj])}: ${v.toFixed(2)}</title></rect>`;
-  }));
-
-  target.innerHTML = `
-    <div class="stage-head"><span class="stage-num">Stage 2'</span><span class="stage-name">Standardised residuals — block order</span></div>
-    <p class="panel-sub">Same matrix and colour convention as Stage 2, reordered into consensus-block order — no certification strips (Stage 5 carries those).</p>
-    <div class="role-space-wrap" style="overflow:auto;"><svg width="${byBlock.length*cell}" height="${byBlock.length*cell}">${rects}</svg></div>`;
-}
-
-// Stage 3 — consensus co-classification, sorted by block (brief §3.6 item 3).
-function renderStage3ConsensusSvg(target) {
-  const { consensus } = serverTtm;
-  const termById = {};
-  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
-  const ids = dtmData.conceptIds.map(String);
-  const byBlock = [...ids].sort((a, b) => (consensus.blocks[a] - consensus.blocks[b]) || termById[a].localeCompare(termById[b]));
-  const cell = Math.max(4, Math.min(18, Math.floor(560 / byBlock.length)));
-
-  let rects = '';
-  byBlock.forEach((ci, ri) => byBlock.forEach((cj, cj2) => {
-    const v = consensus.matrix[ci][cj];
-    rects += `<rect x="${cj2*cell}" y="${ri*cell}" width="${cell}" height="${cell}" fill="rgba(28,122,156,${v.toFixed(2)})"><title>${escHtml(termById[ci])} × ${escHtml(termById[cj])}: ${v.toFixed(2)}</title></rect>`;
-  }));
-
-  target.innerHTML = `
-    <div class="stage-head"><span class="stage-num">Stage 3</span><span class="stage-name">Consensus co-classification</span></div>
-    <p class="panel-sub">Sorted by consensus block. Darker = higher co-classification rate across the resampled ensemble.</p>
-    <div class="role-space-wrap" style="overflow:auto;"><svg width="${byBlock.length*cell}" height="${byBlock.length*cell}">${rects}</svg></div>`;
-}
-
-// Stage 4 — role space (brief §3.6 item 4; spec §2.5/§3.4). x = stability,
-// y = ABSOLUTE own-block affinity (not general magnitude — spec §2.5 is
-// explicit that the absolute value is load-bearing, since orthogonal
-// concepts carry non-positive own-block affinity by definition and must
-// share visual space with what they're compared against). Shape AND
-// colour distinguish the four roles (spec §3.4 — greyscale/print/colour-
-// blind legibility).
-function renderStage4RoleSpaceSvg(target) {
-  const roles = serverTtm.roles.roles;
-  const conceptIds = dtmData.conceptIds.map(String);
-  const termById = {};
-  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
-
-  const w = 640, h = 420, pad = 40;
-  const ownAffinity = (cid) => {
-    const r = roles[cid];
-    const ownBlock = serverTtm.consensus.blocks[cid];
-    return Math.abs(r.affinity[String(ownBlock)] || 0);
-  };
-  const maxAff = Math.max(1, ...conceptIds.map(ownAffinity));
-
-  const markerSvg = (shape, x, y, size, fill, opacity, stroke) => {
-    if (shape === 'circle') return `<circle cx="${x}" cy="${y}" r="${size}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="1.5"/>`;
-    if (shape === 'square') return `<rect x="${x-size}" y="${y-size}" width="${size*2}" height="${size*2}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="1.5"/>`;
-    if (shape === 'triangle') return `<polygon points="${x},${y-size*1.2} ${x-size*1.1},${y+size*0.8} ${x+size*1.1},${y+size*0.8}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="1.5"/>`;
-    if (shape === 'diamond') return `<polygon points="${x},${y-size*1.2} ${x+size*1.2},${y} ${x},${y+size*1.2} ${x-size*1.2},${y}" fill="${fill}" fill-opacity="${opacity}" stroke="${stroke}" stroke-width="1.5"/>`;
-    // cross (orthogonal)
-    return `<g stroke="${fill}" stroke-opacity="${opacity}" stroke-width="${size*0.6}"><line x1="${x-size}" y1="${y-size}" x2="${x+size}" y2="${y+size}"/><line x1="${x-size}" y1="${y+size}" x2="${x+size}" y2="${y-size}"/></g>`;
-  };
-
-  const points = conceptIds.map(cid => {
-    const r = roles[cid];
-    if (r.role === null) return ''; // UNRESOLVED — surfaced via the warnings block, not plotted as a role
-    const x = pad + r.stability * (w - 2*pad);
-    const y = h - pad - (ownAffinity(cid) / maxAff) * (h - 2*pad);
-    const color = ROLE_COLOR[r.role];
-    const certified = r.stability >= processParams.stability_threshold;
-    const title = `<title>${escHtml(termById[cid])} — ${ROLE_TIER[r.role]} · ${ROLE_LABEL[r.role]} (σ=${r.stability.toFixed(2)}, |own affinity|=${ownAffinity(cid).toFixed(2)})</title>`;
-    return `<g>${markerSvg(ROLE_MARKER[r.role], x.toFixed(1), y.toFixed(1), certified ? 6 : 4.5, color, certified ? 0.9 : 0.45, certified ? color : 'none')}${title}</g>`;
-  }).join('');
-
-  const threshX = pad + processParams.stability_threshold * (w - 2*pad);
-
-  target.innerHTML = `
-    <div class="stage-head"><span class="stage-num">Stage 4</span><span class="stage-name">Role space — primary evidentiary weight</span></div>
-    <p class="panel-sub">Stability (x) vs. absolute own-block affinity (y). Shape and colour both distinguish role (spec §3.4). Filled markers passed the stability threshold; faint markers did not.</p>
-    <div class="role-space-wrap">
-      <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-        <line x1="${threshX}" y1="${pad}" x2="${threshX}" y2="${h-pad}" stroke="var(--rule)" stroke-dasharray="4 3"/>
-        <line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="var(--ink-light)"/>
-        <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${h-pad}" stroke="var(--ink-light)"/>
-        <text x="${w/2}" y="${h-8}" font-size="10" fill="var(--ink-light)" text-anchor="middle" font-family="var(--font-mono)">stability (σ) →</text>
-        ${points}
-      </svg>
-      <div class="role-space-legend">
-        <div class="legend-item"><span style="width:10px;height:10px;border-radius:50%;background:#2a6b4a;display:inline-block;"></span>● Distinguishing</div>
-        <div class="legend-item"><span style="width:10px;height:10px;background:#1c7a9c;display:inline-block;"></span>■ Bridging</div>
-        <div class="legend-item"><span style="width:10px;height:10px;background:#7a5c1a;display:inline-block;"></span>▲ Weak</div>
-        <div class="legend-item"><span style="width:10px;height:10px;background:#9a9490;display:inline-block;"></span>✕ Orthogonal</div>
-      </div>
-    </div>`;
-}
-
-// Shared block-colour palette — small hash-based list, not tied to any
-// particular n_clusters. Used by Stage 5's block strip.
-const BLOCK_PALETTE = ['#2a4a7a', '#2a6b4a', '#7a3a6a', '#5a4a1a', '#1a5a6b', '#7a2a2a', '#4a2a7a', '#2a7a5a', '#7a5a2a', '#2a5a7a'];
-
-// Stage 5 — BEA seriation with block/stability/role strips (brief §3.6
-// item 5). "BEA rendering is unchanged and safe — do not rewrite it";
-// only the role strip's vocabulary/colours changed (four roles, no
-// unclassified_core).
-function renderStage5BeaSvg(target) {
-  const { bea, residuals, consensus } = serverTtm;
-  const roles = serverTtm.roles.roles;
-  const order = bea.order; // never re-sorted here
-  const termById = {};
-  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
-
-  const cell = Math.max(4, Math.min(18, Math.floor(560 / order.length)));
-  const stripH = 10;
-  const matrixW = order.length * cell;
-  const max = Math.max(1, ...order.flatMap(ci => order.map(cj => Math.abs(residuals.matrix[ci][cj]))));
-
-  const blockStrip = order.map((cid, i) => `<rect x="${i*cell}" y="0" width="${cell}" height="${stripH}" fill="${BLOCK_PALETTE[consensus.blocks[cid] % BLOCK_PALETTE.length]}"><title>${escHtml(termById[cid])} — block ${consensus.blocks[cid]}</title></rect>`).join('');
-  const stabilityStrip = order.map((cid, i) => `<rect x="${i*cell}" y="0" width="${cell}" height="${stripH}" fill="rgba(28,122,156,${roles[cid].stability.toFixed(2)})"><title>${escHtml(termById[cid])} — σ=${roles[cid].stability.toFixed(2)}</title></rect>`).join('');
-  const roleStrip = order.map((cid, i) => {
-    const role = roles[cid].role;
-    const fill = role === null ? '#ccc' : ROLE_COLOR[role];
-    const label = role === null ? 'UNRESOLVED' : ROLE_LABEL[role];
-    return `<rect x="${i*cell}" y="0" width="${cell}" height="${stripH}" fill="${fill}"><title>${escHtml(termById[cid])} — ${label}</title></rect>`;
-  }).join('');
-  let matrixRects = '';
-  order.forEach((ci, ri) => order.forEach((cj, ci2) => {
-    const v = residuals.matrix[ci][cj];
-    const sameBlock = consensus.blocks[ci] === consensus.blocks[cj];
-    const intensity = Math.min(1, Math.abs(v) / max);
-    const color = v >= 0 ? `rgba(178,34,34,${(sameBlock?0.9:0.5)*intensity})` : `rgba(28,122,156,${(sameBlock?0.9:0.5)*intensity})`;
-    matrixRects += `<rect x="${ci2*cell}" y="${ri*cell}" width="${cell}" height="${cell}" fill="${color}"/>`;
-  }));
-
-  target.innerHTML = `
-    <div class="stage-head"><span class="stage-num">Stage 5</span><span class="stage-name">Bond-energy seriation</span></div>
-    <p class="panel-sub">Rows and columns are sorted by block, most stable first within each block — the certified partition (spec §2.10). Bond-energy seriation places concepts within that order to maximise adjacent positive-residual bond strength; it is computed separately as corroborating evidence, not an independent test of the partition, and its block-adjacency statistic and permutation null are reported in the sidecar.</p>
-    <div class="bea-adjacency-stat" style="margin-bottom:1rem;">
-      <div class="stat-item"><span class="stat-val">${(bea.adjacency*100).toFixed(0)}%</span><span class="stat-label">Same-block adjacency, observed</span></div>
-      <div class="stat-item"><span class="stat-val">${(bea.null_mean*100).toFixed(0)}%</span><span class="stat-label">Null mean (${processParams.n_null} permutations)</span></div>
-      <div class="stat-item"><span class="stat-val">${(bea.null_p95*100).toFixed(0)}%</span><span class="stat-label">Null 95th percentile</span></div>
-    </div>
-    <div class="bea-order-strip">
-      ${order.map((cid, i) => `<span class="bea-order-item">${i+1}. ${escHtml(termById[cid])}</span>`).join('')}
-    </div>
-    <div class="role-space-wrap" style="overflow:auto;">
-      <div style="font-family:var(--font-mono);font-size:0.58rem;color:var(--ink-light);margin-bottom:2px;">Block</div>
-      <svg width="${matrixW}" height="${stripH}" style="display:block;">${blockStrip}</svg>
-      <div style="font-family:var(--font-mono);font-size:0.58rem;color:var(--ink-light);margin:4px 0 2px;">Stability</div>
-      <svg width="${matrixW}" height="${stripH}" style="display:block;">${stabilityStrip}</svg>
-      <div style="font-family:var(--font-mono);font-size:0.58rem;color:var(--ink-light);margin:4px 0 2px;">Role</div>
-      <svg width="${matrixW}" height="${stripH}" style="display:block;margin-bottom:6px;">${roleStrip}</svg>
-      <svg width="${matrixW}" height="${order.length*cell}">${matrixRects}</svg>
-    </div>`;
-}
 
 // Real-path renderers (2026-07-29 figures handoff, panel set widened to
 // six 4 Aug): one <img> each, off figuresResult (set in

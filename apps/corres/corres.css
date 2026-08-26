@@ -285,16 +285,6 @@
   .callout { background: white; border-left: 3px solid var(--accent); padding: 1rem 1.25rem; margin-bottom: 2rem; font-family: var(--font-display); font-size: 0.88rem; line-height: 1.7; color: var(--ink-mid); }
   .callout strong { color: var(--ink); font-family: var(--font-body); font-size: 0.82rem; }
 
-  /* ── CorRes process (Addie's method, Stages 2-5) ──────────────────────
-     Instance brief 2026-07-24: corres_frontend_build_2026_07. Fixture-data
-     build (backend reachability not yet resolved) - see FIXTURE DATA flag. */
-
-  .fixture-flag {
-    font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.1em;
-    text-transform: uppercase; color: var(--warning); background: var(--warning-bg);
-    border: 1px solid var(--warning-border); padding: 0.2rem 0.55rem; border-radius: 2px;
-    cursor: help;
-  }
 
   /* Declared-parameters transparency, read-only (spec §3.1-3.2, Annex A
      §A5). Status badges distinguish Fixed/Calibrated/Open per spec §3.2's
