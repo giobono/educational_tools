@@ -335,6 +335,9 @@
   .sd-fill.sd-over  { background: var(--accent); }
   .sd-tick { font-family: var(--font-mono); font-size: 0.52rem; color: var(--ink-light); text-align: center; padding-top: 0.2rem; }
   .sd-note { font-family: var(--font-body); font-size: 0.68rem; line-height: 1.5; color: var(--ink-light); margin: 0.6rem 0 0; }
+
+  .handoff-row { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin: 0 0 1.25rem; }
+  .handoff-note { font-family: var(--font-body); font-size: 0.68rem; line-height: 1.45; color: var(--ink-light); flex: 1 1 16rem; }
   .param-status {
     font-size: 0.52rem; letter-spacing: 0.04em; padding: 0.05rem 0.35rem;
     border-radius: 2px; text-transform: uppercase;

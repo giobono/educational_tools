@@ -4,909 +4,351 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<!-- NOTE (D1Win, brand alignment pass): title and stylesheet below are
-     copy-pasted from sanzognie/index.html, and the body markup that
-     follows is an unedited clone of sanzognie's page — pluralitie has
-     no content of its own yet. Left as found: pluralitie is documented
-     as deferred and is the next app scheduled to be toggled off, so
-     fixing this now would be discarded almost immediately. Flagging
-     for the record rather than silently leaving it unmentioned. -->
-<title>Correlating Resonance — Phase 3.1: Corpus Coding</title>
+<!-- pluralitie: frame naming.
+
+     Written 27 Aug 2026, replacing an unedited clone of sanzognie's corpus
+     coding page that had been left in place while this app was deferred.
+     That clone carried no frame-naming code; the routines survive because
+     they were migrated to artie as apps/corres/workflows/name_frames.py
+     before the front end was overwritten, and this page calls them there
+     rather than reimplementing them.
+
+     The seam is the same one corres holds to: the back end computes, this
+     page declares and displays. Nothing here names, groups, or scores
+     anything - it posts the artefact corres produced and renders what
+     comes back. -->
+<title>Correlating Resonance — Frame Naming</title>
 <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
 <meta name="theme-color" content="#05070a">
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&amp;family=JetBrains+Mono:wght@400;500&amp;family=Barlow:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="/apps-enabled.php"></script>
 <script src="config.php"></script>
 <script src="/edu_common.js?v=202608231842"></script>
 <script>window.enforceAppActive();</script>
 <link href="/ebono_brand.css?v=202608231842" rel="stylesheet"/>
 <link href="/edu_common.css?v=202608231842" rel="stylesheet"/>
-<link href="sanzognie.css?v=202608231842" rel="stylesheet"/></head>
+<link href="pluralitie.css?v=202608271405" rel="stylesheet"/></head>
 <body>
 <div id="edu-header" class="cr-nav"></div>
+
+<div class="cr-gate" id="pluralitie-gate" hidden>
+<h2 class="cr-gate-title">Open to registered researchers</h2>
+<p class="cr-gate-body">pluralitie is in beta, and we are opening it to researchers a few at a time so that we can respond properly to what comes back.</p>
+<p class="cr-gate-body">Register your interest and we will be in touch.</p>
+<p><a class="cr-gate-action" href="/#contact">Register your interest</a></p>
+<p class="cr-gate-sub">Already registered? Write to <a href="mailto:info@ebono.au">info@ebono.au</a> and we will sort it out.</p>
+</div>
+
+<section class="cr-front-hero">
+<p class="cr-front-eyebrow">Correlating Resonance</p>
+<h1 class="cr-front-title">Name the frames</h1>
+<p class="cr-front-standfirst">Bring a finished corres analysis. This page proposes a working name and a description for each group of concepts, and shows you the documents that sit most squarely inside it. What it proposes is a starting point for your reading, not a finding.</p>
+<p><a class="cr-front-cta" href="/apps/corres/">Run an analysis in corres first ↗</a></p>
+</section>
+
 <div class="workspace">
+
 <div class="callout">
-<strong>What this does</strong><br/>
-    Upload your finalised typology and the full corpus. Documents are coded in batches — each document independently scored against every concept in the typology. The DTM is exported automatically after each batch as a checkpoint. Review the DTM before proceeding to Phase 4 for threshold setting, binarisation, and cluster analysis. If the coding looks wrong, adjust the configuration or return to Phase 2 to revise the typology.
-  </div>
-<!-- ── Configuration ── -->
-<div class="section-head">Configuration</div>
-<div class="config-grid">
-<div class="config-card">
-<div class="config-card-title">Coding mode</div>
-<div class="mode-group">
-<div class="mode-option">
-<input checked="" id="mode-rating" name="mode" type="radio" value="rating"/>
-<label for="mode-rating">Rating (0–3)</label>
+<strong>What you need — the analysis file from corres</strong><br/>
+At the end of a corres run, use <em>Download analysis for frame naming</em>. That file carries the groups, the role and stability of every concept, and your own concept names. Nothing else is needed, and the original documents are not uploaded here.
 </div>
-<div class="mode-option">
-<input id="mode-frequency" name="mode" type="radio" value="frequency"/>
-<label for="mode-frequency">Frequency count</label>
+
+<!-- ── Step 1: load ── -->
+<div class="step-card" id="card-load">
+<div class="step-card-header">
+<div class="step-card-title"><span class="step-num">1</span><span class="step-name">Load the analysis</span></div>
 </div>
+<div class="step-card-body">
+<div class="pl-drop" id="pl-drop">
+<div class="pl-drop-icon" id="pl-drop-icon">◇</div>
+<div class="pl-drop-body"><strong id="pl-drop-text">Drop the corres analysis file here or click to browse</strong>
+<span class="pl-drop-sub" id="pl-drop-sub">a .json file written by corres</span></div>
 </div>
-<div class="scale-ref" id="scale-ref">
-<span class="scale-score">0</span><span class="scale-desc">Absent</span>
-<span class="scale-score">1</span><span class="scale-desc">Mentioned — brief reference only</span>
-<span class="scale-score">2</span><span class="scale-desc">Important — discussed and emphasised</span>
-<span class="scale-score">3</span><span class="scale-desc">Central — core focus of document</span>
+<input accept=".json,application/json" id="pl-file" style="display:none;" type="file"/>
+<div class="error-box" id="pl-error" style="display:none;"></div>
+<div id="pl-summary" style="display:none;"></div>
 </div>
 </div>
-<div class="config-card">
-<div class="config-card-title">Processing settings</div>
-<div class="field">
-<label>Batch size</label>
-<input id="batch-size" max="100" min="1" type="number" value="20"/>
-<div class="field-hint">Documents processed before each automatic DTM checkpoint export.</div>
+
+<!-- ── Step 2: name ── -->
+<div class="step-card" id="card-name" style="display:none;">
+<div class="step-card-header">
+<div class="step-card-title"><span class="step-num">2</span><span class="step-name">Propose names</span></div>
 </div>
-<div class="field">
-<label>Text extract limit (characters)</label>
-<input id="text-limit" max="30000" min="3000" step="1000" type="number" value="15000"/>
-<div class="field-hint">Characters extracted per document. Higher = more context, more tokens.</div>
-</div>
-<div class="field">
-<label>Vision fallback threshold (characters)</label>
-<input id="vision-threshold" max="5000" min="100" step="100" type="number" value="500"/>
-<div class="field-hint">If extracted text is below this length the PDF is sent directly to the API for vision-based coding.</div>
-</div>
-<div class="field" style="margin-top:1.25rem;">
-<div class="config-card-title" style="margin-bottom:0.75rem;">Typology CSV</div>
-<div class="upload-zone" id="typology-zone">
-<input accept=".csv" id="typology-file" type="file"/>
-<div class="upload-icon">📋</div>
-<div class="upload-text"><strong>Drop CSV here</strong> or click to browse</div>
-<div class="upload-sub">Finalised typology from Phase 2</div>
-</div>
-<div id="typology-count" style="font-family:var(--font-mono);font-size:0.65rem;color:var(--ink-light);margin-top:0.35rem;"></div>
+<div class="step-card-body">
+<p class="pl-lede">Each group is sent to a language model with its concepts, ranked by how often they appear across the corpus, and the model is asked for a short name and a description. The documents shown beside each frame are chosen by the server from your own matrix — the ones carrying the most of that group's concepts.</p>
+<div id="pl-caveat"></div>
+<button class="btn btn-primary" id="pl-run-btn">Propose names for the frames →</button>
+<div id="pl-running" style="display:none;">
+<p class="pl-running-text">Asking the model…</p>
 </div>
 </div>
 </div>
-<!-- ── Corpus upload ── -->
-<div class="section-head">Corpus documents</div>
-<div class="corpus-section">
-<div class="corpus-upload-row">
-<div class="corpus-drop-zone" id="corpus-drop">
-<input accept=".txt,.pdf" id="corpus-files" multiple="" type="file"/>
-<div class="corpus-drop-icon">📄</div>
-<div class="corpus-drop-text">
-<strong>Select multiple files</strong>
-          Drop PDF or TXT files here, or click to browse and select all corpus documents at once
-          <div class="corpus-drop-sub">.pdf and .txt · select all at once using Shift+click or Ctrl+click</div>
+
+<!-- ── Step 3: results ── -->
+<div class="step-card" id="card-frames" style="display:none;">
+<div class="step-card-header">
+<div class="step-card-title"><span class="step-num">3</span><span class="step-name">Proposed frames</span></div>
+</div>
+<div class="step-card-body">
+<div id="pl-frames"></div>
+<div class="pl-actions" id="pl-actions" style="display:none;">
+<button class="btn btn-outline" id="pl-export-btn">↓ Download frames</button>
+<span class="pl-actions-note">Names and descriptions as proposed, with the concepts and documents each was drawn from.</span>
 </div>
 </div>
-<label class="corpus-folder-btn">
-<input accept=".txt,.pdf" id="corpus-folder" type="file" webkitdirectory=""/>
-<span>📁</span>
-<span>Select<br/>folder</span>
-</label>
 </div>
-<div class="corpus-summary" id="corpus-summary" style="display:none;">
-<span class="corpus-summary-text" id="corpus-summary-text"></span>
-<button class="corpus-clear-btn" id="corpus-clear-btn">Clear corpus</button>
+
 </div>
-<div class="corpus-file-list" id="corpus-file-list" style="display:none;"></div>
-</div>
-<!-- ── Resume from checkpoint ── -->
-<div class="section-head">Resume from checkpoint <span style="font-family:var(--font-display);font-style:italic;font-weight:300;font-size:0.9em;text-transform:none;letter-spacing:0;color:var(--ink-light);">— optional</span></div>
-<div style="margin-bottom:2rem;">
-<div class="upload-zone" id="checkpoint-zone" style="max-width:520px;">
-<input accept=".csv" id="checkpoint-file" type="file"/>
-<div class="upload-icon">⏸</div>
-<div class="upload-text"><strong>Drop a checkpoint DTM here</strong> or click to browse</div>
-<div class="upload-sub">Documents already in this file will be skipped</div>
-</div>
-<div id="checkpoint-status" style="display:none;margin-top:0.6rem;font-family:var(--font-mono);font-size:0.72rem;color:var(--success);"></div>
-</div>
-<!-- ── Run ── -->
-<div class="run-row">
-<button class="run-btn" disabled="" id="run-btn">Begin corpus coding →</button>
-<span class="run-note" id="run-note">Load typology and corpus to begin</span>
-</div>
-<div id="error-display"></div>
-<!-- ── Progress ── -->
-<div class="progress-panel" id="progress-panel">
-<div class="progress-header">
-<div class="progress-title">Coding progress</div>
-<div class="progress-counts" id="progress-counts">0 / 0</div>
-</div>
-<div class="progress-bar-track">
-<div class="progress-bar-fill" id="progress-bar"></div>
-</div>
-<div class="progress-doc-list" id="progress-doc-list"></div>
-<div class="checkpoint-note" id="checkpoint-note" style="display:none;">
-      ✓ Checkpoint exported — DTM saved to your downloads folder
-    </div>
-</div>
-<!-- ── DTM preview ── -->
-<div class="dtm-panel" id="dtm-panel">
-<div class="section-head">Document-Term Matrix</div>
-<div class="dtm-toolbar">
-<div class="dtm-summary" id="dtm-summary">DTM ready</div>
-<div class="dtm-actions">
-<button class="dtm-btn" id="export-full-btn">↓ Export full DTM</button>
-<button class="dtm-btn secondary" id="export-json-btn">↓ Export JSON</button>
-</div>
-</div>
-<div class="dtm-table-wrap">
-<table class="dtm-table" id="dtm-table">
-<thead id="dtm-thead"></thead>
-<tbody id="dtm-tbody"></tbody>
-</table>
-</div>
-<div style="margin-top:0.75rem;font-family:var(--font-display);font-style:italic;font-size:0.78rem;color:var(--ink-light);">
-      Cells highlighted in amber indicate low-confidence scores flagged by the LLM. Proceed to Phase 3.2 for threshold setting and binarisation.
-    </div>
-</div>
-</div>
+
+<div id="edu-footer"></div>
+
 <script>
-// ── State ────────────────────────────────────────────────────────────
-let typology   = [];
-let corpusDocs = [];   // [{id, name, text, size}]
-let dtmRows    = [];   // [{docId, docName, scores:{concept:score}, lowConf:[concept]}]
-let isRunning  = false;
-let priorRows  = {};   // {docId: row} — loaded from checkpoint, keyed by filename for matching
+// ── State ───────────────────────────────────────────────────────────────
+// handoff: the file corres wrote. artefact: the TTMArtefact inside it,
+// posted back unchanged. framesResult: what name-frames returned.
+let handoff = null;
+let framesResult = null;
 
-// ── PDF.js ───────────────────────────────────────────────────────────
-if (window.pdfjsLib) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const $ = id => document.getElementById(id);
+
+function showError(msg) {
+  const box = $('pl-error');
+  box.textContent = msg;
+  box.style.display = 'block';
+}
+function clearError() { $('pl-error').style.display = 'none'; }
+
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
 }
 
-// ── Checkpoint upload ─────────────────────────────────────────────────
-const checkpointZone = document.getElementById('checkpoint-zone');
-document.getElementById('checkpoint-file').addEventListener('change', e => {
-  if (e.target.files[0]) loadCheckpoint(e.target.files[0]);
-});
-checkpointZone.addEventListener('dragover', e => { e.preventDefault(); checkpointZone.classList.add('drag-over'); });
-checkpointZone.addEventListener('dragleave', () => checkpointZone.classList.remove('drag-over'));
-checkpointZone.addEventListener('drop', e => {
-  e.preventDefault(); checkpointZone.classList.remove('drag-over');
-  if (e.dataTransfer.files[0]) loadCheckpoint(e.dataTransfer.files[0]);
-});
-
-async function loadCheckpoint(file) {
-  try {
-    const text = await file.text();
-    priorRows  = parseCheckpointCSV(text);
-    const count = Object.keys(priorRows).length;
-    if (!count) throw new Error('No coded rows found in this file');
-
-    checkpointZone.classList.add('loaded');
-    checkpointZone.querySelector('.upload-icon').textContent = '✓';
-    checkpointZone.querySelector('.upload-text').textContent = `${file.name}`;
-
-    const statusEl = document.getElementById('checkpoint-status');
-    statusEl.style.display = 'block';
-    statusEl.textContent = `✓ ${count} previously coded document${count > 1 ? 's' : ''} loaded — these will be skipped and merged into the final DTM`;
-
-    if (!checkpointZone.querySelector('.upload-clear')) {
-      const cb = document.createElement('button');
-      cb.className = 'upload-clear'; cb.textContent = '✕';
-      cb.addEventListener('click', e2 => {
-        e2.stopPropagation();
-        priorRows = {};
-        checkpointZone.classList.remove('loaded');
-        checkpointZone.querySelector('.upload-icon').textContent = '⏸';
-        checkpointZone.querySelector('.upload-text').innerHTML = '<strong>Drop a checkpoint DTM here</strong> or click to browse';
-        document.getElementById('checkpoint-status').style.display = 'none';
-        document.getElementById('checkpoint-file').value = '';
-        cb.remove();
-        checkReady();
-      });
-      checkpointZone.appendChild(cb);
-    }
-    checkReady();
-  } catch (err) { showError('Could not load checkpoint: ' + err.message); }
-}
-
-function parseCheckpointCSV(text) {
-  // Reads a previously exported DTM CSV and returns {filename: rowObject}
-  // Matches on Full_Filename column so it works regardless of Doc_ID regeneration
-  const rows = {};
-  let headers = null;
-  let colDocId = -1, colFilename = -1;
-
-  for (const rawLine of text.split('\n')) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith('#')) continue;
-    const cells = parseCSVRow(line);
-
-    if (!headers) {
-      headers = cells.map(c => c.toLowerCase().trim());
-      colDocId    = headers.indexOf('doc_id');
-      colFilename = headers.indexOf('full_filename');
-      if (colFilename === -1) colFilename = headers.indexOf('filename');
-      continue;
-    }
-
-    const filename = (cells[colFilename] || '').trim();
-    const docId    = (cells[colDocId]    || '').trim();
-    if (!filename) continue;
-
-    // Rebuild scores object from remaining columns
-    const scores = {};
-    const lowConf = [];
-    for (let i = 2; i < headers.length; i++) {
-      const concept = headers[i];
-      const raw     = (cells[i] || '0').replace('[?]', '').trim();
-      scores[concept] = parseFloat(raw) || 0;
-      if ((cells[i] || '').includes('[?]')) lowConf.push(concept);
-    }
-
-    rows[filename] = { docId, docName: filename, scores, lowConf };
-  }
-  return rows;
-}
-
-// ── Mode toggle ───────────────────────────────────────────────────────
-document.querySelectorAll('input[name="mode"]').forEach(r => {
-  r.addEventListener('change', () => {
-    document.getElementById('scale-ref').style.display =
-      r.value === 'rating' ? 'grid' : 'none';
-  });
+// ── Step 1: load the analysis ───────────────────────────────────────────
+const drop = $('pl-drop');
+drop.addEventListener('click', () => $('pl-file').click());
+$('pl-file').addEventListener('change', e => { if (e.target.files[0]) loadHandoff(e.target.files[0]); });
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+drop.addEventListener('drop', e => {
+  e.preventDefault(); drop.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) loadHandoff(e.dataTransfer.files[0]);
 });
 
-// ── Typology upload ───────────────────────────────────────────────────
-const typologyZone = document.getElementById('typology-zone');
-document.getElementById('typology-file').addEventListener('change', e => {
-  if (e.target.files[0]) loadTypology(e.target.files[0]);
-});
-typologyZone.addEventListener('dragover', e => { e.preventDefault(); typologyZone.classList.add('drag-over'); });
-typologyZone.addEventListener('dragleave', () => typologyZone.classList.remove('drag-over'));
-typologyZone.addEventListener('drop', e => {
-  e.preventDefault(); typologyZone.classList.remove('drag-over');
-  if (e.dataTransfer.files[0]) loadTypology(e.dataTransfer.files[0]);
-});
-
-async function loadTypology(file) {
-  try {
-    const text = await file.text();
-    typology = parseTypologyCSV(text);
-    if (!typology.length) throw new Error('No concepts found');
-    typologyZone.classList.add('loaded');
-    typologyZone.querySelector('.upload-icon').textContent = '✓';
-    typologyZone.querySelector('.upload-text').textContent = `${file.name}`;
-    document.getElementById('typology-count').textContent = `${typology.length} concepts loaded`;
-
-    if (!typologyZone.querySelector('.upload-clear')) {
-      const cb = document.createElement('button');
-      cb.className = 'upload-clear'; cb.textContent = '✕';
-      cb.addEventListener('click', e => {
-        e.stopPropagation(); typology = [];
-        typologyZone.classList.remove('loaded');
-        typologyZone.querySelector('.upload-icon').textContent = '📋';
-        typologyZone.querySelector('.upload-text').innerHTML = '<strong>Drop CSV here</strong> or click to browse';
-        document.getElementById('typology-count').textContent = '';
-        document.getElementById('typology-file').value = '';
-        cb.remove(); checkReady();
-      });
-      typologyZone.appendChild(cb);
-    }
-    checkReady();
-  } catch (err) { showError('Could not load typology: ' + err.message); }
-}
-
-function parseTypologyCSV(text) {
-  const concepts = [];
-  let headerFound = false, colMap = {};
-  for (const rawLine of text.split('\n')) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith('#')) continue;
-    const cells = parseCSVRow(line);
-    if (!headerFound) {
-      const lower = cells.map(c => c.toLowerCase().trim());
-      if (lower.includes('term')) {
-        colMap.term       = lower.indexOf('term');
-        colMap.definition = lower.findIndex(c => c.startsWith('definition'));
-        headerFound = true;
-      }
-      continue;
-    }
-    const term = (cells[colMap.term] || '').trim();
-    if (!term) continue;
-    concepts.push({ term, definition: (cells[colMap.definition] || '').trim() });
-  }
-  return concepts;
-}
-
-function parseCSVRow(line) {
-  const cells = []; let cur = '', inQ = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
-    else if (ch === ',' && !inQ) { cells.push(cur); cur = ''; }
-    else cur += ch;
-  }
-  cells.push(cur); return cells;
-}
-
-// ── Corpus upload ─────────────────────────────────────────────────────
-document.getElementById('corpus-files').addEventListener('change', e => {
-  addFiles(Array.from(e.target.files));
-  e.target.value = '';
-});
-document.getElementById('corpus-folder').addEventListener('change', e => {
-  addFiles(Array.from(e.target.files));
-  e.target.value = '';
-});
-
-const corpusDrop = document.getElementById('corpus-drop');
-corpusDrop.addEventListener('dragover', e => { e.preventDefault(); corpusDrop.classList.add('drag-over'); });
-corpusDrop.addEventListener('dragleave', () => corpusDrop.classList.remove('drag-over'));
-corpusDrop.addEventListener('drop', e => {
-  e.preventDefault(); corpusDrop.classList.remove('drag-over');
-  addFiles(Array.from(e.dataTransfer.files).filter(f => /\.(pdf|txt)$/i.test(f.name)));
-});
-
-function addFiles(files) {
-  const validFiles = files.filter(f => /\.(pdf|txt)$/i.test(f.name));
-  const existing   = new Set(corpusDocs.map(d => d.name));
-  const newFiles   = validFiles.filter(f => !existing.has(f.name));
-
-  newFiles.forEach((f, i) => {
-    const n    = corpusDocs.length + i + 1;
-    const id   = `DOC${String(n).padStart(3,'0')}_${f.name.replace(/\.[^.]+$/,'').substring(0,12)}`;
-    corpusDocs.push({ id, name: f.name, file: f, size: f.size, text: null });
-  });
-
-  renderCorpusList();
-  checkReady();
-}
-
-document.getElementById('corpus-clear-btn').addEventListener('click', () => {
-  corpusDocs = []; renderCorpusList(); checkReady();
-});
-
-function renderCorpusList() {
-  const summaryEl = document.getElementById('corpus-summary');
-  const listEl    = document.getElementById('corpus-file-list');
-
-  if (!corpusDocs.length) {
-    summaryEl.style.display = 'none';
-    listEl.style.display    = 'none';
-    return;
-  }
-
-  summaryEl.style.display = 'flex';
-  listEl.style.display    = 'block';
-  document.getElementById('corpus-summary-text').innerHTML =
-    `<strong>${corpusDocs.length}</strong> documents loaded · ${formatBytes(corpusDocs.reduce((s,d) => s + d.size, 0))} total`;
-
-  listEl.innerHTML = '';
-  corpusDocs.forEach((d, i) => {
-    const row = document.createElement('div');
-    row.className = 'corpus-file-item';
-    row.id = `file-row-${i}`;
-    row.innerHTML = `
-      <span class="file-num">${i+1}</span>
-      <span class="file-id">${escHtml(d.id)}</span>
-      <span class="file-name">${escHtml(d.name)}</span>
-      <span class="file-size">${formatBytes(d.size)}</span>`;
-    listEl.appendChild(row);
-  });
-}
-
-// ── Ready check ───────────────────────────────────────────────────────
-function checkReady() {
-  const ok = typology.length > 0 && corpusDocs.length > 0 && !isRunning;
-  document.getElementById('run-btn').disabled = !ok;
-  const prior   = Object.keys(priorRows).length;
-  const pending = corpusDocs.filter(d => !priorRows[d.name]).length;
-  if (!typology.length) document.getElementById('run-note').textContent = 'Load typology CSV to begin';
-  else if (!corpusDocs.length) document.getElementById('run-note').textContent = 'Add corpus documents to begin';
-  else if (prior > 0) document.getElementById('run-note').textContent =
-    `Resume: ${prior} already coded · ${pending} remaining · ${typology.length} concepts`;
-  else document.getElementById('run-note').textContent =
-    `Ready — ${typology.length} concepts · ${corpusDocs.length} documents`;
-}
-
-// ── Main run ──────────────────────────────────────────────────────────
-document.getElementById('run-btn').addEventListener('click', runCoding);
-
-async function runCoding() {
+async function loadHandoff(file) {
   clearError();
-  isRunning = true;
-  checkReady();
+  try {
+    const parsed = JSON.parse(await file.text());
+    const artefact = parsed.artefact || parsed;
+    if (!artefact || typeof artefact !== 'object') throw new Error('not a corres analysis file');
 
-  const mode             = document.querySelector('input[name="mode"]:checked').value;
-  const batchSize        = Math.max(1, parseInt(document.getElementById('batch-size').value) || 20);
-  const textLimit        = Math.max(3000, parseInt(document.getElementById('text-limit').value) || 15000);
-  const visionThreshold  = Math.max(100, parseInt(document.getElementById('vision-threshold').value) || 500);
+    const blocks = (artefact.consensus && artefact.consensus.blocks)
+                || (artefact.clustering && artefact.clustering.assignments);
+    if (!blocks || !Object.keys(blocks).length) {
+      throw new Error('this analysis has no concept groups in it — the corres run may not have reached the grouping stage');
+    }
 
-  // Seed dtmRows from checkpoint — preserve prior results in original order
-  const priorCount = Object.keys(priorRows).length;
-  dtmRows = Object.values(priorRows);
+    handoff = {
+      artefact,
+      conceptTerms: parsed.concept_terms || {},
+      corpusId: parsed.corpus_id || artefact.corpus_id || null,
+      generatedAt: parsed.generated_at || artefact.generated_at || null,
+      blocks,
+    };
 
-  // Identify which corpus docs still need coding
-  const pending = corpusDocs.filter(d => !priorRows[d.name]);
-  const skipped = corpusDocs.filter(d =>  priorRows[d.name]);
+    drop.classList.add('loaded');
+    $('pl-drop-icon').textContent = '✓';
+    $('pl-drop-text').textContent = file.name;
+    $('pl-drop-sub').textContent = handoff.generatedAt
+      ? `analysis of ${new Date(handoff.generatedAt).toLocaleString()}`
+      : 'loaded';
 
-  // Reset progress UI
-  const progressPanel = document.getElementById('progress-panel');
-  progressPanel.classList.add('active');
-  document.getElementById('progress-doc-list').innerHTML = '';
-  document.getElementById('dtm-panel').classList.remove('active');
-  document.getElementById('checkpoint-note').style.display = 'none';
-  setProgress(0, pending.length);
-
-  // Show skipped documents
-  if (skipped.length) {
-    addBatchDivider(0, 0, `${skipped.length} document${skipped.length > 1 ? 's' : ''} already coded — skipped from checkpoint`);
+    renderSummary();
+    renderCaveat();
+    $('card-name').style.display = '';
+    $('card-frames').style.display = 'none';
+    framesResult = null;
+  } catch (err) {
+    showError('Could not read that file: ' + err.message);
   }
+}
 
-  if (pending.length === 0) {
-    isRunning = false;
-    checkReady();
-    document.getElementById('progress-bar').classList.add('done');
-    setProgress(0, 0);
-    exportDTM(dtmRows, typology, mode, false);
-    renderDTMPreview(dtmRows, typology, mode);
+// Group membership, sizes, and how much of each group is actually certified.
+// Computed for display only - every value is read from the artefact, none
+// is derived here beyond counting.
+function groupView() {
+  const { artefact, blocks, conceptTerms } = handoff;
+  const roles = (artefact.roles && artefact.roles.roles) || {};
+  // The threshold is recorded with its provenance, not as a bare number:
+  // classify_roles writes roles.parameters.stability_threshold as
+  // {value, source}, where source is proposed, overridden or declared.
+  // Reading it as a plain field returns undefined and silently disables
+  // every certified/uncertified distinction on this page.
+  const tauParam = artefact.roles && artefact.roles.parameters
+    && artefact.roles.parameters.stability_threshold;
+  const tau = tauParam && typeof tauParam.value === 'number' ? tauParam.value : null;
+  const tauSource = tauParam ? tauParam.source : null;
+  const groups = {};
+  Object.keys(blocks).forEach(cid => {
+    const g = blocks[cid];
+    (groups[g] = groups[g] || []).push(cid);
+  });
+  Object.keys(groups).forEach(g => {
+    groups[g].sort((a, b) => (artefact.totals?.[b] || 0) - (artefact.totals?.[a] || 0));
+  });
+  return { groups, roles, tau, tauSource, conceptTerms };
+}
+
+function termOf(cid) {
+  return handoff.conceptTerms[String(cid)] || `concept ${cid}`;
+}
+
+function renderSummary() {
+  const { groups, roles, tau, tauSource } = groupView();
+  const keys = Object.keys(groups).sort((a, b) => Number(a) - Number(b));
+  const sizes = keys.map(g => groups[g].length);
+  const total = sizes.reduce((a, b) => a + b, 0);
+  const withRole = Object.keys(roles).filter(cid => roles[cid] && roles[cid].role !== null).length;
+
+  $('pl-summary').style.display = '';
+  $('pl-summary').innerHTML = `
+    <div class="pl-stats">
+      <div class="pl-stat"><span class="pl-stat-val">${keys.length}</span><span class="pl-stat-label">groups</span></div>
+      <div class="pl-stat"><span class="pl-stat-val">${total}</span><span class="pl-stat-label">concepts</span></div>
+      <div class="pl-stat"><span class="pl-stat-val">${sizes.join(' · ')}</span><span class="pl-stat-label">group sizes</span></div>
+      ${withRole ? `<div class="pl-stat"><span class="pl-stat-val">${withRole}</span><span class="pl-stat-label">concepts with a role</span></div>` : ''}
+      ${tau !== null ? `<div class="pl-stat"><span class="pl-stat-val">${tau}</span><span class="pl-stat-label">stability threshold (${escHtml(tauSource || 'unknown')})</span></div>` : ''}
+    </div>`;
+}
+
+// The one thing this page should say before anyone presses the button. A
+// group whose members largely failed the stability test is still a group,
+// and the model will still name it - fluently. Saying so here is cheaper
+// than explaining afterwards why a confident name was not a finding.
+function renderCaveat() {
+  const { groups, roles, tau } = groupView();
+  if (!tau || !Object.keys(roles).length) { $('pl-caveat').innerHTML = ''; return; }
+  const rows = Object.keys(groups).sort((a, b) => Number(a) - Number(b)).map(g => {
+    const members = groups[g];
+    const certified = members.filter(cid => {
+      const r = roles[cid];
+      return r && r.role !== null && typeof r.stability === 'number' && r.stability >= tau;
+    }).length;
+    return { g, n: members.length, certified };
+  });
+  const weak = rows.filter(r => r.certified < r.n / 2);
+  if (!weak.length) { $('pl-caveat').innerHTML = ''; return; }
+  const detail = weak.map(r => `group ${Number(r.g) + 1} (${r.certified} of ${r.n})`).join(', ');
+  $('pl-caveat').innerHTML = `<div class="pl-warn">
+    <strong>Fewer than half the concepts in ${weak.length === 1 ? 'one group' : `${weak.length} groups`} met the stability threshold.</strong>
+    ${escHtml(detail)}. A name will still be proposed, and it will read as confidently as any other. Stability is reported per concept below each frame so you can see which members the name is actually resting on.
+  </div>`;
+}
+
+// ── Step 2: call the server ─────────────────────────────────────────────
+$('pl-run-btn').addEventListener('click', runNaming);
+
+async function runNaming() {
+  clearError();
+  const btn = $('pl-run-btn');
+  btn.disabled = true;
+  $('pl-running').style.display = 'block';
+  try {
+    const created = await callAppAPI('corres', 'ttm/name-frames', {
+      ttm: handoff.artefact,
+      params: { concept_terms: handoff.conceptTerms },
+    });
+    const result = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
+    framesResult = result.frames || [];
+    renderFrames();
+    $('card-frames').style.display = '';
+    $('card-frames').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (err) {
+    if (err.code) {
+      showError(`The server stopped: ${err.message}`);
+    } else {
+      showError('There is a connection issue preventing access to the back end code. Please try again later.');
+    }
+  } finally {
+    btn.disabled = false;
+    $('pl-running').style.display = 'none';
+  }
+}
+
+// ── Step 3: render ──────────────────────────────────────────────────────
+function renderFrames() {
+  const { groups, roles, tau } = groupView();
+  if (!framesResult || !framesResult.length) {
+    $('pl-frames').innerHTML = `<div class="pl-warn"><strong>No frames were returned.</strong> The run completed but proposed nothing, which is a result rather than an error. Nothing has been inferred here to fill the gap.</div>`;
     return;
   }
 
-  // Extract text for pending documents
-  for (let i = 0; i < pending.length; i++) {
-    if (pending[i].text === null) {
-      try {
-        pending[i].text = sanitiseText(await extractText(pending[i].file, textLimit));
-      } catch (err) {
-        pending[i].text = '';
-        addProgressItem(i, pending[i].id, pending[i].name, 'skip', 'text extract failed');
-      }
-    }
-  }
+  const html = framesResult.map(f => {
+    // name_frames numbers clusters from 1; the artefact keys them from 0.
+    const key = String(f.cluster - 1);
+    const members = groups[key] || [];
+    const chips = members.map(cid => {
+      const r = roles[cid] || {};
+      const stable = typeof r.stability === 'number';
+      const certified = stable && tau && r.role !== null && r.stability >= tau;
+      const detail = stable ? `Σ ${r.stability.toFixed(3)}${r.role ? ` · ${r.role}` : ''}` : 'no stability reported';
+      return `<span class="pl-chip ${certified ? 'pl-chip-cert' : 'pl-chip-uncert'}" title="${escHtml(detail)}">
+        ${escHtml(termOf(cid))}<span class="pl-chip-meta">${escHtml(stable ? r.stability.toFixed(2) : '—')}</span></span>`;
+    }).join('');
 
-  // Process pending documents in batches
-  let batchCount = 0;
-  for (let i = 0; i < pending.length; i++) {
-    const doc = pending[i];
-    addProgressItem(i, doc.id, doc.name, 'processing', '…');
+    const docs = (f.representative_documents || []).map(d =>
+      `<li><span class="pl-doc-id">${escHtml(d.doc_id)}</span><span class="pl-doc-score">${d.score} of ${members.length} concepts</span></li>`
+    ).join('');
 
-    try {
-      const isPoor   = isExtractionPoor(doc.text, visionThreshold);
-      const useVision = isPoor && doc.file && doc.name.toLowerCase().endsWith('.pdf');
-      let result;
+    const certifiedCount = members.filter(cid => {
+      const r = roles[cid];
+      return r && r.role !== null && typeof r.stability === 'number' && tau && r.stability >= tau;
+    }).length;
 
-      if (useVision) {
-        updateProgressItem(i, 'processing', 'poor extraction — switching to vision…');
-        result = await codeDocumentVision(doc, mode, i + 1, pending.length);
-      } else {
-        result = await codeDocument(doc, mode, i + 1, pending.length);
-      }
+    return `<div class="pl-frame">
+      <div class="pl-frame-head">
+        <span class="pl-frame-num">Frame ${f.cluster}</span>
+        <h3 class="pl-frame-name">${escHtml(f.name)}</h3>
+      </div>
+      ${f.description ? `<p class="pl-frame-desc">${escHtml(f.description)}</p>` : ''}
+      <div class="pl-frame-sub">Concepts in this group — ${members.length}${tau ? `, of which ${certifiedCount} met the stability threshold` : ''}</div>
+      <div class="pl-chips">${chips}</div>
+      ${docs ? `<div class="pl-frame-sub">Documents carrying most of this group</div><ul class="pl-docs">${docs}</ul>` : ''}
+    </div>`;
+  }).join('');
 
-      const importantCount = Object.values(result.scores).filter(s => s >= 2).length;
-      dtmRows.push({
-        docId: doc.id, docName: doc.name,
-        scores: result.scores, lowConf: result.lowConf || [],
-        method: useVision ? 'vision' : 'text'
-      });
-      updateProgressItem(i, useVision ? 'vision' : 'done',
-        `${importantCount} important${useVision ? ' [vision]' : ''}`);
-    } catch (err) {
-      dtmRows.push({ docId: doc.id, docName: doc.name, scores: {}, lowConf: [], error: err.message });
-      updateProgressItem(i, 'error', err.message.substring(0, 40));
-    }
-
-    setProgress(i + 1, pending.length);
-    batchCount++;
-
-    // Batch checkpoint
-    if (batchCount % batchSize === 0 && i + 1 < pending.length) {
-      addBatchDivider(dtmRows.length, batchSize);
-      exportDTM(dtmRows, typology, mode, true);
-      flashCheckpoint();
-      await sleep(400);
-    }
-  }
-
-  isRunning = false;
-  checkReady();
-  document.getElementById('progress-bar').classList.add('done');
-
-  // Final export and display
-  exportDTM(dtmRows, typology, mode, true);
-  flashCheckpoint();
-  renderDTMPreview(dtmRows, typology, mode);
+  $('pl-frames').innerHTML = `<div class="pl-proposed-note">Proposed by a language model from the concept names alone. It has not read your documents, and it does not know what your corpus is about. Treat every name as a first draft.</div>${html}`;
+  $('pl-actions').style.display = 'flex';
 }
 
-// ── Document coding prompt ────────────────────────────────────────────
-async function codeDocument(doc, mode, docNum, total) {
-  const typologyText = typology.map(c => `- ${c.term}: ${c.definition}`).join('\n');
-
-  const isRating = mode === 'rating';
-  const system = isRating
-    ? `You are a precise research assistant applying the Correlating Resonance methodology for frame analysis in contested policy spaces.
-
-Code a single document against the provided concept typology using this four-point scale:
-0 = Absent: concept not mentioned
-1 = Mentioned: brief or incidental reference only
-2 = Important theme: discussed and emphasised — contributes meaningfully to the document's argument
-3 = Central theme: core focus of the document — central to its purpose or main argument
-
-RULES:
-- Score EVERY concept in the typology without exception.
-- Judge each concept independently. Do not compare documents.
-- Use the full definition as your coding rule, including any synonyms listed.
-- Be conservative with score 3: reserve for genuinely central concepts.
-- Flag any concept where you are genuinely uncertain between adjacent scores by setting low_confidence to true.
-
-Return ONLY valid JSON — no preamble, no markdown:
-{
-  "scores": { "concept name": score, ... },
-  "low_confidence": ["concept name", ...]
-}`
-    : `You are a precise research assistant applying the Correlating Resonance methodology.
-
-Count the number of meaningful references to each concept in the provided document. Count at paragraph level — if a concept is discussed throughout a paragraph, count once for that paragraph. Use the full definition including synonyms as your coding rule.
-
-Score EVERY concept in the typology. Return 0 for absent concepts.
-Flag any concept where the count is uncertain by including it in low_confidence.
-
-Return ONLY valid JSON — no preamble, no markdown:
-{
-  "scores": { "concept name": count, ... },
-  "low_confidence": ["concept name", ...]
-}`;
-
-  const user = `CONCEPT TYPOLOGY (${typology.length} concepts):
-${typologyText}
-
----
-
-DOCUMENT ${docNum} of ${total} · ID: ${doc.id}
-Filename: ${doc.name}
-
-${doc.text || '[No text could be extracted from this document]'}
-
-Code this document against every concept in the typology.`;
-
-  const response = await callAPI(system, user, 4096);
-  const parsed   = repairJSON(response);
-
-  // Normalise: convert scores object keys to match typology terms
-  const scores = {};
-  typology.forEach(c => {
-    const val = parsed.scores?.[c.term] ?? parsed.scores?.[c.term.toLowerCase()] ?? 0;
-    scores[c.term] = typeof val === 'number' ? val : 0;
+$('pl-export-btn').addEventListener('click', () => {
+  const { groups, roles } = groupView();
+  const out = framesResult.map(f => {
+    const members = groups[String(f.cluster - 1)] || [];
+    return {
+      frame: f.cluster,
+      name: f.name,
+      description: f.description,
+      concepts: members.map(cid => ({
+        concept_id: cid,
+        term: termOf(cid),
+        role: (roles[cid] || {}).role ?? null,
+        stability: (roles[cid] || {}).stability ?? null,
+      })),
+      representative_documents: f.representative_documents || [],
+    };
   });
-
-  return { scores, lowConf: parsed.low_confidence || [] };
-}
-
-// ── DTM export ────────────────────────────────────────────────────────
-function exportDTM(rows, concepts, mode, isCheckpoint = false) {
-  const isRating = mode === 'rating';
-  const label    = isCheckpoint ? `Checkpoint_${rows.length}docs` : 'Final';
-  const lines    = [
-    `# CORRELATING RESONANCE — DOCUMENT-TERM MATRIX`,
-    `# ${isCheckpoint ? 'CHECKPOINT' : 'FINAL'} · ${rows.length} documents coded · ${new Date().toLocaleString()}`,
-    `# Coding mode: ${isRating ? 'Rating (0-3)' : 'Frequency count'}`,
-    `# ${isRating ? 'Scale: 0=Absent, 1=Mentioned, 2=Important, 3=Central' : 'Values are paragraph-level mention counts'}`,
-    `# Cells marked [?] indicate low-confidence scores flagged by the LLM`,
-    `#`,
-    `# Proceed to Phase 3.2 to set thresholds and binarise this matrix.`,
-    `#`
-  ];
-
-  // Header row
-  const header = ['Doc_ID', 'Full_Filename', 'Extraction_Method', ...concepts.map(c => csvCell(c.term))];
-  lines.push(header.join(','));
-
-  // Data rows
-  rows.forEach(r => {
-    const cells = [
-      csvCell(r.docId),
-      csvCell(r.docName),
-      r.method || 'text',
-      ...concepts.map(c => {
-        const val  = r.scores?.[c.term] ?? 0;
-        const flag = (r.lowConf || []).includes(c.term) ? '[?]' : '';
-        return `${val}${flag}`;
-      })
-    ];
-    lines.push(cells.join(','));
-  });
-
-  download(
-    `CR_Phase3_DTM_${label}_${today()}.csv`,
-    lines.join('\n'),
-    'text/csv'
-  );
-}
-
-// ── DTM preview render ────────────────────────────────────────────────
-function renderDTMPreview(rows, concepts, mode) {
-  const isRating = mode === 'rating';
-  const panel    = document.getElementById('dtm-panel');
-  const coded    = rows.filter(r => !r.error).length;
-  const errors   = rows.filter(r => r.error).length;
-  const lowConf  = rows.reduce((n, r) => n + (r.lowConf || []).length, 0);
-
-  document.getElementById('dtm-summary').innerHTML =
-    `DTM complete — <em>${coded} documents coded</em>, ${concepts.length} concepts` +
-    (errors   ? ` · <span style="color:var(--accent)">${errors} errors</span>` : '') +
-    (lowConf  ? ` · <span style="color:var(--warning)">${lowConf} low-confidence cells</span>` : '');
-
-  // Build table — show first 40 docs max in preview
-  const previewRows = rows.slice(0, 40);
-  const thead = document.getElementById('dtm-thead');
-  const tbody = document.getElementById('dtm-tbody');
-
-  thead.innerHTML = '';
-  tbody.innerHTML = '';
-
-  // Header
-  const hr = document.createElement('tr');
-  ['Doc ID', 'Filename', ...concepts.map(c => c.term.substring(0, 14))].forEach((h, i) => {
-    const th = document.createElement('th');
-    th.textContent = h;
-    if (i >= 2) th.title = concepts[i-2]?.term || '';
-    hr.appendChild(th);
-  });
-  thead.appendChild(hr);
-
-  // Rows
-  previewRows.forEach(r => {
-    const tr = document.createElement('tr');
-    const idTd = document.createElement('td'); idTd.textContent = r.docId; tr.appendChild(idTd);
-    const nameTd = document.createElement('td'); nameTd.textContent = r.docName.substring(0, 35) + (r.docName.length > 35 ? '…' : ''); tr.appendChild(nameTd);
-
-    concepts.forEach(c => {
-      const td   = document.createElement('td');
-      const val  = r.scores?.[c.term] ?? 0;
-      const isLC = (r.lowConf || []).includes(c.term);
-      td.textContent = val || '·';
-      if (isLC) td.classList.add('low-conf-cell');
-      if (isRating) {
-        if (val === 0) td.classList.add('score-0');
-        else if (val === 1) td.classList.add('score-1');
-        else if (val === 2) td.classList.add('score-2');
-        else if (val === 3) td.classList.add('score-3');
-      } else if (val > 0) td.classList.add('score-hi');
-      tr.appendChild(td);
-    });
-    tbody.appendChild(tr);
-  });
-
-  if (rows.length > 40) {
-    const tr = document.createElement('tr');
-    const td = document.createElement('td');
-    td.colSpan = 2 + concepts.length;
-    td.style.cssText = 'padding:0.75rem;font-style:italic;color:var(--ink-light);font-family:var(--font-display);text-align:center;';
-    td.textContent = `… ${rows.length - 40} more rows — export full DTM to view all`;
-    tr.appendChild(td);
-    tbody.appendChild(tr);
-  }
-
-  // Wire export buttons
-  document.getElementById('export-full-btn').onclick = () => exportDTM(rows, concepts, mode, false);
-  document.getElementById('export-json-btn').onclick = () =>
-    download(`CR_Phase3_DTM_${today()}.json`, JSON.stringify({ mode, concepts: concepts.map(c=>c.term), rows }, null, 2), 'application/json');
-
-  panel.classList.add('active');
-}
-
-// ── Progress UI ───────────────────────────────────────────────────────
-function setProgress(done, total) {
-  document.getElementById('progress-counts').textContent = `${done} / ${total}`;
-  document.getElementById('progress-bar').style.width = `${total ? (done/total*100) : 0}%`;
-}
-
-function addProgressItem(idx, id, name, state, note) {
-  const list = document.getElementById('progress-doc-list');
-  const div  = document.createElement('div');
-  div.className = 'progress-doc-item';
-  div.id = `pdoc-${idx}`;
-  const icons = { processing: '⟳', done: '✓', error: '✕', skip: '—' };
-  div.innerHTML = `
-    <span class="pdoc-status">${icons[state] || '·'}</span>
-    <span class="pdoc-name">${escHtml(id)} · ${escHtml(name.substring(0,40))}</span>
-    <span class="pdoc-result ${state === 'done' ? 'ok' : state === 'error' ? 'err' : ''}">${escHtml(note)}</span>`;
-  list.appendChild(div);
-  div.scrollIntoView({ block: 'nearest' });
-}
-
-function updateProgressItem(idx, state, note) {
-  const div = document.getElementById(`pdoc-${idx}`);
-  if (!div) return;
-  const icons = { done: '✓', error: '✕', skip: '—', vision: '👁', processing: '⟳' };
-  div.querySelector('.pdoc-status').textContent = icons[state] || '·';
-  const noteEl = div.querySelector('.pdoc-result');
-  noteEl.textContent = note;
-  noteEl.className = `pdoc-result ${
-    state === 'done'   ? 'ok'     :
-    state === 'vision' ? 'vision' :
-    state === 'error'  ? 'err'    : ''
-  }`;
-}
-
-function addBatchDivider(count, batchSize, label) {
-  const list = document.getElementById('progress-doc-list');
-  const div  = document.createElement('div');
-  div.className = 'batch-divider';
-  div.textContent = label || `Batch complete · ${count} documents coded · checkpoint exported`;
-  list.appendChild(div);
-}
-
-function flashCheckpoint() {
-  const note = document.getElementById('checkpoint-note');
-  note.style.display = 'flex';
-  setTimeout(() => { note.style.display = 'none'; }, 4000);
-}
-
-// ── PDF / text extraction ─────────────────────────────────────────────
-async function extractText(file, limit) {
-  const ext = file.name.split('.').pop().toLowerCase();
-  if (ext === 'txt') {
-    return (await file.text()).substring(0, limit);
-  } else if (ext === 'pdf') {
-    const buf  = await file.arrayBuffer();
-    const pdf  = await pdfjsLib.getDocument({ data: buf }).promise;
-    let out    = '';
-    for (let p = 1; p <= pdf.numPages && out.length < limit; p++) {
-      const page    = await pdf.getPage(p);
-      const content = await page.getTextContent();
-      out += content.items.map(i => i.str).join(' ') + '\n\n';
-    }
-    return out.substring(0, limit);
-  }
-  throw new Error('Unsupported file type');
-}
-
-// ── Extraction quality check ──────────────────────────────────────────
-// Returns true if the text is too short or too sparse to be meaningful.
-// Checks both raw length and word density — a long string of whitespace
-// or single-character fragments is treated as a failed extraction.
-function isExtractionPoor(text, threshold) {
-  if (!text || text.length < threshold) return true;
-  const words = text.trim().split(/\s+/).filter(w => w.length > 2);
-  if (words.length < 50) return true;        // fewer than 50 real words
-  const density = words.length / text.length;
-  if (density < 0.04) return true;           // very sparse — mostly whitespace or fragments
-  return false;
-}
-
-// ── PDF to base64 ─────────────────────────────────────────────────────
-async function pdfToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload  = () => resolve(reader.result.split(',')[1]);
-    reader.onerror = () => reject(new Error('Failed to read PDF for vision'));
-    reader.readAsDataURL(file);
-  });
-}
-
-// ── Vision-based document coding ─────────────────────────────────────
-// Sends the PDF directly to the API as a base64-encoded document.
-// Claude reads the PDF visually rather than from extracted text.
-async function codeDocumentVision(doc, mode, docNum, total) {
-  const typologyText = typology.map(c => `- ${c.term}: ${c.definition}`).join('\n');
-  const isRating     = mode === 'rating';
-  const base64       = await pdfToBase64(doc.file);
-
-  const systemPrompt = isRating
-    ? `You are a precise research assistant applying the Correlating Resonance methodology for frame analysis in contested policy spaces.
-
-Code a single document against the provided concept typology using this four-point scale:
-0 = Absent: concept not mentioned
-1 = Mentioned: brief or incidental reference only
-2 = Important theme: discussed and emphasised — contributes meaningfully to the document's argument
-3 = Central theme: core focus of the document — central to its purpose or main argument
-
-RULES:
-- Score EVERY concept in the typology without exception.
-- Read the full document carefully — this PDF is provided directly for you to read visually.
-- Judge each concept independently. Do not compare documents.
-- Use the full definition as your coding rule, including any synonyms listed.
-- Be conservative with score 3: reserve for genuinely central concepts.
-- Flag any concept where you are genuinely uncertain between adjacent scores.
-
-Return ONLY valid JSON — no preamble, no markdown:
-{
-  "scores": { "concept name": score, ... },
-  "low_confidence": ["concept name", ...]
-}`
-    : `You are a precise research assistant applying the Correlating Resonance methodology.
-
-Count meaningful references to each concept in this document at paragraph level.
-Score EVERY concept. Return 0 for absent concepts.
-This PDF is provided directly for you to read visually.
-
-Return ONLY valid JSON — no preamble, no markdown:
-{
-  "scores": { "concept name": count, ... },
-  "low_confidence": ["concept name", ...]
-}`;
-
-  const userContent = [
-    {
-      type: 'document',
-      source: { type: 'base64', media_type: 'application/pdf', data: base64 }
-    },
-    {
-      type: 'text',
-      text: `CONCEPT TYPOLOGY (${typology.length} concepts):
-${typologyText}
-
----
-
-DOCUMENT ${docNum} of ${total} · ID: ${doc.id}
-Filename: ${doc.name}
-
-Read the PDF document above carefully and code it against every concept in the typology.`
-    }
-  ];
-
-  const text   = await callAPI(systemPrompt, userContent, 4096);
-  const parsed = repairJSON(text);
-
-  const scores = {};
-  typology.forEach(c => {
-    const val = parsed.scores?.[c.term] ?? parsed.scores?.[c.term.toLowerCase()] ?? 0;
-    scores[c.term] = typeof val === 'number' ? val : 0;
-  });
-
-  return { scores, lowConf: parsed.low_confidence || [] };
-}
-
-
-
-
-
-function download(filename, content, type) {
-  const blob = new Blob([content], { type });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
-}
-
-  document.addEventListener('DOMContentLoaded', async () => {
-    await loadFragment('edu-header', '/edu_header.html');
-    markActiveNav();
-    applyAppVisibility();
-    renderBuildVersion();
-  });
-
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+  download(`CR_Frames_${today()}.json`, JSON.stringify({
+    source: 'pluralitie',
+    generated_at: new Date().toISOString(),
+    corpus_id: handoff.corpusId,
+    analysis_generated_at: handoff.generatedAt,
+    frames: out,
+  }, null, 1), 'application/json');
+});
 </script>
-<nav class="cr-bottom-nav">
-<a class="cr-bottom-btn" href="/apps/gioianie/gioianie_iterate.html">← Phase 2 · Saturation</a>
-<div class="cr-bottom-center">Phase 3 of 4 · Corpus Coding</div>
-<a class="cr-bottom-btn" href="/apps/corres/">Phase 4 · Analysis →</a>
-</nav>
-<footer class="edu-footer">
-<div class="footer-entity">
-<span>Ebono Intelligence Pty Ltd, trading as The Ebono Institute · <a href="https://ebono.au">ebono.au</a></span>
-<div class="footer-legal-links">
-<a href="https://ebono.au/terms">Terms</a>
-<a href="https://ebono.au/privacy">Privacy</a>
-<a href="https://ebono.au/support">Support</a>
-</div>
-</div>
-</footer>
 </body>
 </html>

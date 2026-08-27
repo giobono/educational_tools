@@ -857,6 +857,27 @@ function renderTTM() {
   actions.style.display = 'flex';
 }
 
+// The analysis handoff. corres could previously export only the sorted TTM
+// as CSV, which carries none of the analysis - no groups, no roles, no
+// stability - so there was no way to take a completed run anywhere else.
+// This writes the artefact as the back end returned it, with the concept
+// names alongside, since the artefact itself keys everything by concept id
+// and names live only in the uploaded matrix.
+function exportForFrameNaming() {
+  if (!serverTtm) { showError('No completed analysis to export.'); return; }
+  const termById = {};
+  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
+  const payload = {
+    handoff_version: '1',
+    generated_at: new Date().toISOString(),
+    source: 'corres',
+    corpus_id: serverTtm.corpus_id || null,
+    concept_terms: termById,
+    artefact: serverTtm,
+  };
+  download(`CR_Analysis_${today()}.json`, JSON.stringify(payload, null, 1), 'application/json');
+}
+
 function exportTTM() {
   const { concepts, matrix, sorted } = ttmData;
   const sortedConcepts = sorted.map(i => concepts[i]);
@@ -1328,6 +1349,11 @@ function renderProcessResults() {
   }
 
   html += `<p class="vocab-note">This is <strong>role classification</strong> (the five-role scheme below) applied to the fixed <strong>concept typology</strong> your matrix was coded against — the two are not interchangeable (spec §3.4).</p>`;
+
+  html += `<div class="handoff-row">
+    <button class="btn btn-outline" style="font-size:0.72rem;" onclick="exportForFrameNaming()">\u2193 Download analysis for frame naming</button>
+    <span class="handoff-note">Carries the groups, the roles and the stability values, with your concept names, for naming the frames in pluralitie.</span>
+  </div>`;
 
   html += `<div id="stage-1"></div><div id="stage-2"></div><div id="stage-2b"></div><div id="stage-3"></div><div id="stage-4"></div><div id="stage-5"></div>`;
 
