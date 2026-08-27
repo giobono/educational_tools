@@ -368,9 +368,23 @@ function docKey(doc) {
 // _row_max_normalise() exactly, for the live preview only — the
 // authoritative computation is server-side once confirmed. An all-zero
 // row normalises to all zeros, not division by zero.
+// Math.max(...array) passes one argument per element, and the argument list
+// is bounded by the call stack: Chrome throws "Maximum call stack size
+// exceeded" somewhere past a hundred thousand or so. That made matrix size
+// the thing that decided whether a DTM would load at all - the MFC
+// benchmark at 51,240 cells was under the limit and the Manifesto Project
+// at 290,416 was over it, so one corpus worked and the other failed on
+// upload with an error naming nothing a researcher could act on. Folding
+// instead of spreading has no such bound.
+function maxOf(values, floor) {
+  let m = floor === undefined ? -Infinity : floor;
+  for (let i = 0; i < values.length; i++) { const v = values[i]; if (v > m) m = v; }
+  return m;
+}
+
 function rowMaxNormalise(matrix) {
   return matrix.map(row => {
-    const rowMax = Math.max(...row, 0);
+    const rowMax = maxOf(row, 0);
     return rowMax > 0 ? row.map(v => v / rowMax) : row.map(() => 0);
   });
 }
@@ -410,7 +424,7 @@ function initBinarisation() {
 function configureSlider() {
   const slider = document.getElementById('threshold-slider');
   const norm   = document.getElementById('normalise-toggle').checked;
-  const ceil   = Math.max(...currentBasis().flat(), 0);
+  const ceil   = maxOf(currentBasis().flat(), 0);
   const prev   = parseFloat(slider.value);
   const frac   = isFinite(prev) && parseFloat(slider.max) > 0 ? prev / parseFloat(slider.max) : 0.5;
 
@@ -439,7 +453,7 @@ function renderSliderValue() {
 // only a label, since corres cannot know what the numbers mean.
 function halfMax() {
   const vals = currentBasis().flat().filter(v => v > 0);
-  return vals.length ? 0.5 * Math.max(...vals) : 0.5;
+  return vals.length ? 0.5 * maxOf(vals) : 0.5;
 }
 function halfMean() {
   const vals = currentBasis().flat().filter(v => v > 0);
@@ -663,7 +677,7 @@ function renderHeatmap(t, mode) {
 
   // The colour scale spans whatever the matrix actually contains - nothing
   // here assumes a 0-3 ceiling any more.
-  const maxVal = Math.max(...dtmData.matrix.flat(), 1);
+  const maxVal = maxOf(dtmData.matrix.flat(), 1);
 
   rowOrder.forEach((ri, row) => {
     colOrder.forEach((ci, col) => {
@@ -787,7 +801,7 @@ function renderTTM() {
   const body    = document.getElementById('ttm-body');
   const actions = document.getElementById('ttm-actions');
   const { concepts, matrix, sorted, totals } = ttmData;
-  const max     = Math.max(...totals);
+  const max     = maxOf(totals);
   const preview = sorted.slice(0, 25);
 
   body.innerHTML = `
@@ -1446,7 +1460,7 @@ function renderStabilityDistribution(roles, conceptIds) {
     const i = Math.min(bins - 1, Math.max(0, Math.floor(v * bins)));
     counts[i]++;
   });
-  const peak = Math.max(...counts, 1);
+  const peak = maxOf(counts, 1);
   const below = vals.filter(v => v < tau).length;
   const median = vals[Math.floor((vals.length - 1) / 2)];
   const nearMiss = vals.filter(v => v < tau && v >= tau - 0.05).length;
