@@ -138,6 +138,21 @@
   .tmode-opt input:checked + label { background: var(--ink); color: var(--paper); }
   .tmode-opt input:checked + label .tmode-sub { color: var(--paper-dark); }
 
+  /* The normalise question sits above the threshold options and is
+     independent of them: it decides what the threshold is compared against,
+     not where the threshold sits. */
+  .normalise-row {
+    display: flex; gap: 0.6rem; align-items: flex-start; cursor: pointer;
+    padding: 0.7rem 0.85rem; border: 1px solid var(--paper-dark); border-radius: 3px;
+    background: white;
+  }
+  .normalise-row input { margin-top: 0.2rem; flex: none; }
+  .normalise-row span {
+    font-family: var(--font-body); font-size: 0.78rem; line-height: 1.5;
+    color: var(--ink-light);
+  }
+  .normalise-row span strong { color: var(--ink); }
+
   .slider-row {
     display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem;
     padding: 0.85rem 1rem; background: var(--paper); border-radius: 3px;
@@ -270,16 +285,6 @@
   .callout { background: white; border-left: 3px solid var(--accent); padding: 1rem 1.25rem; margin-bottom: 2rem; font-family: var(--font-display); font-size: 0.88rem; line-height: 1.7; color: var(--ink-mid); }
   .callout strong { color: var(--ink); font-family: var(--font-body); font-size: 0.82rem; }
 
-  /* ── CorRes process (Addie's method, Stages 2-5) ──────────────────────
-     Instance brief 2026-07-24: corres_frontend_build_2026_07. Fixture-data
-     build (backend reachability not yet resolved) - see FIXTURE DATA flag. */
-
-  .fixture-flag {
-    font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.1em;
-    text-transform: uppercase; color: var(--warning); background: var(--warning-bg);
-    border: 1px solid var(--warning-border); padding: 0.2rem 0.55rem; border-radius: 2px;
-    cursor: help;
-  }
 
   /* Declared-parameters transparency, read-only (spec §3.1-3.2, Annex A
      §A5). Status badges distinguish Fixed/Calibrated/Open per spec §3.2's
@@ -293,6 +298,46 @@
   .param-item { display: flex; flex-direction: column; gap: 0.15rem; }
   .param-label { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
   .param-val { font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink); font-weight: 500; }
+  /* What the setting does, in the researcher's terms. Added 26 Aug 2026:
+     the panel previously gave a name, a number and a status word, none of
+     which told the reader what the number governed. */
+  .param-does { font-family: var(--font-body); font-size: 0.68rem; line-height: 1.45; color: var(--ink-light); }
+
+  /* The split-half scan behind the gate statistic. The operating block
+     count is marked so a reader can see at a glance whether the k in use is
+     where the grid actually peaks. */
+  .ari-scan { margin-top: 0.7rem; padding-top: 0.6rem; border-top: 1px solid var(--rule); }
+  .ari-scan-title {
+    font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink-light); margin-bottom: 0.4rem;
+  }
+  .ari-scan-scroll { overflow-x: auto; }
+  .ari-table { border-collapse: collapse; font-family: var(--font-mono); font-size: 0.68rem; }
+  .ari-table th, .ari-table td { padding: 0.2rem 0.5rem; text-align: right; white-space: nowrap; }
+  .ari-table thead th { color: var(--ink-light); font-weight: 500; border-bottom: 1px solid var(--rule); }
+  .ari-table tbody th { text-align: left; color: var(--ink-light); font-weight: 500; }
+  .ari-table .ari-operating { background: var(--paper-dark); }
+  .ari-table td.ari-best { font-weight: 600; color: var(--accent); }
+  .ari-scan-note { font-family: var(--font-body); font-size: 0.68rem; line-height: 1.5; color: var(--ink-light); margin: 0.5rem 0 0; }
+
+  /* Stability distribution across concepts. Bars below the threshold are
+     drawn in the warning colour so the split is readable without counting. */
+  .stability-dist { margin-bottom: 1.25rem; padding: 0.8rem 0.9rem; border: 1px solid var(--rule); border-radius: 3px; }
+  .sd-title {
+    font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink-light); margin-bottom: 0.6rem;
+  }
+  .sd-chart { display: flex; align-items: flex-end; gap: 3px; height: 78px; }
+  .sd-bar { flex: 1; display: flex; flex-direction: column; height: 100%; }
+  .sd-col { flex: 1; display: flex; align-items: flex-end; }
+  .sd-fill { width: 100%; min-height: 1px; border-radius: 1px 1px 0 0; }
+  .sd-fill.sd-under { background: var(--warning); }
+  .sd-fill.sd-over  { background: var(--accent); }
+  .sd-tick { font-family: var(--font-mono); font-size: 0.52rem; color: var(--ink-light); text-align: center; padding-top: 0.2rem; }
+  .sd-note { font-family: var(--font-body); font-size: 0.68rem; line-height: 1.5; color: var(--ink-light); margin: 0.6rem 0 0; }
+
+  .handoff-row { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin: 0 0 1.25rem; }
+  .handoff-note { font-family: var(--font-body); font-size: 0.68rem; line-height: 1.45; color: var(--ink-light); flex: 1 1 16rem; }
   .param-status {
     font-size: 0.52rem; letter-spacing: 0.04em; padding: 0.05rem 0.35rem;
     border-radius: 2px; text-transform: uppercase;

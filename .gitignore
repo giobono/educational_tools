@@ -8,3 +8,4 @@ apps/corres/config.js
 # (local FS layout design's public_html/config split). This just
 # guards against someone dropping a working copy directly in here.
 mail-config.php
+_upload_check.html
