@@ -1,0 +1,117 @@
+/* corres_g4.css — the researcher's version of CorRes G4.
+ *
+ * Layout follows build brief v0.2 §8: every step page reads in the same four
+ * parts, in the same order, so the researcher learns one shape and not nine.
+ * Tokens come from ebono_brand.css and edu_common.css; only what is specific
+ * to the nine-step pipeline lives here.
+ */
+
+:root {
+  --g4-stop:    #8c1c13;
+  --g4-caution: #8a5a00;
+  --g4-note:    #38506b;
+  --g4-rule:    #d8d3ca;
+  --g4-quiet:   #5d5a54;
+  --g4-panel:   #fbfaf8;
+}
+
+/* ---- the run rail: history is visible, §8 navigation ---------------- */
+.g4-layout { display: grid; grid-template-columns: 15rem 1fr; gap: 2rem; align-items: start; }
+@media (max-width: 54rem) { .g4-layout { grid-template-columns: 1fr; } }
+
+.g4-rail { position: sticky; top: 1rem; border: 1px solid var(--g4-rule); border-radius: 4px; padding: 0.75rem; background: var(--g4-panel); }
+.g4-rail h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--g4-quiet); margin: 0 0 0.5rem; }
+.g4-rail ol { list-style: none; margin: 0; padding: 0; }
+.g4-rail li { font-size: 0.9rem; padding: 0.3rem 0.4rem; border-radius: 3px; display: flex; gap: 0.5rem; }
+.g4-rail li[aria-current="step"] { background: #ece7dd; font-weight: 600; }
+.g4-rail li[data-state="done"]::before    { content: "\2713"; color: #2f6b3f; }
+.g4-rail li[data-state="running"]::before { content: "\00B7\00B7\00B7"; color: var(--g4-quiet); }
+.g4-rail li[data-state="todo"]::before    { content: "\00A0\00A0"; }
+.g4-rail li[data-state="blocked"]::before { content: "\2014"; color: var(--g4-quiet); }
+
+.g4-runs { margin-top: 1rem; border-top: 1px solid var(--g4-rule); padding-top: 0.75rem; font-size: 0.85rem; }
+.g4-runs li { display: block; padding: 0.2rem 0; }
+.g4-runs .g4-rerun { padding-left: 1rem; color: var(--g4-quiet); }
+
+/* ---- a step pane: the four parts, always in this order --------------- */
+.g4-step { border: 1px solid var(--g4-rule); border-radius: 4px; padding: 1.25rem 1.5rem; background: #fff; }
+.g4-step > * + * { margin-top: 1.25rem; }
+.g4-step h1 { margin: 0; font-size: 1.4rem; }
+.g4-step h1 .g4-num { color: var(--g4-quiet); font-weight: 400; }
+
+.g4-part { border-top: 1px solid var(--g4-rule); padding-top: 1rem; }
+.g4-part > h2 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--g4-quiet); margin: 0 0 0.5rem; }
+.g4-did { max-width: 60ch; }
+
+/* part 2 — the one thing to look at, given the most room */
+.g4-focus { background: var(--g4-panel); border: 1px solid var(--g4-rule); border-radius: 3px; padding: 1rem; overflow-x: auto; }
+.g4-focus table { border-collapse: collapse; font-size: 0.9rem; width: 100%; }
+.g4-focus th, .g4-focus td { text-align: left; padding: 0.3rem 0.7rem 0.3rem 0; border-bottom: 1px solid var(--g4-rule); }
+.g4-focus th { font-weight: 600; white-space: nowrap; }
+.g4-focus td.g4-num, .g4-focus th.g4-num { text-align: right; font-variant-numeric: tabular-nums; }
+.g4-focus tr[data-recommended="true"] { background: #eef3ea; }
+
+/* part 3 — flags */
+.g4-flag { border-left: 3px solid var(--g4-note); padding: 0.5rem 0 0.5rem 0.75rem; margin: 0.6rem 0; }
+.g4-flag[data-severity="stop"]    { border-left-color: var(--g4-stop); }
+.g4-flag[data-severity="caution"] { border-left-color: var(--g4-caution); }
+.g4-flag .g4-sev { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+.g4-flag[data-severity="stop"] .g4-sev    { color: var(--g4-stop); }
+.g4-flag[data-severity="caution"] .g4-sev { color: var(--g4-caution); }
+.g4-flag[data-severity="note"] .g4-sev    { color: var(--g4-note); }
+.g4-flag .g4-code { font-family: ui-monospace, monospace; font-size: 0.78rem; color: var(--g4-quiet); }
+.g4-flag p { margin: 0.25rem 0 0; max-width: 62ch; }
+
+/* part 4 — the decision, default pre-selected, consequence per option */
+.g4-decision fieldset { border: 0; margin: 0; padding: 0; }
+.g4-decision legend { font-weight: 600; margin-bottom: 0.5rem; }
+.g4-option { display: block; padding: 0.45rem 0; }
+.g4-option .g4-consequence { display: block; margin-left: 1.6rem; color: var(--g4-quiet); font-size: 0.9rem; }
+.g4-option input:checked ~ .g4-label { font-weight: 600; }
+
+/* ---- tiers. The opposition table is never shown as certified. -------- */
+.g4-tier { display: inline-block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+           padding: 0.1rem 0.45rem; border-radius: 2px; border: 1px solid currentColor; }
+.g4-tier[data-tier="certified"]    { color: #2f6b3f; }
+.g4-tier[data-tier="confirmatory"] { color: #2f6b3f; }
+.g4-tier[data-tier="interpretive"] { color: var(--g4-note); }
+.g4-tier[data-tier="exploratory"]  { color: var(--g4-caution); }
+.g4-tier[data-tier="limits"]       { color: var(--g4-stop); }
+
+.g4-cap { border: 1px solid var(--g4-caution); background: #fdf6e7; border-radius: 3px; padding: 0.6rem 0.9rem; }
+
+/* ---- running, and the provisional notice ---------------------------- */
+.g4-running { color: var(--g4-quiet); font-size: 0.9rem; }
+.g4-running[hidden] { display: none; }
+.g4-provisional { font-size: 0.85rem; color: var(--g4-quiet); border-top: 1px solid var(--g4-rule); padding-top: 0.6rem; }
+.g4-unsighted { border: 2px solid var(--g4-stop); background: #fdecea; padding: 0.75rem 1rem; border-radius: 3px; }
+
+/* A flag's proposal: what the method suggests doing about it, which is not
+ * the same as what the flag says. Set apart so a reader does not take the
+ * suggestion for the finding. */
+.g4-proposal { margin: .25rem 0 0; font-style: italic; color: var(--g4-quiet); }
+
+/* The citation under a decision: a draft 0.5 section or a CR4 number, so a
+ * researcher can check what the choice rests on. */
+.g4-source { margin: .4rem 0 0; font-size: .8rem; color: var(--g4-quiet); }
+
+/* The artefact line under part 2: tier badge, slot, files, digest. Every
+ * figure on the page is traceable to one artefact, and this is where. */
+.g4-artefact { margin: .75rem 0 0; font-size: .8rem; color: var(--g4-quiet); }
+.g4-artefact .g4-tier { margin-right: .4rem; }
+
+/* How far a run in the history got. */
+.g4-run-note { color: var(--g4-quiet); font-size: .8rem; }
+.g4-rail li[data-current='true'] > a { font-weight: 600; }
+
+/* Step 0's controls: they stay put while the proposal appears beneath, so a
+ * different file or value type does not need a new run. */
+.g4-upload { padding-bottom: .75rem; margin-bottom: .75rem; border-bottom: 1px solid var(--g4-rule); }
+.g4-upload p { margin: .35rem 0; }
+
+/* The chosen k, carried on the rail from step 4 on. */
+.g4-rail-k { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--g4-quiet); font-size: .8rem; }
+
+/* A sentence that reached the page from the server rather than from
+ * method_strings.js. Marked, not hidden. */
+.g4-not-sighted { color: var(--g4-caution); font-size: .8rem; }
