@@ -34,12 +34,46 @@
     flags: {},           // step -> that step's flags
     polling: null,       // the live task id, for Cancel
     cap: null,           // {tier, reason} once any step reports one
+    fixed: {},           // step -> published `fixed` defaults, from GET /config
   };
 
   const $ = (id) => document.getElementById(id);
   const text = (el, s) => { if (el) el.textContent = s == null ? '' : String(s); };
   const clear = (el) => { while (el && el.firstChild) el.removeChild(el.firstChild); };
   const note = (s) => { const p = document.createElement('p'); p.className = 'g4-running'; text(p, s); return p; };
+
+  /* ---- the published parameter table -------------------------------- */
+  /* Step 6 refuses to run without its class cut-offs, by design: it "will not
+   * choose a value the specification leaves open" (draft 0.3 §12). The values
+   * are not invented here and they are not written here either -- invariant 7
+   * forbids a second copy of a front-end-held parameter. They are read from
+   * `GET /config`, which publishes all 39 parameters with their class, their
+   * default and whether they are provisional.
+   *
+   * Only `class: "fixed"` is sent. `decision` belongs to the researcher
+   * (frame_names) and `beta` to the environment (opposition_seed).
+   *
+   * And only where the default is a usable literal. Some fixed defaults are
+   * descriptions of a rule rather than a value -- step 1 publishes
+   * `rating_threshold: "half_declared_max"` -- and sending that as a number
+   * would break a step that already works without it.
+   */
+  function usableLiteral(v) {
+    return typeof v === 'number' || typeof v === 'boolean';
+  }
+
+  async function loadConfig() {
+    let rows = [];
+    try { rows = await window.G4.config(); } catch (e) { return; }
+    const byStep = {};
+    rows.forEach((r) => {
+      if (r.class !== 'fixed' || !usableLiteral(r.default)) return;
+      (byStep[r.step] = byStep[r.step] || {})[r.name] = {
+        value: r.default, provisional: !!r.provisional, note: r.note || '',
+      };
+    });
+    state.fixed = byStep;
+  }
 
   /* ---- the sighting gate -------------------------------------------- */
   /* method_strings.js carries its own status line. Until AD has sighted it,
@@ -247,6 +281,19 @@
       ));
     }
 
+    /* What the step was run with, where the specification leaves it open.
+     * Shown rather than applied quietly: `provisional` is AD's sighted
+     * wording, and a reader should be able to see which numbers it refers to. */
+    const fixed = state.fixed[step] || {};
+    const provisional = Object.entries(fixed).filter(([, v]) => v.provisional);
+    if (provisional.length) {
+      const d = document.createElement('p');
+      d.className = 'g4-source';
+      text(d, 'Provisional, from the published parameter table: '
+        + provisional.map(([k, v]) => `${k} = ${v.value}`).join(', '));
+      host.appendChild(d);
+    }
+
     const foot = document.createElement('p');
     foot.className = 'g4-artefact';
     foot.append(tierBadge(effectiveTier(view)));
@@ -432,7 +479,10 @@
   /* Only the researcher's own decisions go here. Everything a step reads it
    * reads from its declared inputs, so this stays small by design. */
   function paramsFor(step) {
+    /* The published defaults first, the researcher's own decisions over the
+     * top: a decision must always beat a default. */
     const p = {};
+    Object.entries(state.fixed[step] || {}).forEach(([k, v]) => { p[k] = v.value; });
     if (step === 0) {
       if (state.upload) p.upload_id = state.upload.upload_id;
       if (chosen(0) === 'confirm' && state.upload) {
@@ -637,6 +687,7 @@
       text($('g4-running'), 'Cancelling at the next checkpoint…');
     };
 
+    await loadConfig();
     renderRail();
     await renderRuns();
     show(0);
