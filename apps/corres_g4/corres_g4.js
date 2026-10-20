@@ -667,7 +667,18 @@
 
   /* ---- boot --------------------------------------------------------- */
   async function boot() {
-    if (window.renderHeader) window.renderHeader('g4-header');
+    /* The site's own header, nav and build version, loaded exactly as every
+     * other app loads them. An earlier version of this called a
+     * `window.renderHeader` that does not exist, behind an `if` -- so it
+     * failed silently and the page rendered with no header and no nav at all,
+     * looking like an orphaned prototype rather than part of the site. */
+    if (window.loadFragment) {
+      try { await window.loadFragment('edu-header', '/edu_header.html'); }
+      catch (e) { /* the app still works without the chrome */ }
+    }
+    if (window.markActiveNav) window.markActiveNav();
+    if (window.applyAppVisibility) window.applyAppVisibility();
+    if (window.renderBuildVersion) window.renderBuildVersion();
     if (window.enforceAppActive && !window.enforceAppActive()) return;
 
     sightingBanner();
