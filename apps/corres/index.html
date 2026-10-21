@@ -16,7 +16,7 @@
 <script>window.enforceAppActive();</script>
 <link href="/ebono_brand.css?v=202608231842" rel="stylesheet"/>
 <link href="/edu_common.css?v=202608231842" rel="stylesheet"/>
-<link href="corres.css?v=202608262348" rel="stylesheet"/></head>
+<link href="corres.css?v=202610221400" rel="stylesheet"/></head>
 <body>
 <div id="edu-header" class="cr-nav"></div>
 <!-- ── Front page ──
@@ -54,23 +54,31 @@
 </section>
 <div class="workspace" id="cr-front-start">
 <div class="callout">
-<strong>What you need — one CSV</strong><br/>
-A matrix of documents by concepts. One row per document, one column per concept, and a score or null in every cell:<br/>
-<!-- [CD/AD] Factual description of the binarisation step, rewritten 26 Aug
-     2026 to match the ruling of that date. Written by the development seat
-     because leaving a false description standing was the worse of the two
-     faults - it is flagged here rather than passed off as sighted copy. -->
-corres does not know how you arrived at the number in a cell. It might be how often something occurs, a position on a scale like the one below, or a measure of your own. Because it cannot know, it does not guess: you make two choices, and the server applies them.<br/>
-<strong>First, whether to normalise.</strong> Normalising divides each cell by the largest value in its own document, so every document is read as a percentage of its own maximum. That helps when documents differ in length or in how heavily they were coded, and hurts when your numbers already sit on a fixed scale that means the same thing in every document.<br/>
-<strong>Second, where “important” starts.</strong> Half the largest value suits a fixed scale — on a 0–3 scale that is 1.5, so the top half counts. Half the average of the non-zero values suits counts, which have no ceiling to take half of. Or set your own number. Whichever you choose is shown against the data before you commit, and reported back with the result.<br/>
-The scale below is one common way of coding, not a requirement:
+<!-- Sighting brief 21 Oct §2 (2): index.html carries no sentence that
+     describes the method. Every node below is empty in the markup and filled
+     by fillPageText() from `page` in method_strings.js, so a method sentence
+     cannot reappear here without going through AD first. If the file is
+     absent the page says nothing about the method, which is the safe
+     direction -- silence is not an unsighted claim.
+
+     What was removed, so a later reader can tell this from a deletion: a
+     callout offering the researcher a choice of threshold ("or set your own
+     number"), which CR4-16 (3) and CR4-24 (a) rule out -- the rule is fixed
+     by the declared type and never offered; a "Minimum" paragraph that was
+     G3's and wrong for G4; and the 0-3 upload hint, which excluded counts,
+     percentages and presence. -->
+<strong id="cr-need-title"></strong><br/>
+<span id="cr-need"></span><br/>
+<span id="cr-values-mean"></span><br/>
+<span id="cr-normalise-choice"></span><br/>
+<span id="cr-scale-lead"></span>
 <table class="cr-scale">
 <tr><td><strong>0</strong></td><td>Absent</td><td>the concept does not appear</td></tr>
 <tr><td><strong>1</strong></td><td>Mentioned</td><td>brief reference only</td></tr>
 <tr><td><strong>2</strong></td><td>Important</td><td>discussed and emphasised</td></tr>
 <tr><td><strong>3</strong></td><td>Central</td><td>a core focus of the document</td></tr>
 </table>
-<strong>Minimum:</strong> a matrix should have siginificantly more documents than terms, and a significant range of values. Very small, square, or even matrices will be declined, with reasons provided. Bring a real data set that produces significant results using other methods.
+<span id="cr-minimum"></span>
 </div>
 <!-- ── Where the analysis runs ──────────────────────────────────────────
      Was a Pyodide loading message announcing a 15-30 second wait for a local
@@ -112,26 +120,15 @@ The scale below is one common way of coding, not a requirement:
 <div class="upload-icon">📊</div>
 <div class="upload-body">
 <strong>Drop reviewed DTM CSV here or click to browse</strong>
-<div class="upload-sub">Scores 0–3, every cell filled, anything uncertain resolved before upload</div>
+<div class="upload-sub" id="cr-upload-hint"></div>
 <div class="upload-stats" id="dtm-stats"></div>
 </div>
 </div>
-<!-- R2, the second half of step 0's declaration: what the values mean.
-     A declaration, not a choice -- the pipeline cannot know it and will not
-     guess (CR4-22 (1)), and step 1 refuses without it. Compositional is
-     asked separately because since CR4-25 (f) declaring `percentage` no
-     longer forces it: the researcher confirms the detected shape (R2). -->
-<div class="cr-declare">
-  <label class="cr-declare-row" for="value-type">
-    <span class="cr-declare-q">What do the values mean?</span>
-    <select id="value-type">
-      <option value="count">Counts — how many times a concept appears</option>
-      <option value="rating">Ratings — a score on a fixed scale</option>
-      <option value="presence">Presence — already 0 or 1</option>
-      <option value="percentage">Percentages — a share of a whole</option>
-    </select>
-  </label>
-</div>
+<!-- R2, R3 and R5 moved into step 0's card on 22 Oct (AD screen review
+     item 3, sighting brief §2 (3)): the declarations belong inside step 0's
+     decision, not loose above the cards, and their wording is AD's. The card
+     renders them from `declarations`; corres_flow.js re-runs step 0 when the
+     researcher confirms, so A0 records what was actually declared. -->
 <div id="error-display"></div>
 <!-- ── The nine steps ──
      Rewrite brief v1.1 §2: "The pattern is G3's; the plumbing is G4's."
@@ -163,7 +160,7 @@ The scale below is one common way of coding, not a requirement:
 <div class="step-card-header">
 <div class="step-card-title">
 <span class="step-num" id="s0-num">0</span>
-<span class="step-name">Declare the corpus</span>
+<span class="step-name" id="s0-name"></span>
 </div>
 <div class="cr-step-status" id="s0-status"></div>
 </div>
@@ -174,7 +171,7 @@ The scale below is one common way of coding, not a requirement:
 <div class="step-card-header">
 <div class="step-card-title">
 <span class="step-num" id="s1-num">1</span>
-<span class="step-name">Binarise</span>
+<span class="step-name" id="s1-name"></span>
 </div>
 <div class="cr-step-status" id="s1-status"></div>
 </div>
@@ -185,7 +182,7 @@ The scale below is one common way of coding, not a requirement:
 <div class="step-card-header">
 <div class="step-card-title">
 <span class="step-num" id="s2-num">2</span>
-<span class="step-name">Admit and scope</span>
+<span class="step-name" id="s2-name"></span>
 </div>
 <div class="cr-step-status" id="s2-status"></div>
 </div>
@@ -196,7 +193,7 @@ The scale below is one common way of coding, not a requirement:
 <div class="step-card-header">
 <div class="step-card-title">
 <span class="step-num" id="s3-num">3</span>
-<span class="step-name">Association and signal</span>
+<span class="step-name" id="s3-name"></span>
 </div>
 <div class="cr-step-status" id="s3-status"></div>
 </div>
@@ -207,7 +204,7 @@ The scale below is one common way of coding, not a requirement:
 <div class="step-card-header">
 <div class="step-card-title">
 <span class="step-num" id="s4-num">4</span>
-<span class="step-name">Stability and granularity</span>
+<span class="step-name" id="s4-name"></span>
 </div>
 <div class="cr-step-status" id="s4-status"></div>
 </div>
@@ -218,7 +215,7 @@ The scale below is one common way of coding, not a requirement:
 <div class="step-card-header">
 <div class="step-card-title">
 <span class="step-num" id="s5-num">5</span>
-<span class="step-name">Covariate check</span>
+<span class="step-name" id="s5-name"></span>
 </div>
 <div class="cr-step-status" id="s5-status"></div>
 </div>
@@ -229,7 +226,7 @@ The scale below is one common way of coding, not a requirement:
 <div class="step-card-header">
 <div class="step-card-title">
 <span class="step-num" id="s6-num">6</span>
-<span class="step-name">Frames, roles and opposition</span>
+<span class="step-name" id="s6-name"></span>
 </div>
 <div class="cr-step-status" id="s6-status"></div>
 </div>
@@ -240,7 +237,7 @@ The scale below is one common way of coding, not a requirement:
 <div class="step-card-header">
 <div class="step-card-title">
 <span class="step-num" id="s7-num">7</span>
-<span class="step-name">Pairwise claims</span>
+<span class="step-name" id="s7-name"></span>
 </div>
 <div class="cr-step-status" id="s7-status"></div>
 </div>
@@ -251,7 +248,7 @@ The scale below is one common way of coding, not a requirement:
 <div class="step-card-header">
 <div class="step-card-title">
 <span class="step-num" id="s8-num">8</span>
-<span class="step-name">Sensitivity and claims</span>
+<span class="step-name" id="s8-name"></span>
 </div>
 <div class="cr-step-status" id="s8-status"></div>
 </div>
@@ -262,9 +259,9 @@ The scale below is one common way of coding, not a requirement:
 
 <!-- The method's own words, in one file so AD sights one file and not the
      page (Charter §2.3). Loaded before the flow, which reads it. -->
-<script src="method_strings.js?v=202610221030"></script>
+<script src="method_strings.js?v=202610221400"></script>
 <script src="g4_api.js?v=202610221030"></script>
-<script src="corres_flow.js?v=202610221030"></script>
+<script src="corres_flow.js?v=202610221400"></script>
 <script>
   // G3's boot, unchanged.
   document.addEventListener('DOMContentLoaded', async () => {

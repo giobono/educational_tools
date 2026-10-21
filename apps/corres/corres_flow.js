@@ -40,9 +40,32 @@
     fixed: {},        // step -> published `fixed` literals, from GET /config
     reports: {},      // step -> the four-part report
     furthest: -1,
+    /* Step 0's declarations (R2, R3, R5). Held here, not read off the DOM at
+     * the moment they are needed, because confirming at step 0 re-renders the
+     * card and would otherwise reset the researcher's answers to defaults. */
+    declared: { value_type: 'count', scale_max: null, compositional: 'detected',
+                covariate_types: {}, hypotheses: '' },
   };
 
   function $(id) { return document.getElementById(id); }
+
+  /* ---- the page's own text, from the file ---------------------------
+   * Sighting brief 21 Oct §2 (2). index.html holds empty nodes; the sentences
+   * are AD's and live in method_strings.js. Filling them here is what lets
+   * the page carry no method prose of its own. */
+  function fillPageText() {
+    var pg = M.page || {};
+    text($('cr-need-title'), pg.needTitle);
+    text($('cr-need'), pg.need);
+    text($('cr-values-mean'), pg.valuesMean);
+    text($('cr-normalise-choice'), pg.normaliseChoice);
+    text($('cr-scale-lead'), pg.scaleExampleLead);
+    text($('cr-minimum'), pg.minimum);
+    text($('cr-upload-hint'), pg.uploadHint);
+    Object.keys(M.steps || {}).forEach(function (n) {
+      text($('s' + n + '-name'), (M.steps[n] || {}).title);
+    });
+  }
   function text(el, s) { if (el) el.textContent = (s == null ? '' : String(s)); }
   function clear(el) { while (el && el.firstChild) el.removeChild(el.firstChild); }
 
@@ -325,6 +348,143 @@
 
   /* ---- part 4: the decision, G3's radio pattern -------------------- */
 
+  /* ---- step 0's declarations: R2, R3, R5 ----------------------------
+   * AD screen review item 3 and sighting brief §2 (3). These are declarations,
+   * not choices the method could make for the researcher: the pipeline cannot
+   * know what a number means and will not guess (CR4-22 (1)). Every prompt,
+   * label and consequence below comes from `declarations` -- nothing here
+   * words anything itself.
+   *
+   * R3 is rendered only when the upload proposed a covariate, which is what
+   * AD observed to be correct on the MFC-A corpus. */
+  function declField(host, spec, name, current, onPick) {
+    if (!spec) { return; }
+    var q = document.createElement('div');
+    q.className = 'cr-decide-q';
+    text(q, spec.prompt);
+    host.appendChild(q);
+    if (spec.options) {
+      var sel = document.createElement('select');
+      sel.className = 'cr-declare-select';
+      sel.id = 'declare-' + name;
+      spec.options.forEach(function (o) {
+        var op = document.createElement('option');
+        op.value = o.value;
+        text(op, o.label);
+        if (o.value === current) { op.selected = true; }
+        sel.appendChild(op);
+      });
+      sel.onchange = function () { onPick(sel.value); };
+      host.appendChild(sel);
+      var chosenOpt = (spec.options || []).filter(function (o) { return o.value === current; })[0];
+      if (chosenOpt && chosenOpt.consequence) {
+        var cs = document.createElement('p');
+        cs.className = 'cr-declare-conseq';
+        text(cs, chosenOpt.consequence);
+        host.appendChild(cs);
+      }
+    }
+    if (spec.consequence) {
+      var sub = document.createElement('p');
+      sub.className = 'cr-declare-conseq';
+      text(sub, spec.consequence);
+      host.appendChild(sub);
+    }
+  }
+
+  function renderDeclarations(host) {
+    var D = M.declarations || {};
+    if (!D.valueType) { return; }        // unsighted file: declare nothing
+    var box = host;                      // inside step 0's decision, not beside it
+
+    // R2a -- what the values mean.
+    declField(box, D.valueType, 'value-type', state.declared.value_type, function (v) {
+      state.declared.value_type = v;
+      renderCard(0);
+    });
+
+    /* A rating scale has a maximum the method cannot infer, and step 1's rule
+     * is half of it. Asked only for ratings, because it means nothing else. */
+    if (state.declared.value_type === 'rating') {
+      var lab = document.createElement('label');
+      lab.className = 'cr-declare-row';
+      var ls = document.createElement('span');
+      text(ls, 'Scale maximum');
+      var num = document.createElement('input');
+      num.type = 'number';
+      num.min = '1';
+      num.id = 'declare-scale-max';
+      num.value = state.declared.scale_max == null ? '' : state.declared.scale_max;
+      num.onchange = function () {
+        state.declared.scale_max = num.value === '' ? null : Number(num.value);
+      };
+      lab.appendChild(ls);
+      lab.appendChild(num);
+      box.appendChild(lab);
+    }
+
+    // R2b -- the shape, confirmed rather than forced by the type (CR4-25 (f)).
+    declField(box, D.compositional, 'compositional', state.declared.compositional, function (v) {
+      state.declared.compositional = v;
+      renderCard(0);
+    });
+
+    // R3 -- one answer per declared covariate, only when there are any.
+    var proposed = (state.upload || {}).proposed_covariate_types || {};
+    var names = Object.keys(proposed);
+    if (names.length && D.covariateType) {
+      var cq = document.createElement('div');
+      cq.className = 'cr-decide-q';
+      text(cq, D.covariateType.prompt);
+      box.appendChild(cq);
+      names.forEach(function (cv) {
+        var row = document.createElement('label');
+        row.className = 'cr-declare-row';
+        var cn = document.createElement('span');
+        text(cn, cv);
+        var cs2 = document.createElement('select');
+        cs2.id = 'declare-cov-' + cv;
+        ['numeric', 'categorical'].forEach(function (k) {
+          var op = document.createElement('option');
+          op.value = k;
+          text(op, k);
+          if ((state.declared.covariate_types[cv] || proposed[cv]) === k) { op.selected = true; }
+          cs2.appendChild(op);
+        });
+        cs2.onchange = function () { state.declared.covariate_types[cv] = cs2.value; };
+        row.appendChild(cn);
+        row.appendChild(cs2);
+        box.appendChild(row);
+      });
+      if (D.covariateType.consequence) {
+        var cc = document.createElement('p');
+        cc.className = 'cr-declare-conseq';
+        text(cc, D.covariateType.consequence);
+        box.appendChild(cc);
+      }
+    }
+
+    // R5 -- hypotheses, which only count if stated before any result.
+    if (D.hypotheses) {
+      var hq = document.createElement('div');
+      hq.className = 'cr-decide-q';
+      text(hq, D.hypotheses.prompt);
+      box.appendChild(hq);
+      var ta = document.createElement('textarea');
+      ta.id = 'declare-hypotheses';
+      ta.rows = 3;
+      ta.className = 'cr-declare-text';
+      ta.value = state.declared.hypotheses || '';
+      ta.onchange = function () { state.declared.hypotheses = ta.value; };
+      box.appendChild(ta);
+      var hc = document.createElement('p');
+      hc.className = 'cr-declare-conseq';
+      text(hc, D.hypotheses.consequence);
+      box.appendChild(hc);
+    }
+
+  }
+
   function renderDecide(host, step, rep) {
     clear(host);
     var decisions = (rep.decide || []).filter(function (d) {
@@ -373,6 +533,31 @@
       opt.appendChild(input);
       opt.appendChild(label);
       host.appendChild(opt);
+      /* R6 narrowed: the option names a group, so the page has to ask which.
+       * Only categorical covariates may narrow a scope (step 2 refuses the
+       * rest), so only those are offered. */
+      if (step === 2 && o.value === 'group') {
+        var picker = document.createElement('div');
+        picker.className = 'cr-scope-picker';
+        picker.hidden = !input.checked;
+        var cs = document.createElement('select');
+        cs.id = 'scope-covariate';
+        Object.keys(state.declared.covariate_types || {}).forEach(function (cv) {
+          if (state.declared.covariate_types[cv] !== 'categorical') { return; }
+          var op = document.createElement('option');
+          op.value = cv; text(op, cv); cs.appendChild(op);
+        });
+        var gi = document.createElement('input');
+        gi.type = 'text';
+        gi.id = 'scope-group';
+        gi.placeholder = 'which group';
+        picker.appendChild(cs);
+        picker.appendChild(gi);
+        host.appendChild(picker);
+        host.addEventListener('change', function () {
+          picker.hidden = chosen(2) !== 'group';
+        });
+      }
     });
   }
 
@@ -485,6 +670,10 @@
     text(dch, 'Your decision');
     decide.appendChild(dch);
     var decideHost = document.createElement('div');
+    /* AD item 3: R2, R3 and R5 belong inside step 0's decision. They come
+     * first, because confirming the roles without them would record a
+     * corpus whose values mean nothing in particular. */
+    if (step === 0) { renderDeclarations(decideHost); }
     renderDecide(decideHost, step, rep);
     decide.appendChild(decideHost);
     body.appendChild(decide);
@@ -520,7 +709,15 @@
       text(next, 'The analysis is complete');
     } else {
       text(next, 'Run step ' + (step + 1));
-      next.onclick = function () { runStep(step + 1); };
+      /* Step 0 proposes and the researcher confirms (CR4-16 (2)). The
+       * declarations are answered on this card, so confirming re-runs step 0
+       * before step 1: A0 then records what was actually declared rather than
+       * what was assumed at upload, and step 1 reads it from A0 as it should.
+       * Without this the page would send the values straight to step 1 and
+       * leave A0 saying something else. */
+      next.onclick = (step === 0)
+        ? function () { runStep(0).then(function () { return runStep(1); }); }
+        : function () { runStep(step + 1); };
     }
     controls.appendChild(next);
 
@@ -562,14 +759,56 @@
       if (state.upload) {
         p.upload_id = state.upload.upload_id;
         p.roles = state.upload.proposed_roles;
-        p.covariate_types = state.upload.proposed_covariate_types;
+        /* R3: the researcher's answer where given, the proposal otherwise. */
+        var ct = {};
+        Object.keys(state.upload.proposed_covariate_types || {}).forEach(function (cv) {
+          ct[cv] = state.declared.covariate_types[cv]
+                || state.upload.proposed_covariate_types[cv];
+        });
+        p.covariate_types = ct;
       }
-      var vt = $('value-type');
-      if (vt) { p.value_type = vt.value; }
+      // R2, and R5. A0 records what was declared, so every later step reads
+      // it from one place rather than from the page.
+      p.value_type = state.declared.value_type;
+      if (state.declared.scale_max != null) { p.scale_max = state.declared.scale_max; }
+      if (state.declared.compositional !== 'detected') {
+        p.compositional = state.declared.compositional === 'yes';
+      }
+      /* One hypothesis per line. Step 0 writes a row per entry, so this
+       * must be a list -- a bare string would be iterated character by
+       * character and written as one row per letter. */
+      var hyp = (state.declared.hypotheses || '').split('\n')
+        .map(function (h) { return h.trim(); })
+        .filter(function (h) { return h.length > 0; });
+      if (hyp.length) { p.hypotheses = hyp; }
     }
     // The researcher's answer, where the register offers one. Never a
     // numeric threshold: the register's own rule.
     var answer = chosen(step);
+    /* R4 (decisions[1]). Default no: values are read as given. */
+    if (step === 1) {
+      p.normalise = (answer === 'yes');
+      /* R2's shape. Step 1 reads `compositional` from its own params and
+       * falls back to detection, not to A0, so a declaration made at step 0
+       * is lost unless it is carried here. "As detected" sends nothing,
+       * which is what lets the detection stand. */
+      if (state.declared.compositional !== 'detected') {
+        p.compositional = state.declared.compositional === 'yes';
+      }
+    }
+    /* R6 (decisions[2]). The whole corpus unless a group is named, and
+     * step 2 refuses a narrowing that names only one of the two. */
+    if (step === 2) {
+      if (answer === 'group') {
+        var cvEl = $('scope-covariate');
+        var gpEl = $('scope-group');
+        if (cvEl && gpEl && gpEl.value) {
+          p.scope = { covariate: cvEl.value, group: gpEl.value };
+        }
+      } else {
+        p.scope = 'whole_corpus';
+      }
+    }
     if (step === 3 && answer === 'exclude') { p.exclude_low_signal = true; }
     if (step === 4 && answer === 'choose') {
       var sel = $('k-choice');
@@ -675,6 +914,7 @@
   /* ---- boot --------------------------------------------------------- */
 
   async function boot() {
+    fillPageText();
     await loadConfig();
     for (var i = 0; i <= 8; i += 1) { renderCard(i); }
 

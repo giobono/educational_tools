@@ -579,3 +579,45 @@
   border-radius: 2px; padding: 0 0.3rem;
 }
 .cr-measure { font-size: 0.74rem; color: var(--ink-light); margin: 0.4rem 0 0; }
+
+/* ── step 0's declarations, and step 2's narrowed scope ──────────────
+   Moved into the cards on 22 Oct (AD screen review item 3; sighting brief
+   §2 (3)). The controls sit inside "Your decision", so they take the
+   decision's spacing rather than the front page's. */
+.cr-declare-select,
+.cr-declare-text {
+  display: block;
+  width: 100%;
+  max-width: 34rem;
+  margin: 0.35rem 0 0.1rem;
+  padding: 0.45rem 0.55rem;
+  font: inherit;
+  border: 1px solid var(--cr-rule, #ccc);
+  border-radius: 4px;
+  background: #fff;
+}
+.cr-declare-conseq {
+  margin: 0.15rem 0 0.9rem;
+  font-size: 0.9em;
+  opacity: 0.78;
+}
+.cr-declare-row > span { min-width: 11rem; }   /* .cr-declare-row itself is defined above */
+.cr-declare-row input[type="number"],
+.cr-declare-row select {
+  padding: 0.35rem 0.5rem;
+  font: inherit;
+  border: 1px solid var(--cr-rule, #ccc);
+  border-radius: 4px;
+}
+.cr-scope-picker {
+  display: flex;
+  gap: 0.6rem;
+  margin: 0.2rem 0 0.8rem 1.9rem;
+}
+.cr-scope-picker select,
+.cr-scope-picker input {
+  padding: 0.35rem 0.5rem;
+  font: inherit;
+  border: 1px solid var(--cr-rule, #ccc);
+  border-radius: 4px;
+}
