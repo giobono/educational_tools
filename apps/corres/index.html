@@ -116,1641 +116,157 @@ The scale below is one common way of coding, not a requirement:
 <div class="upload-stats" id="dtm-stats"></div>
 </div>
 </div>
+<!-- R2, the second half of step 0's declaration: what the values mean.
+     A declaration, not a choice -- the pipeline cannot know it and will not
+     guess (CR4-22 (1)), and step 1 refuses without it. Compositional is
+     asked separately because since CR4-25 (f) declaring `percentage` no
+     longer forces it: the researcher confirms the detected shape (R2). -->
+<div class="cr-declare">
+  <label class="cr-declare-row" for="value-type">
+    <span class="cr-declare-q">What do the values mean?</span>
+    <select id="value-type">
+      <option value="count">Counts — how many times a concept appears</option>
+      <option value="rating">Ratings — a score on a fixed scale</option>
+      <option value="presence">Presence — already 0 or 1</option>
+      <option value="percentage">Percentages — a share of a whole</option>
+    </select>
+  </label>
+</div>
 <div id="error-display"></div>
-<!-- ── Step 4.1 ── -->
-<div class="step-card" id="card-41">
+<!-- ── The nine steps ──
+     Rewrite brief v1.1 §2: "The pattern is G3's; the plumbing is G4's."
+     The markup below is G3's `.step-card` -- header with `.step-num` and
+     `.step-name`, a status line, a `.step-card-body` -- repeated nine times
+     instead of three. What changed is behind it: the browser holds a run id
+     and the server holds the artefacts, so no card reads a matrix.
+
+     Every card carries the same four parts, in the same order, because the
+     Researcher Pipeline Specification fixes them: what was done, the one
+     thing to look at, flags, the decision. corres_flow.js fills them from
+     `reports/{step}`; nothing here reads anything the routes do not serve.
+
+     Stage 3 delivers screens 0-4. Cards 5-8 exist so the shape of the
+     analysis is visible from the first screen, and say plainly that they
+     arrive at stage 4 rather than appearing broken. -->
+<div class="cr-method-unsighted" id="method-unsighted" hidden>
+  <strong>Not yet sighted by AD.</strong>
+  The wording describing the method on this page is drawn from specification
+  draft 0.5 and the numbered CR4 decisions and has not been through AD.
+</div>
+<div class="cr-run-bar">
+  <span class="cr-run-label">Run</span>
+  <code id="run-id">—</code>
+  <a class="cr-btn ghost" id="run-export" href="#" hidden download>Download everything (.zip)</a>
+</div>
+<!-- ── Step 0 ── -->
+<div class="step-card" id="s0-card">
 <div class="step-card-header">
 <div class="step-card-title">
-<span class="step-num" id="num-41">4.1</span>
-<span class="step-name">Binarisation</span>
+<span class="step-num" id="s0-num">0</span>
+<span class="step-name">Declare the corpus</span>
 </div>
-<div id="bin-status" style="font-family:var(--font-mono);font-size:0.68rem;color:var(--ink-light);"></div>
+<div class="cr-step-status" id="s0-status"></div>
 </div>
-<div class="step-card-body" id="bin-card-body">
-<p id="bin-waiting" style="font-family:var(--font-display);font-style:italic;font-size:0.82rem;color:var(--ink-light);">
-        Upload a DTM to begin.
-      </p>
-<div id="bin-controls" style="display:none;">
-<!-- Mode selector -->
-<div style="margin-bottom:0.75rem;">
-<div style="font-family:var(--font-mono);font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-light);margin-bottom:0.6rem;">Put every document on the same scale?</div>
-<label class="normalise-row" for="normalise-toggle">
-<input id="normalise-toggle" type="checkbox"/>
-<span><strong>Normalise</strong> — divide each cell by the largest value in its own document, so every document is measured 0–100% of its own maximum. Useful when documents differ in length or in how heavily they were coded; wrong if your numbers are already on a fixed scale that means the same thing everywhere.</span>
-</label>
-<div style="font-family:var(--font-mono);font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-light);margin:1rem 0 0.6rem;">Where does “important” start?</div>
-<div class="threshold-modes">
-<div class="tmode-opt">
-<input checked="" id="tmode-half-max" name="tmode" type="radio" value="half_max"/>
-<label for="tmode-half-max">Half the largest value<span class="tmode-sub">suits a fixed scale</span></label>
+<div class="step-card-body" id="s0-body"></div>
 </div>
-<div class="tmode-opt">
-<input id="tmode-half-mean" name="tmode" type="radio" value="half_mean"/>
-<label for="tmode-half-mean">Half the average<span class="tmode-sub">of the non-zero values · suits counts</span></label>
-</div>
-<div class="tmode-opt">
-<input id="tmode-manual" name="tmode" type="radio" value="manual"/>
-<label for="tmode-manual">Set it yourself<span class="tmode-sub">researcher judgement</span></label>
-</div>
-</div>
-</div>
-<!-- Slider (shown for auto and manual) -->
-<div class="slider-row" id="slider-row">
-<span class="slider-label">Threshold</span>
-<div class="slider-track">
-<input class="threshold-slider" id="threshold-slider" max="100" min="0" step="1" type="range" value="50"/>
-<div class="slider-tick-labels" id="slider-ticks">
-<span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
-</div>
-</div>
-<span class="slider-val" id="slider-val-display">50%</span>
-</div>
-<!-- Stats grid -->
-<div class="bin-stats-grid" id="bin-stats-grid"></div>
-<!-- Calibration criteria -->
-<div class="calibration-checks" id="cal-checks"></div>
-<!-- Heatmap -->
-<div class="heatmap-section">
-<div class="heatmap-header">
-<span class="heatmap-label">DTM heatmap — rows: documents · columns: concepts (sorted by importance)</span>
-<div class="heatmap-legend">
-<div class="legend-item"><div class="legend-swatch" style="background:#f0f7f3;border:1px solid #b8d9c8;"></div>Important (&gt; threshold)</div>
-<div class="legend-item"><div class="legend-swatch" style="background:#f7f4ef;border:1px solid #ddd8cf;"></div>Not important</div>
-<div class="legend-item" id="legend-score3"><div class="legend-swatch" style="background:#8b3a2a;"></div>Score 3</div>
-</div>
-</div>
-<div class="heatmap-wrap">
-<canvas id="dtm-heatmap"></canvas>
-</div>
-<div class="heatmap-note">Each pixel-column is a concept; each pixel-row is a document. Brighter cells indicate higher scores. The green/grey boundary shifts as you adjust the threshold.</div>
-</div>
-<!-- Confirm -->
-<div class="confirm-bin-row">
-<button class="btn btn-success" id="confirm-bin-btn" onclick="confirmBinarisation()">Confirm threshold and build TTM →</button>
-<span class="confirm-bin-note" id="confirm-bin-note"></span>
-</div>
-</div>
-</div>
-</div>
-<!-- ── Step 4.2 ── -->
-<div class="step-card" id="card-42">
+<!-- ── Step 1 ── -->
+<div class="step-card" id="s1-card">
 <div class="step-card-header">
 <div class="step-card-title">
-<span class="step-num" id="num-42">4.2</span>
-<span class="step-name">Term-Term Matrix</span>
+<span class="step-num" id="s1-num">1</span>
+<span class="step-name">Binarise</span>
 </div>
-<div id="ttm-actions" style="display:none;"></div>
+<div class="cr-step-status" id="s1-status"></div>
 </div>
-<div class="step-card-body" id="ttm-body">
-<p style="font-family:var(--font-display);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for binarisation…</p>
+<div class="step-card-body" id="s1-body"></div>
 </div>
-</div>
-<!-- ── CorRes Process: Stages 2-5 (Addie's method) ──
-     Instance brief 2026-07-24 (briefs/d1dev/2026-07-24_briefs_od_d1dev_corres-frontend-buildout.md).
-     Replaces the single-pass TruncatedSVD+KMeans clustering (former Step
-     4.3) and LLM frame naming (former 4.4) in this build — the backend
-     workflows those called (cluster_concepts.py, name_frames.py) are
-     untouched and still wired server-side, per that brief's own note
-     that the old path isn't being removed, just superseded in this
-     front end. Not to be confused with Panel P1 (B1+B2, PCA-based) -
-     the retired clustering arms that name replaced, see runRealProcessChain(). -->
-<div class="step-card" id="card-process">
+<!-- ── Step 2 ── -->
+<div class="step-card" id="s2-card">
 <div class="step-card-header">
 <div class="step-card-title">
-<span class="step-num" id="num-process">2–5</span>
-<span class="step-name">Stability, Roles &amp; Seriation</span>
+<span class="step-num" id="s2-num">2</span>
+<span class="step-name">Admit and scope</span>
 </div>
+<div class="cr-step-status" id="s2-status"></div>
 </div>
-<div class="step-card-body" id="process-body">
-<p style="font-family:var(--font-display);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for term-term matrix…</p>
+<div class="step-card-body" id="s2-body"></div>
 </div>
+<!-- ── Step 3 ── -->
+<div class="step-card" id="s3-card">
+<div class="step-card-header">
+<div class="step-card-title">
+<span class="step-num" id="s3-num">3</span>
+<span class="step-name">Association and signal</span>
 </div>
+<div class="cr-step-status" id="s3-status"></div>
 </div>
+<div class="step-card-body" id="s3-body"></div>
+</div>
+<!-- ── Step 4 ── -->
+<div class="step-card" id="s4-card">
+<div class="step-card-header">
+<div class="step-card-title">
+<span class="step-num" id="s4-num">4</span>
+<span class="step-name">Stability and granularity</span>
+</div>
+<div class="cr-step-status" id="s4-status"></div>
+</div>
+<div class="step-card-body" id="s4-body"></div>
+</div>
+<!-- ── Step 5 ── -->
+<div class="step-card" id="s5-card">
+<div class="step-card-header">
+<div class="step-card-title">
+<span class="step-num" id="s5-num">5</span>
+<span class="step-name">Covariate check</span>
+</div>
+<div class="cr-step-status" id="s5-status"></div>
+</div>
+<div class="step-card-body" id="s5-body"></div>
+</div>
+<!-- ── Step 6 ── -->
+<div class="step-card" id="s6-card">
+<div class="step-card-header">
+<div class="step-card-title">
+<span class="step-num" id="s6-num">6</span>
+<span class="step-name">Frames, roles and opposition</span>
+</div>
+<div class="cr-step-status" id="s6-status"></div>
+</div>
+<div class="step-card-body" id="s6-body"></div>
+</div>
+<!-- ── Step 7 ── -->
+<div class="step-card" id="s7-card">
+<div class="step-card-header">
+<div class="step-card-title">
+<span class="step-num" id="s7-num">7</span>
+<span class="step-name">Pairwise claims</span>
+</div>
+<div class="cr-step-status" id="s7-status"></div>
+</div>
+<div class="step-card-body" id="s7-body"></div>
+</div>
+<!-- ── Step 8 ── -->
+<div class="step-card" id="s8-card">
+<div class="step-card-header">
+<div class="step-card-title">
+<span class="step-num" id="s8-num">8</span>
+<span class="step-name">Sensitivity and claims</span>
+</div>
+<div class="cr-step-status" id="s8-status"></div>
+</div>
+<div class="step-card-body" id="s8-body"></div>
+</div>
+</div><!-- /.cr-front-inner — opened at the front page; the nine cards sit
+          inside it, as G3's three did -->
+
+<!-- The method's own words, in one file so AD sights one file and not the
+     page (Charter §2.3). Loaded before the flow, which reads it. -->
+<script src="method_strings.js?v=202610211600"></script>
+<script src="g4_api.js?v=202610211600"></script>
+<script src="corres_flow.js?v=202610211600"></script>
 <script>
-// ── State ─────────────────────────────────────────────────────────────
-let dtmData       = null;  // {mode, docs:[{id,name}], concepts:[str], conceptIds:[int], matrix:[[num]]}
-let binaryMatrix  = null;  // [[0|1]] rows=docs, cols=concepts — live slider preview, then the server-confirmed matrix after Step 4.1
-let ttmData       = null;  // {concepts:[str], matrix:[[num]], sorted:[idx], totals:[num]} — reconstructed from serverTtm for the existing display code
-let serverTtm     = null;  // the TTMArtefact returned by /build, then enriched in place with residuals/consensus/roles/bea - always from the back end
-let figuresResult = null;  // FiguresArtefact from /v1/corres/figures/render (real backend path only — see 2026-07-29 figures handoff, ebono_governance/briefs/d1dev/)
-
-function setStatus(state, msg) {
-  const el = document.getElementById('pyodide-status');
-  el.className = `pyodide-status ${state}`;
-  document.getElementById('pyodide-msg').textContent = msg;
-}
-
-// The status line is correct in the markup; setStatus() remains for a caller
-// that needs to change it at runtime.
-
-// ── DTM upload ────────────────────────────────────────────────────────
-const dtmZone = document.getElementById('dtm-zone');
-document.getElementById('dtm-file').addEventListener('change', e => { if (e.target.files[0]) loadDTM(e.target.files[0]); });
-dtmZone.addEventListener('dragover', e => { e.preventDefault(); dtmZone.classList.add('drag-over'); });
-dtmZone.addEventListener('dragleave', () => dtmZone.classList.remove('drag-over'));
-dtmZone.addEventListener('drop', e => {
-  e.preventDefault(); dtmZone.classList.remove('drag-over');
-  if (e.dataTransfer.files[0]) loadDTM(e.dataTransfer.files[0]);
-});
-
-async function loadDTM(file) {
-  clearError();
-  try {
-    const text = await file.text();
-    dtmData = parseDTMCSV(text);
-    if (!dtmData.docs.length) throw new Error('No document rows found');
-    if (!dtmData.concepts.length) throw new Error('No concept columns found');
-
-    dtmZone.classList.add('loaded');
-    dtmZone.querySelector('.upload-icon').textContent = '✓';
-    dtmZone.querySelector('.upload-body strong').textContent = file.name;
-    renderDTMStats();
-
-    if (!dtmZone.querySelector('.upload-clear')) {
-      const cb = document.createElement('button');
-      cb.className = 'upload-clear'; cb.textContent = '✕';
-      cb.addEventListener('click', e => {
-        e.stopPropagation(); resetAll();
-        dtmZone.classList.remove('loaded');
-        dtmZone.querySelector('.upload-icon').textContent = '📊';
-        dtmZone.querySelector('.upload-body strong').textContent = 'Drop reviewed DTM CSV here or click to browse';
-        document.getElementById('dtm-stats').textContent = '';
-        document.getElementById('dtm-file').value = '';
-        cb.remove();
-      });
-      dtmZone.appendChild(cb);
-    }
-
-    initBinarisation();
-  } catch (err) { showError('Could not load DTM: ' + err.message); }
-}
-
-function renderDTMStats() {
-  document.getElementById('dtm-stats').textContent =
-    `${dtmData.docs.length} documents \u00b7 ${dtmData.concepts.length} concepts \u00b7 values 0 to ${dtmData.maxValue}`;
-}
-
-function parseDTMCSV(text) {
-  let headers = null, colDocId = -1, colFilename = -1, colMethod = -1;
-  const docs = [], matrix = [];
-  const commentLines = [];
-  let conceptIdsLine = null;
-
-  for (const rawLine of text.split('\n')) {
-    const line = rawLine.trim();
-    if (!line) continue;
-    if (line.startsWith('#')) {
-      commentLines.push(line);
-      // sanzognie's exportDTM (13 Jul 2026 wiring pass) writes concept_ids
-      // in column order as "# Concept_IDs: 1,2,3,..." — this is how corres
-      // recovers the backend's required identifier without a separate
-      // typology upload (this page only ever uploads the DTM CSV).
-      const idsMatch = line.match(/^#\s*Concept_IDs:\s*(.+)$/i);
-      if (idsMatch) conceptIdsLine = idsMatch[1].split(',').map(s => s.trim()).filter(Boolean);
-      continue;
-    }
-    const cells = parseCSVRow(line);
-    if (!headers) {
-      headers = cells.map(c => c.toLowerCase().trim());
-      colDocId   = headers.indexOf('doc_id');
-      colFilename = headers.findIndex(h => h === 'full_filename' || h === 'filename');
-      colMethod  = headers.indexOf('extraction_method');
-      continue;
-    }
-    const id   = (cells[colDocId]    || '').trim();
-    const name = (cells[colFilename] || '').trim();
-    if (!name && !id) continue;
-
-    // Score columns start after doc_id, filename, and optional method col
-    const skipCols = new Set([colDocId, colFilename, colMethod].filter(c => c >= 0));
-    const scores = [];
-    for (let i = 0; i < cells.length; i++) {
-      if (skipCols.has(i)) continue;
-      const raw = (cells[i] || '0').replace('[?]', '').trim();
-      scores.push(parseFloat(raw) || 0);
-    }
-    docs.push({ id, name });
-    matrix.push(scores);
-  }
-
-  // Concepts are the non-skip header columns
-  const skipCols = new Set([colDocId, colFilename, colMethod].filter(c => c >= 0));
-  const concepts = headers.filter((_, i) => !skipCols.has(i));
-
-  // concept_id per concept, same column order — real IDs from the
-  // Concept_IDs comment line when present and the right length, synthetic
-  // sequential IDs otherwise (older DTM exports predate that comment line).
-  let conceptIds;
-  if (conceptIdsLine && conceptIdsLine.length === concepts.length) {
-    conceptIds = conceptIdsLine.map(id => parseInt(id, 10));
-  } else {
-    if (conceptIdsLine) {
-      console.warn('parseDTMCSV: Concept_IDs comment line length did not match the concept column count — assigning synthetic IDs instead.');
-    }
-    conceptIds = assignConceptIds(concepts.map(term => ({ term }))).items.map(c => c.concept_id);
-  }
-
-  const maxValue = matrix.reduce((m, row) => Math.max(m, ...row), 0);
-  return { maxValue, docs, concepts, conceptIds, matrix };
-}
-
-// A document's identifier for the backend request/response — Doc_ID when
-// the CSV had one, falling back to filename (matches the uniqueness the
-// original CSV export always guaranteed one way or the other).
-function docKey(doc) {
-  return doc.id || doc.name;
-}
-
-// Row-max normalisation (Geoff's ruling, 25 Aug 2026, post-BNE): each
-// document's cell values divided by that document's own maximum cell
-// value, putting frequency counts and rating scores on the same 0-1
-// scale before any threshold is applied. Mirrors build_ttm.py's
-// _row_max_normalise() exactly, for the live preview only — the
-// authoritative computation is server-side once confirmed. An all-zero
-// row normalises to all zeros, not division by zero.
-// Math.max(...array) passes one argument per element, and the argument list
-// is bounded by the call stack: Chrome throws "Maximum call stack size
-// exceeded" somewhere past a hundred thousand or so. That made matrix size
-// the thing that decided whether a DTM would load at all - the MFC
-// benchmark at 51,240 cells was under the limit and the Manifesto Project
-// at 290,416 was over it, so one corpus worked and the other failed on
-// upload with an error naming nothing a researcher could act on. Folding
-// instead of spreading has no such bound.
-function maxOf(values, floor) {
-  let m = floor === undefined ? -Infinity : floor;
-  for (let i = 0; i < values.length; i++) { const v = values[i]; if (v > m) m = v; }
-  return m;
-}
-
-function rowMaxNormalise(matrix) {
-  return matrix.map(row => {
-    const rowMax = maxOf(row, 0);
-    return rowMax > 0 ? row.map(v => v / rowMax) : row.map(() => 0);
-  });
-}
-
-let normalisedMatrix = [];
-
-// ── Step 4.1: Binarisation ────────────────────────────────────────────
-// The values the threshold is compared against: the row-max-normalised
-// matrix when the researcher asked for normalisation, the raw one otherwise.
-function currentBasis() {
-  return document.getElementById('normalise-toggle').checked ? normalisedMatrix : dtmData.matrix;
-}
-
-function initBinarisation() {
-  normalisedMatrix = rowMaxNormalise(dtmData.matrix);
-  document.getElementById('normalise-toggle').addEventListener('change', () => {
-    configureSlider();
-    onModeChange();
-  });
-  document.querySelectorAll('input[name="tmode"]').forEach(r => {
-    r.addEventListener('change', () => onModeChange());
-  });
-  document.getElementById('threshold-slider').addEventListener('input', () => {
-    renderSliderValue();
-    updateBinarisation();
-  });
-
-  configureSlider();
-  document.getElementById('bin-waiting').style.display  = 'none';
-  document.getElementById('bin-controls').style.display = 'block';
-  onModeChange();
-}
-
-// The slider spans the basis actually in use, so its units always match what
-// the number is compared against - percentages under normalisation, the
-// matrix's own units otherwise.
-function configureSlider() {
-  const slider = document.getElementById('threshold-slider');
-  const norm   = document.getElementById('normalise-toggle').checked;
-  const ceil   = maxOf(currentBasis().flat(), 0);
-  const prev   = parseFloat(slider.value);
-  const frac   = isFinite(prev) && parseFloat(slider.max) > 0 ? prev / parseFloat(slider.max) : 0.5;
-
-  slider.min  = '0';
-  slider.max  = norm ? '1' : String(ceil);
-  slider.step = norm ? '0.01' : (Number.isInteger(ceil) && ceil <= 10 ? '0.1' : String(ceil / 100));
-  slider.value = String(frac * parseFloat(slider.max));
-
-  document.getElementById('slider-ticks').innerHTML = norm
-    ? '<span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>'
-    : [0, 0.25, 0.5, 0.75, 1].map(f => `<span>${(f * ceil).toFixed(ceil <= 10 ? 1 : 0)}</span>`).join('');
-  renderSliderValue();
-}
-
-function renderSliderValue() {
-  const slider = document.getElementById('threshold-slider');
-  const v = parseFloat(slider.value);
-  document.getElementById('slider-val-display').textContent =
-    document.getElementById('normalise-toggle').checked
-      ? `${(v * 100).toFixed(0)}%`
-      : v.toFixed(parseFloat(slider.max) <= 10 ? 2 : 1);
-}
-
-// The two recommended rules, computed on whichever basis is in use. Neither
-// is applied automatically: the researcher picks, and the recommendation is
-// only a label, since corres cannot know what the numbers mean.
-function halfMax() {
-  const vals = currentBasis().flat().filter(v => v > 0);
-  return vals.length ? 0.5 * maxOf(vals) : 0.5;
-}
-function halfMean() {
-  const vals = currentBasis().flat().filter(v => v > 0);
-  return vals.length ? 0.5 * (vals.reduce((a, b) => a + b, 0) / vals.length) : 0.5;
-}
-
-function onModeChange() {
-  const mode = document.querySelector('input[name="tmode"]:checked').value;
-  const slider = document.getElementById('threshold-slider');
-  const sliderRow = document.getElementById('slider-row');
-  const norm = document.getElementById('normalise-toggle').checked;
-  const basisNote = norm ? 'of each document\u2019s own maximum' : 'in the matrix\u2019s own units';
-
-  if (mode === 'manual') {
-    sliderRow.style.opacity = '1';
-    sliderRow.style.pointerEvents = 'auto';
-    document.getElementById('bin-status').textContent = `Your own threshold \u2014 ${basisNote}`;
-  } else {
-    const t = mode === 'half_max' ? halfMax() : halfMean();
-    slider.value = String(t);
-    sliderRow.style.opacity = '0.5';
-    sliderRow.style.pointerEvents = 'none';
-    document.getElementById('bin-status').textContent = mode === 'half_max'
-      ? `Half the largest value \u2014 ${basisNote}`
-      : `Half the mean of the non-zero values \u2014 ${basisNote}`;
-  }
-
-  renderSliderValue();
-  updateBinarisation();
-}
-
-function getCurrentThreshold() {
-  const mode = document.querySelector('input[name="tmode"]:checked').value;
-  if (mode === 'half_max')  return halfMax();
-  if (mode === 'half_mean') return halfMean();
-  return parseFloat(document.getElementById('threshold-slider').value) || 0;
-}
-
-function updateBinarisation() {
-  const mode = document.querySelector('input[name="tmode"]:checked').value;
-  const t = getCurrentThreshold();
-
-  // Live preview only (PSI §2) — the authoritative binarisation is
-  // computed server-side once confirmed; see buildTTMServer(). Ranking
-  // method binarises against the raw scores; default/manual binarise
-  // against the row-normalised scores — normalisation runs before
-  // binarisation, not the other way round.
-  const source = currentBasis();
-  binaryMatrix = source.map(row => row.map(val => val > t ? 1 : 0));
-
-  renderBinStats(t, mode);
-  renderHeatmap(t, mode);
-}
-
-function renderBinStats(t, mode) {
-  const nDocs     = binaryMatrix.length;
-  const nConcepts = dtmData.concepts.length;
-  const total     = nDocs * nConcepts;
-  const ones      = binaryMatrix.flat().reduce((a, b) => a + b, 0);
-  const density   = ones / total;
-
-  // Per-document important concept counts
-  const docCounts = binaryMatrix.map(row => row.reduce((a, b) => a + b, 0));
-  const mean      = docCounts.reduce((a, b) => a + b, 0) / nDocs;
-  const sd        = Math.sqrt(docCounts.reduce((s, x) => s + (x - mean) ** 2, 0) / nDocs);
-
-  const sparse    = docCounts.filter(c => c < mean - sd).length;
-  const dense     = docCounts.filter(c => c > mean + sd).length;
-
-  // Per-concept importance
-  const conceptCounts = dtmData.concepts.map((_, ci) =>
-    binaryMatrix.filter(row => row[ci] === 1).length);
-  const conceptsAboveHalf = conceptCounts.filter(c => c > nDocs / 2).length;
-  const peripheralConcepts = conceptCounts.filter(c => c < nDocs * 0.1).length;
-
-  // Calibration criteria
-  const crit1 = (conceptsAboveHalf / nConcepts) > 0.5;
-  const crit2 = density > 0.05;  // proxy for co-occurrence criterion
-
-  const densityClass  = density > 0.15 && density < 0.6 ? 'good' : 'warn';
-  const sparseClass   = sparse > nDocs * 0.2 ? 'warn' : 'good';
-  const peripheralClass = peripheralConcepts > nConcepts * 0.3 ? 'warn' : 'good';
-
-  document.getElementById('bin-stats-grid').innerHTML = `
-    <div class="bin-stat-card ${densityClass}">
-      <div class="bsc-val ${densityClass}">${(density * 100).toFixed(1)}%</div>
-      <div class="bsc-label">Matrix density<br>(important cells)</div>
-    </div>
-    <div class="bin-stat-card">
-      <div class="bsc-val">${mean.toFixed(1)} <span style="font-size:0.7rem;color:var(--ink-light);">± ${sd.toFixed(1)}</span></div>
-      <div class="bsc-label">Avg important concepts<br>per document</div>
-    </div>
-    <div class="bin-stat-card ${sparseClass}">
-      <div class="bsc-val ${sparseClass}">${sparse}</div>
-      <div class="bsc-label">Sparse documents<br>(&lt; mean − 1SD)</div>
-    </div>
-    <div class="bin-stat-card">
-      <div class="bsc-val">${dense}</div>
-      <div class="bsc-label">Dense documents<br>(&gt; mean + 1SD)</div>
-    </div>
-    <div class="bin-stat-card">
-      <div class="bsc-val">${conceptsAboveHalf}<span style="font-size:0.7rem;color:var(--ink-light);"> / ${nConcepts}</span></div>
-      <div class="bsc-label">Concepts important<br>in &gt;50% of documents</div>
-    </div>
-    <div class="bin-stat-card ${peripheralClass}">
-      <div class="bsc-val ${peripheralClass}">${peripheralConcepts}</div>
-      <div class="bsc-label">Peripheral concepts<br>(&lt;10% of documents)</div>
-    </div>`;
-
-  document.getElementById('cal-checks').innerHTML = `
-    <div class="cal-check">
-      <span class="cal-icon">${crit1 ? '✓' : '✗'}</span>
-      <span style="color:${crit1 ? 'var(--success)' : 'var(--accent)'};">
-        ${crit1 ? 'Met' : 'Not met'}: more than half the concepts are important in more than half the documents
-        (${conceptsAboveHalf} of ${nConcepts} concepts, ${(conceptsAboveHalf/nConcepts*100).toFixed(0)}%)
-      </span>
-    </div>
-    <div class="cal-check">
-      <span class="cal-icon">${crit2 ? '✓' : '✗'}</span>
-      <span style="color:${crit2 ? 'var(--success)' : 'var(--accent)'};">
-        ${crit2 ? 'Met' : 'Not met'}: matrix density sufficient for co-occurrence analysis
-        (${(density*100).toFixed(1)}% — target 15–60%)
-      </span>
-    </div>`;
-
-  const norm = document.getElementById('normalise-toggle').checked;
-  const thresholdLabel = norm
-    ? `${(t * 100).toFixed(0)}% of each document\u2019s maximum`
-    : `${t.toFixed(2)} in the matrix\u2019s own units`;
-  document.getElementById('confirm-bin-note').textContent =
-    `Threshold: ${thresholdLabel} · ${ones} important cells · ${(density*100).toFixed(1)}% density`;
-}
-
-// Redraws the same panel renderBinStats() draws, but every number here is
-// read from the backend's returned BinarisationInfo (build_ttm.py) — none
-// of it recomputed client-side. Called once the server confirms the build
-// (buildTTMServer()), replacing the live client-side preview shown while
-// the researcher was still choosing a threshold (spec §3.1: the front end
-// declares and displays, the back end computes; nothing displayed after
-// confirmation may be a front-end derivation).
-function renderServerBinStats(b) {
-  const nConcepts = dtmData.concepts.length;
-
-  const crit1 = b.calibration_concept_spread_ok;
-  const crit2 = b.calibration_density_ok;
-  const densityClass    = b.density > 0.15 && b.density < 0.6 ? 'good' : 'warn';
-  const nDocsAdmitted    = Object.keys(serverTtm.binary_matrix || {}).length || binaryMatrix.length;
-  const sparseClass      = b.sparse_documents > nDocsAdmitted * 0.2 ? 'warn' : 'good';
-  const peripheralClass  = b.peripheral_concepts > nConcepts * 0.3 ? 'warn' : 'good';
-
-  document.getElementById('bin-stats-grid').innerHTML = `
-    <div class="bin-stat-card ${densityClass}">
-      <div class="bsc-val ${densityClass}">${(b.density * 100).toFixed(1)}%</div>
-      <div class="bsc-label">Matrix density<br>(important cells)</div>
-    </div>
-    <div class="bin-stat-card">
-      <div class="bsc-val">${b.mean_important_per_doc.toFixed(1)} <span style="font-size:0.7rem;color:var(--ink-light);">± ${b.sd_important_per_doc.toFixed(1)}</span></div>
-      <div class="bsc-label">Avg important concepts<br>per document</div>
-    </div>
-    <div class="bin-stat-card ${sparseClass}">
-      <div class="bsc-val ${sparseClass}">${b.sparse_documents}</div>
-      <div class="bsc-label">Sparse documents<br>(&lt; mean − 1SD)</div>
-    </div>
-    <div class="bin-stat-card">
-      <div class="bsc-val">${b.dense_documents}</div>
-      <div class="bsc-label">Dense documents<br>(&gt; mean + 1SD)</div>
-    </div>
-    <div class="bin-stat-card">
-      <div class="bsc-val">${b.concepts_above_half}<span style="font-size:0.7rem;color:var(--ink-light);"> / ${nConcepts}</span></div>
-      <div class="bsc-label">Concepts important<br>in &gt;50% of documents</div>
-    </div>
-    <div class="bin-stat-card ${peripheralClass}">
-      <div class="bsc-val ${peripheralClass}">${b.peripheral_concepts}</div>
-      <div class="bsc-label">Peripheral concepts<br>(&lt;10% of documents)</div>
-    </div>`;
-
-  document.getElementById('cal-checks').innerHTML = `
-    <div class="cal-check">
-      <span class="cal-icon">${crit1 ? '✓' : '✗'}</span>
-      <span style="color:${crit1 ? 'var(--success)' : 'var(--accent)'};">
-        ${crit1 ? 'Met' : 'Not met'}: more than half the concepts are important in more than half the documents
-        (${b.concepts_above_half} of ${nConcepts} concepts)
-      </span>
-    </div>
-    <div class="cal-check">
-      <span class="cal-icon">${crit2 ? '✓' : '✗'}</span>
-      <span style="color:${crit2 ? 'var(--success)' : 'var(--accent)'};">
-        ${crit2 ? 'Met' : 'Not met'}: matrix density sufficient for co-occurrence analysis
-        (${(b.density * 100).toFixed(1)}% — target 15–60%)
-      </span>
-    </div>`;
-
-  const serverThresholdLabel = b.normalised
-    ? `${(b.threshold * 100).toFixed(0)}% of each document\u2019s maximum`
-    : `${b.threshold.toFixed(2)} in the matrix\u2019s own units`;
-  document.getElementById('confirm-bin-note').textContent =
-    `Threshold: ${serverThresholdLabel} (${b.threshold_mode}) · confirmed by server · ${(b.density * 100).toFixed(1)}% density`;
-}
-
-function renderHeatmap(t, mode) {
-  const canvas   = document.getElementById('dtm-heatmap');
-  const ctx      = canvas.getContext('2d');
-  const nDocs    = dtmData.matrix.length;
-  const nConcepts = dtmData.concepts.length;
-
-  // Sort: columns by total importance, rows by total importance
-  const colTotals = dtmData.concepts.map((_, ci) =>
-    dtmData.matrix.reduce((s, row) => s + (row[ci] || 0), 0));
-  const colOrder = colTotals.map((v, i) => ({ i, v })).sort((a, b) => b.v - a.v).map(x => x.i);
-
-  const rowTotals = dtmData.matrix.map(row => row.reduce((a, b) => a + b, 0));
-  const rowOrder = rowTotals.map((v, i) => ({ i, v })).sort((a, b) => b.v - a.v).map(x => x.i);
-
-  const cellW = Math.max(3, Math.min(8, Math.floor(900 / nConcepts)));
-  const cellH = Math.max(2, Math.min(6, Math.floor(600 / nDocs)));
-
-  canvas.width  = nConcepts * cellW;
-  canvas.height = nDocs * cellH;
-  canvas.style.width  = canvas.width  + 'px';
-  canvas.style.height = canvas.height + 'px';
-
-  // The colour scale spans whatever the matrix actually contains - nothing
-  // here assumes a 0-3 ceiling any more.
-  const maxVal = maxOf(dtmData.matrix.flat(), 1);
-
-  rowOrder.forEach((ri, row) => {
-    colOrder.forEach((ci, col) => {
-      const val = dtmData.matrix[ri][ci] || 0;
-      // Colour intensity always reflects the raw score; the important/
-      // not-important boundary reflects whichever basis the selected
-      // mode actually binarises against - raw for ranking method,
-      // row-normalised for default/manual (matches updateBinarisation()).
-      const basisVal  = (currentBasis()[ri] || [])[ci] || 0;
-      const important = basisVal > t;
-      const ratio     = val / maxVal;
-
-      let r, g, b;
-      if (important) {
-        if (val === maxVal) {
-          // Top of whatever scale this matrix uses: accent red
-          r = Math.round(139 + (255 - 139) * (1 - ratio));
-          g = Math.round(58  * (1 - ratio * 0.5));
-          b = Math.round(42  * (1 - ratio * 0.5));
-        } else {
-          // Important: green range
-          r = Math.round(240 - ratio * 80);
-          g = Math.round(247 - ratio * 60);
-          b = Math.round(240 - ratio * 80);
-          // Actually use a cleaner green
-          r = Math.round(42  + (180 - 42)  * (1 - ratio));
-          g = Math.round(107 + (230 - 107) * (1 - ratio));
-          b = Math.round(74  + (190 - 74)  * (1 - ratio));
-        }
-      } else {
-        // Not important: greyscale, lighter = lower value
-        const grey = Math.round(240 + (252 - 240) * (1 - ratio));
-        r = g = b = grey;
-      }
-
-      ctx.fillStyle = `rgb(${r},${g},${b})`;
-      ctx.fillRect(col * cellW, row * cellH, cellW, cellH);
-    });
-  });
-}
-
-async function confirmBinarisation() {
-  clearError();
-  markStepDone('41');
-  await buildTTMServer();
-}
-
-// ── Step 4.2: TTM construction ────────────────────────────────────────
-async function buildTTMServer() {
-  const thresholdMode = document.querySelector('input[name="tmode"]:checked').value;
-  const t = getCurrentThreshold();
-
-  const rows = dtmData.docs.map((doc, di) => ({
-    doc_id: docKey(doc),
-    extraction_method: 'text',
-    scores: Object.fromEntries(
-      dtmData.conceptIds.map((cid, ci) => [String(cid), { value: dtmData.matrix[di][ci] || 0 }])
-    ),
-  }));
-
-  const dtm = {
-    schema_version: '0.1',
-    corpus_id: `corres-${Date.now()}`,
-    provenance: { concept_ids_scored: dtmData.conceptIds.map(Number) },
-    rows,
-  };
-  const params = {
-    normalise: document.getElementById('normalise-toggle').checked,
-    threshold_mode: thresholdMode,
-    manual_threshold: thresholdMode === 'manual' ? t : null,
-  };
-
-  document.getElementById('ttm-body').innerHTML =
-    `<p style="font-family:var(--font-display);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Building term-term matrix on the server…</p>`;
-
-  try {
-    const created = await callAppAPI('corres', 'ttm/build', { dtm, params });
-    serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
-
-    // Authoritative binarisation from the server replaces the interactive
-    // slider preview now that the threshold is confirmed — everything
-    // downstream (clustering, representative documents) works from this,
-    // not the live-preview binaryMatrix computed while the slider moved.
-    binaryMatrix = dtmData.docs.map(doc =>
-      dtmData.conceptIds.map(cid => (serverTtm.binary_matrix[docKey(doc)] || {})[String(cid)] || 0)
-    );
-    ttmData = reconstructTtmDataFromServer(serverTtm);
-
-    // Redraw the binarisation panel itself from the server's returned
-    // BinarisationInfo — the stats shown while the researcher was
-    // adjusting the slider were a client-side preview; once confirmed,
-    // every number on screen must come from the backend's artefact.
-    renderServerBinStats(serverTtm.binarisation);
-
-    renderTTM();
-    markStepDone('42');
-    renderProcessControls();
-  } catch (err) {
-    showError(`Error building TTM: ${err.message}`);
-  }
-}
-
-// Maps serverTtm's concept_id-keyed dict fields back into the position-
-// indexed arrays (matching dtmData.concepts/conceptIds order) that
-// renderTTM() and every downstream display function were written for.
-function reconstructTtmDataFromServer(ttm) {
-  const ids = dtmData.conceptIds;
-  const matrix = ids.map(i => ids.map(j => (ttm.matrix[String(i)] || {})[String(j)] || 0));
-  const totals = ids.map(i => ttm.totals[String(i)] || 0);
-
-  const positionById = {};
-  ids.forEach((id, pos) => { positionById[String(id)] = pos; });
-  const sorted = (ttm.concept_order || [])
-    .map(id => positionById[String(id)])
-    .filter(pos => pos !== undefined);
-
-  return { concepts: dtmData.concepts, matrix, sorted, totals };
-}
-
-function renderTTM() {
-  const body    = document.getElementById('ttm-body');
-  const actions = document.getElementById('ttm-actions');
-  const { concepts, matrix, sorted, totals } = ttmData;
-  const max     = maxOf(totals);
-  const preview = sorted.slice(0, 25);
-
-  body.innerHTML = `
-    <div class="stats-row" style="margin-bottom:1rem;">
-      <div class="stat-item"><span class="stat-val">${concepts.length}</span><span class="stat-label">Concepts</span></div>
-      <div class="stat-item"><span class="stat-val">${ttmData.sorted.length}</span><span class="stat-label">Sorted by co-occurrence</span></div>
-    </div>
-    <div class="matrix-wrap" id="ttm-matrix-wrap"></div>
-    ${concepts.length > 25 ? `<div style="font-family:var(--font-display);font-style:italic;font-size:0.75rem;color:var(--ink-light);margin-top:0.5rem;">Preview shows top 25 concepts by co-occurrence — download full TTM for complete matrix</div>` : ''}`;
-
-  const wrap  = body.querySelector('#ttm-matrix-wrap');
-  const table = document.createElement('table');
-  table.className = 'matrix-table';
-
-  // Header
-  const thead = document.createElement('thead');
-  const hr    = document.createElement('tr');
-  const th0   = document.createElement('th');
-  th0.textContent = 'Concept';
-  hr.appendChild(th0);
-  preview.forEach(ci => {
-    const th = document.createElement('th');
-    th.textContent = concepts[ci].substring(0, 10);
-    th.title = concepts[ci];
-    hr.appendChild(th);
-  });
-  const thTotal = document.createElement('th');
-  thTotal.textContent = 'Total';
-  hr.appendChild(thTotal);
-  thead.appendChild(hr);
-  table.appendChild(thead);
-
-  // Body
-  const tbody = document.createElement('tbody');
-  preview.forEach(ri => {
-    const tr = document.createElement('tr');
-    const tdName = document.createElement('td');
-    tdName.textContent = concepts[ri].length > 22 ? concepts[ri].substring(0,20)+'…' : concepts[ri];
-    tdName.title = concepts[ri];
-    tr.appendChild(tdName);
-    preview.forEach(ci => {
-      const td  = document.createElement('td');
-      const val = matrix[ri][ci];
-      td.textContent = val || '·';
-      if (val > max * 0.6) td.classList.add('ttm-high');
-      else if (val > max * 0.3) td.classList.add('ttm-mid');
-      else if (!val) td.classList.add('ttm-zero');
-      tr.appendChild(td);
-    });
-    const tdTotal = document.createElement('td');
-    tdTotal.textContent = totals[ri];
-    tdTotal.style.cssText = 'font-weight:600;color:var(--ink);';
-    tr.appendChild(tdTotal);
-    tbody.appendChild(tr);
-  });
-  table.appendChild(tbody);
-  wrap.appendChild(table);
-
-  // Export button
-  actions.innerHTML = '';
-  const exportBtn = document.createElement('button');
-  exportBtn.className = 'btn btn-outline';
-  exportBtn.style.fontSize = '0.72rem';
-  exportBtn.textContent = '↓ Download sorted TTM';
-  exportBtn.onclick = exportTTM;
-  actions.appendChild(exportBtn);
-  actions.style.display = 'flex';
-}
-
-// The analysis handoff. corres could previously export only the sorted TTM
-// as CSV, which carries none of the analysis - no groups, no roles, no
-// stability - so there was no way to take a completed run anywhere else.
-// This writes the artefact as the back end returned it, with the concept
-// names alongside, since the artefact itself keys everything by concept id
-// and names live only in the uploaded matrix.
-function exportForFrameNaming() {
-  if (!serverTtm) { showError('No completed analysis to export.'); return; }
-  const termById = {};
-  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
-  const payload = {
-    handoff_version: '1',
-    generated_at: new Date().toISOString(),
-    source: 'corres',
-    corpus_id: serverTtm.corpus_id || null,
-    concept_terms: termById,
-    artefact: serverTtm,
-  };
-  download(`CR_Analysis_${today()}.json`, JSON.stringify(payload, null, 1), 'application/json');
-}
-
-function exportTTM() {
-  const { concepts, matrix, sorted } = ttmData;
-  const sortedConcepts = sorted.map(i => concepts[i]);
-  const lines = [
-    '# CORRELATING RESONANCE — TERM-TERM MATRIX (sorted by total co-occurrence)',
-    `# Generated: ${new Date().toLocaleString()}`,
-    '# Each cell = number of documents in which both concepts scored as important',
-    '#',
-    ['Concept', ...sortedConcepts].map(csvCell).join(',')
-  ];
-  sorted.forEach(ri => {
-    const row = [csvCell(concepts[ri]), ...sorted.map(ci => matrix[ri][ci])];
-    lines.push(row.join(','));
-  });
-  download(`CR_TTM_Sorted_${today()}.csv`, lines.join('\n'), 'text/csv');
-}
-
-// ── CorRes Process: Stages 2-5 (Addie's method) ─────────────────────────
-// Instance brief 2026-07-24 (briefs/d1dev/2026-07-24_briefs_od_d1dev_corres-frontend-buildout.md).
-// computed here - the back end computes, this declares (spec section 1).
-// The values below are shaped exactly like the real API
-// schemas (artie/apps/corres/workflows/build_ttm.py's ResidualsInfo/
-// ConsensusInfo/ConceptRole/BeaInfo), and the classification/BEA logic is
-// ported faithfully from classify_roles.py/bea_order.py so the demo
-// *behaves* like the real pipeline over synthetic inputs. Swapping in
-// real callAppAPI/pollTask calls (same chained pattern as buildTTMServer/
-// the old single-pass clustering step this replaced) only touches
-// runProcessChain() — every render
-// function below reads serverTtm.{residuals,consensus,roles,bea} exactly
-// as the real API would populate them.
-
-// Terminology per corres_methodology_specification_v2_0.md §2.6/§3.4 and
-// artie/corres/role_vocabulary.json (source of truth, copied byte-
-// identical into this app's directory - updated 4 Aug against v3.0.0 per
-// 2026-08-04_briefs_d2dev_d1dev_v3_0_consolidated_frontend_catchup_v1_0.md):
-// five leaves - distinguishing/bridging/anchoring (category "core"),
-// weak/orthogonal (category "boundary"). `anchoring` added 3 Aug by AD
-// ruling (2026-08-03_briefs_ad_d2dev_fifth_role_anchoring_ruled_v1_0.md):
-// the cross-block cell the original four-leaf taxonomy never named -
-// reaches nowhere (rho < 0.6), repelled by nothing (min(others) >= 0).
-// "core", "boundary", "border" and "unclassified core" (this build's own
-// 24 Jul addition, now retired) must never be an assignable role VALUE
-// anywhere - category names are display groupings only. Hand-copied here
-// to match role_vocabulary.json rather than fetched at runtime, same
-// pattern as that file's own "copy, never edit" discipline.
-// "Boundary (non-core)" - exactly, including capitalisation and
-// parentheses - corrected 9 Aug per R4 of the surface wordings ruling.
-// Display grouping only, never an assignable value; the formal rename to
-// "non-core (formerly boundary)" is deferred post-Zurich (AD-NONCORE-RENAME-DEFERRED).
-const ROLE_TIER  = { distinguishing: 'Core', bridging: 'Core', anchoring: 'Core', orthogonal: 'Boundary (non-core)', weak: 'Boundary (non-core)' };
-const ROLE_LABEL = { distinguishing: 'Distinguishing', bridging: 'Bridging', anchoring: 'Anchoring', orthogonal: 'Orthogonal', weak: 'Weak' };
-const ROLE_COLOR = { distinguishing: '#2a6b4a', bridging: '#1c7a9c', anchoring: '#6b4a9c', orthogonal: '#9a9490', weak: '#7a5c1a' };
-// Spec §3.4: "the role-space plot must distinguish the roles by shape or
-// pattern as well as colour" - readable in greyscale/print and to a
-// colour-blind reader. Marker is an SVG path 'shape' key consumed by
-// renderStage4RoleSpaceSvg()'s point renderer. anchoring = diamond, per
-// D2Dev's own return brief §3 ("role space: five-role legend, anchoring =
-// purple diamond").
-const ROLE_MARKER = { distinguishing: 'circle', bridging: 'square', anchoring: 'diamond', weak: 'triangle', orthogonal: 'cross' };
-
-// Declared parameters (spec §3.1-3.2, Annex A §A5: read-only for this
-// demonstration - no elicitation interface yet). Only BRIDGING_RATIO is
-// genuinely Fixed by the specification (never overridable, never
-// fenced). WEAK_MAX_ABS_THRESHOLD is never editable but is NOT Fixed -
-// corrected 9 Aug per R2 of the surface wordings ruling
-// (2026-08-08_ruling_ad_surface_wordings_v1_0.md): it is status Open,
-// spec §4 item 9, applying in the unstable branch only. The word "Fixed"
-// on this constant was a method mis-statement, not a stale label - the
-// bridging threshold it once belonged to was deleted, not recalibrated.
-// The rest are per-corpus calibrated values which for this sprint are
-// declared in advance rather than computed live (the admissible-interval
-// and reliability-gate endpoints that would propose them don't exist
-// server-side yet - see this build's completion note). Values sourced
-// from corres_fixture_17jul_verified.json (ebono_governance/briefs/
-// dndev/), the only verified numbers available, NOT invented here.
-const BRIDGING_RATIO = 0.6;   // ratio rule, spec §2.6 as amended 3 Aug: Fixed, scale-invariant ratio (rho = max(others)/own >= 0.6 -> bridging) - never editable
-const WEAK_MAX_ABS_THRESHOLD = 2.0; // spec §2.6/§2.7, §4 item 9: status Open, unstable branch only - never editable but not Fixed (R2, 9 Aug correction)
-let processParams = {
-  n_clusters: 3,          // fixture: block_sizes [7,2,6], k=3
-  n_splits: 25,
-  // Three stages resample independently and each carries its own declared
-  // seed, taken from that workflow's own default: the split-half scan
-  // (reliability_gate.py, 11), the consensus ensemble (consensus_cluster.py,
-  // 7) and the seriation null (bea_order.py, 13). They are deliberately
-  // different - the scan runs once per corpus before the ensemble, not as
-  // part of it - but spec section 2.4 requires any reported value of A to
-  // carry the split count and seed that produced it, so all three are
-  // declared on the panel rather than left to be inferred from one.
-  seed: 7,
-  reliability_seed: 11,
-  bea_seed: 13,
-  // 2000, not 500 - corrected 28 Jul against CorRes_Article_Headline_Draft_
-  // v0_6.md's own reported figure ("across two thousand permutations",
-  // adjacency 57% vs a 95th-percentile ceiling of 57% at n=2000).
-  n_null: 2000,
-  // tau_sigma - per-corpus, proposed by back end from c0 (spec §2.7); no
-  // proposing endpoint exists yet, so declared from the 17 Jul fixture.
-  stability_threshold: 0.75,
-  // weak_own_threshold - spec §4.1: the "0.5" own-affinity companion is
-  // OPEN, unconfirmed since v1.0. Fenced per Working Arrangements §4.5:
-  // no default. 0.5 shown here is the 17 July verification file's own working
-  // value, not a confirmed constant - flagged as such in the read-only
-  // display, never silently presented as settled.
-  weak_own_threshold: 0.5,
-  // spread_threshold (spec §2.2a) - fenced server-side (residual_admissibility.py:
-  // "provisional, one corpus' calibration", no hardcoded default), but AD's
-  // 28 Jul amendment §3.4 states the acceptance bound actually used to
-  // verify the benchmark: "Admissible if >= 1.0". Declared from that
-  // ratified acceptance criterion, not invented.
-  spread_threshold: 1.0,
-  // tau_rel (spec §2.9) - fenced, genuinely unconfirmed. AD's 28 Jul
-  // answer §4.1: "Recommended at 0.5 and awaiting Louis... Build the
-  // fence, not the number." Used here as the only stated value, marked
-  // Open (same treatment as weak_own_threshold) - not a guess, AD's own
-  // recommendation, but explicitly not ratified.
-  tau_rel: 0.5,
-};
-
-
-function renderProcessControls() {
-  const body = document.getElementById('process-body');
-  body.innerHTML = `
-    <p style="font-family:var(--font-display);font-size:0.85rem;color:var(--ink-mid);margin-bottom:1.25rem;">
-      Runs our published four-stage process over the confirmed term-term matrix: standardised residuals against an independence baseline, consensus-ensemble clustering across resampled splits, role classification, and block presentation.
-    </p>
-    <div class="params-panel" id="process-params-panel"></div>
-    <!-- Contact capture (12 Aug) - Annex A item 3 as amended (A2):
-         point of submission, not site entry; plainest label, no
-         marketing sentence; mints no identifier - the email is the
-         natural key and nothing else is stored or generated against it.
-         "Point of submission" read as this button: it's where a visitor
-         actually submits their corpus for the certified process, which
-         is what "the tool wants somewhere to return the result" means. -->
-    <div class="contact-capture">
-      <label for="run-contact-email">Email (optional)</label>
-      <input type="email" id="run-contact-email" placeholder="you@example.com" autocomplete="email">
-    </div>
-    <div class="btn-row">
-      <button class="btn btn-primary" id="run-process-btn" onclick="runProcessChain()">Run stability, roles &amp; seriation →</button>
-    </div>
-    <div id="process-running" style="display:none;font-family:var(--font-display);font-style:italic;font-size:0.85rem;color:var(--ink-light);margin-top:0.75rem;">Computing residuals → consensus clustering → role classification → BEA order…</div>
-    <div id="process-results" style="margin-top:1.5rem;"></div>`;
-  renderParamsPanel();
-}
-
-// Read-only parameter display (spec §3.1-3.2, Annex A §A5 — no elicitation
-// interface this sprint). Three status classes, visually distinguished
-// per spec §3.2's explicit instruction ("must distinguish them
-// unmistakably from the calibrated parameters, because their scale
-// semantics differ"):
-//   Fixed      — BRIDGING_RATIO only. Never editable, never fenced,
-//                implemented as written.
-//   Calibrated — tau_sigma, k. Per-corpus values; declared here from the
-//                17 Jul fixture, not computed live (no proposing endpoint
-//                exists yet). tau_bridge/tau-bridge-interval retired
-//                entirely 3-4 Aug (ratio rule replaces it, spec §2.6 as
-//                amended) — no longer a parameter of any kind.
-//   Open       — weak_own_threshold (spec §4.1, unconfirmed since v1.0)
-//                and WEAK_MAX_ABS_THRESHOLD (spec §4 item 9, corrected
-//                9 Aug per R2 — never editable, but status Open, not
-//                Fixed; applies in the unstable branch only). Both shown
-//                with their working value, flagged as unconfirmed.
-// One setting: what it is called, what it is set to, what it does, and how
-// firmly it is settled. The third of those is the part a researcher can
-// actually act on and was previously absent.
-function paramRow(label, value, status, does) {
-  const cls = status === 'Set by the method' ? 'param-fixed'
-            : status === 'Provisional'       ? 'param-open'
-            : 'param-calibrated';
-  return `<div class="param-item">
-    <span class="param-label">${label} <span class="param-status ${cls}">${status}</span></span>
-    <span class="param-val">${value}</span>
-    <span class="param-does">${does}</span>
-  </div>`;
-}
-
-function renderParamsPanel() {
-  const p = processParams;
-  let html = `
-    ${paramRow('Concept groups looked for (k)', p.n_clusters, 'Calibrated elsewhere',
-      'How many groups the analysis tries to divide your concepts into.')}
-    ${paramRow('Split-half repeats', p.n_splits, 'Calibrated elsewhere',
-      'How many times your documents are split in half and the grouping rerun, to test whether it survives.')}
-    ${paramRow('Stability threshold (τσ)', p.stability_threshold, 'Calibrated elsewhere',
-      'How consistently a concept must land in the same group across those repeats before it counts as stable.')}
-    ${paramRow('Residual spread threshold', p.spread_threshold, 'Calibrated elsewhere',
-      'How much structure your matrix must show before the analysis will proceed at all. Below this it stops and says so.')}
-    ${paramRow('Reliability threshold (τrel)', p.tau_rel, 'Provisional',
-      'How closely two independent halves of your corpus must agree before the grouping is reported rather than refused.')}
-    ${paramRow('Bridging ratio (ρ)', BRIDGING_RATIO, 'Set by the method',
-      'How strongly a concept must also reach into other groups before it is called bridging rather than distinguishing.')}
-    ${paramRow('Weak/boundary magnitude', WEAK_MAX_ABS_THRESHOLD, 'Provisional',
-      'Applies only where a concept did not reach the stability threshold: how far from zero its associations must sit to be called weak rather than orthogonal.')}
-    ${paramRow('Weak own-group threshold', p.weak_own_threshold, 'Provisional',
-      'Applies in the same unstable case: how much affinity a concept must have with its own group to be separated from the boundary.')}
-    ${paramRow('Random seed — split-half scan', p.reliability_seed, 'Set by the method',
-      'Fixes the resampling for the stability scan, so the same matrix gives the same scan every time.')}
-    ${paramRow('Random seed — consensus ensemble', p.seed, 'Set by the method',
-      'A separate resampling from the scan above, and deliberately a different seed: the scan runs once before the ensemble rather than as part of it.')}
-    ${paramRow('Random seed — seriation null', p.bea_seed, 'Set by the method',
-      'Fixes the permutations the block ordering is tested against.')}`;
-
-  // Shown beside the declared value once a real run has returned it. The
-  // back end derives this from the chance baseline (spec §2.7); the
-  // researcher still does not choose here (Annex A §A5).
-  if (serverTtm && serverTtm.consensus && serverTtm.consensus.tau_sigma_proposed) {
-    html += `<div class="param-item"><span class="param-label">Stability threshold this corpus suggests <span class="param-status param-calibrated">From your data</span></span><span class="param-val">${serverTtm.consensus.tau_sigma_proposed.toFixed(4)}</span><span class="param-does">Derived from your own matrix, for comparison with the declared value above. Not applied.</span></div>`;
-  }
-
-  // Provenance of these numbers is deliberately not on screen. They are
-  // declared from corres_fixture_17jul_verified.json (ebono_governance/
-  // briefs/dndev/) and AD's amendment of 28 July for the spread and
-  // reliability thresholds. Which file they came from tells a researcher
-  // nothing they can act on; what the settings DO, and how firmly they are
-  // settled, is what changes how a result should be read - so that is what
-  // the panel carries instead. BRIDGING_RATIO and WEAK_MAX_ABS_THRESHOLD
-  // are not sent to the back end at all: they mirror the constants in
-  // classify_roles.py (0.6 and 2.0) and would silently disagree if either
-  // side moved. Every other value on this panel is sent and used.
-  html += `<p class="vocab-note" style="grid-column:1/-1;margin:0.5rem 0 0;"><strong>These are the settings this run uses.</strong> corres does not choose them from your matrix — they are set in advance and applied to every run, and your result depends on them. <em>Set by the method</em> means part of the method itself and not adjustable. <em>Calibrated elsewhere</em> means chosen against a reference corpus rather than yours. <em>Provisional</em> means still under review and liable to change — a result that turns on one of these should be read with that in mind. None of them can be changed here yet.</p>`;
-}
-
-// Real chain, rewritten 4 Aug against the v3.0 ratio-rule/anchoring/
-// bipartite-admission pipeline (2026-08-04_briefs_d2dev_d1dev_v3_0_
-// consolidated_frontend_catchup_v1_0.md, superseding the 29 Jul version
-// pulled from feature/corres-process-v2 commit 4ab59ce). Seven steps now:
-// concept-admission runs first (filters both concepts and documents
-// before anything downstream computes over them, spec §2.1 as amended),
-// then residual-admissibility needs residuals; reliability-gate needs the
-// binary matrix and must run before consensus-cluster's ensemble per
-// spec §2.4; classify-roles needs both gates' inputs already used.
-// tau-bridge-interval is gone entirely — deleted server-side, not just
-// removed from this chain — replaced by classify-roles' own fixed ratio
-// rule (spec §2.6 as amended 3 Aug).
-//
-// UNTESTED from this machine — no backend was reachable from Windows
-// this session. First thing to verify on the Mac.
-//
-// Every one of these endpoints raises a structured WorkflowFailed (with
-// a .code) on a genuine methodological failure — an inadmissible matrix,
-// a failed reliability gate — per spec's own "halt with a prominent
-// diagnostic, do not proceed silently" instruction. pollTask() surfaces
-// that .code on the Error it throws (edu_common.js). runProcessChain()'s
-// caller distinguishes this from a connectivity failure and must not
-  // paper over it - a real gate failure is a
-// finding, not an unreachable backend.
-async function runRealProcessChain() {
-  const admissibilityParams = {
-    k: processParams.n_clusters,
-    spread_threshold: processParams.spread_threshold,
-  };
-  const reliabilityParams = {
-    // k_min/k_max/n_splits/seed match reliability_gate.py's own declared
-    // defaults (module docstring) — supplied explicitly so the read-only
-    // display and the actual call agree, not because the server would
-    // reject their absence (only tau_rel is fenced with no default).
-    k_min: 2,
-    k_max: 10,
-    n_splits: processParams.n_splits,
-    seed: processParams.reliability_seed,
-    tau_rel: processParams.tau_rel,
-  };
-  const consensusParams = {
-    n_clusters: processParams.n_clusters,
-    n_splits: processParams.n_splits,
-    seed: processParams.seed,
-  };
-  const classifyParams = {
-    stability_threshold: processParams.stability_threshold,
-    weak_own_threshold: processParams.weak_own_threshold,
-  };
-
-  // Concept admission (spec §2.1, amended 3 Aug: bipartite - documents as
-  // well as concepts, cascading together). Fixed rule set, nothing to
-  // configure (params: {}). Must run immediately after ttm/build and
-  // before every other stage - every later workflow already derives its
-  // concept/document universe from the admitted sets this filters to.
-  let created = await callAppAPI('corres', 'ttm/concept-admission', { ttm: serverTtm, params: {} });
-  serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
-
-  created = await callAppAPI('corres', 'ttm/residuals', { ttm: serverTtm, params: {} });
-  serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
-
-  created = await callAppAPI('corres', 'ttm/residual-admissibility', { ttm: serverTtm, params: admissibilityParams });
-  serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
-
-  created = await callAppAPI('corres', 'ttm/reliability-gate', { ttm: serverTtm, params: reliabilityParams });
-  serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
-
-  created = await callAppAPI('corres', 'ttm/consensus-cluster', { ttm: serverTtm, params: consensusParams });
-  serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
-
-  created = await callAppAPI('corres', 'ttm/classify-roles', { ttm: serverTtm, params: classifyParams });
-  serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
-
-  created = await callAppAPI('corres', 'ttm/bea-order', {
-    ttm: serverTtm,
-    params: { n_null: processParams.n_null, seed: processParams.bea_seed },
-  });
-  serverTtm = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
-
-  // Backend-rendered figures (2026-07-29 handoff, D2Dev): replaces this
-  // build's own SVG rendering of the five stage panels with the same
-  // matplotlib figures artie produces for the article, off the identical
-  // §2.11 artefact — one source of truth instead of two implementations
-  // that already drifted once (role-space y-axis definition). Requires
-  // residuals/consensus/roles/bea all present, hence called last.
-  const termById = {};
-  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
-  created = await callAppAPI('corres', 'figures/render', {
-    ttm: serverTtm,
-    params: { concept_names: termById, dpi: 150 },
-  });
-  figuresResult = await pollTask('corres', created.task_id, { routeSegment: 'figures' });
-}
-
-
-// Contact capture (12 Aug, Annex A item 3/A2): fire-and-forget on
-// submission, not a precondition of it - a visitor who leaves the field
-// blank runs exactly as before. Mints nothing: reuses the site's own
-// existing contact.php/PHPMailer relay (same infrastructure already
-// live for the site's contact form) as a plain notification, not a new
-// endpoint, no database row, no token, no identifier of any kind beyond
-// the email address itself.
-function captureRunEmail() {
-  const email = (document.getElementById('run-contact-email').value || '').trim();
-  if (!email) return;
-  fetch('/contact.php', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      name: 'corres visitor',
-      email,
-      message: 'Corpus submitted via corres (beta). No further detail captured — return the result to this address.',
-    }),
-  }).catch(() => { /* best-effort; never blocks or surfaces to the run itself */ });
-}
-
-async function runProcessChain() {
-  clearError();
-  captureRunEmail();
-  document.getElementById('run-process-btn').disabled = true;
-  document.getElementById('process-running').style.display = 'block';
-  document.getElementById('process-results').innerHTML = '';
-
-  try {
-    let backendFailure = null;
-    let connectivityFailure = null;
-    try {
-      await runRealProcessChain();
-    } catch (backendErr) {
-      // Two failure shapes, distinguished by whether the back end was
-      // actually reached: err.code is set by pollTask/callAppAPI from a
-      // real HTTP or task response (edu_common.js); a raw fetch or network
-      // exception carries none (CORS, connection refused, wrong apiBase).
-      //
-      // Both now stop, and neither produces a result. The unreachable case
-      // previously substituted client-side fixture data, which reported
-      // zero exclusions because nothing had been computed - on screen
-      // indistinguishable from a clean analysis, and non-compliant under
-      // specification section 2.1, which makes a run that excludes without
-      // reporting invalid. Removed 26 August 2026 under SD's gate brief;
-      // the generators are deleted, not disabled.
-      if (backendErr.code) {
-        backendFailure = backendErr;
-      } else {
-        connectivityFailure = backendErr;
-      }
-    }
-
-    if (connectivityFailure) {
-      renderConnectivityFailure();
-      markStepActive('process');
-    } else if (backendFailure) {
-      renderBackendFailure(backendFailure);
-      markStepActive('process');
-    } else {
-      renderProcessResults();
-      markStepActive('process');
-    }
-  } catch (err) {
-    showError('Stability/role/seriation processing failed: ' + err.message);
-  } finally {
-    document.getElementById('run-process-btn').disabled = false;
-    document.getElementById('process-running').style.display = 'none';
-  }
-}
-
-// A real, backend-reported failure — one of the spec's own halt
-// conditions (residual_matrix_inadmissible, reliability_gate_failed), or
-// a generic workflow error. Rendered as a prominent diagnostic, never
-// never papered over with substitute data. tau_bridge_interval_empty retired
-// 4 Aug along with the endpoint it came from — the ratio rule that
-// replaced it has no admissible-interval concept to fail empty.
-// reliability_gate_failed wording corrected 9 Aug (R5, joining the surface
-// wordings ruling at its next reissue): the halt is deliberate design, not
-// a symptom of an unresolved policy - only the proceed-or-block choice
-// (spec §4 item 11) is open. Proceed-with-caveat was ruled in principle 8
-// Aug but its implementation is deferred past promotion, so this halt is
-// the live behaviour for both Brisbane and Zurich, not a placeholder.
-// The back end could not be reached at all - no HTTP response, so nothing
-// was computed and there is nothing to report. Rendered where the result
-// would have been, per specification section 3.3: visible to the person
-// reading the result, not logged. No partial render and no substitute
-// data of any kind.
-function renderConnectivityFailure() {
-  document.getElementById('process-results').innerHTML = `
-    <div class="warning-banner warning-fail">
-      <strong>No result was produced</strong>
-      <p style="margin:0.4rem 0 0;">There is a connection issue preventing access to the back end code. Please try again later.</p>
-    </div>`;
-}
-
-function renderBackendFailure(err) {
-  const known = {
-    residual_matrix_inadmissible: 'Residual matrix admissibility (spec §2.2a) failed — the corpus reads as degenerate ("blur" or "blob"; see the message below for spread/mean/eff_dim).',
-    reliability_gate_failed: 'Reliability gate (spec §2.9) failed — no candidate k shows adequate split-half stability for this corpus. A failing corpus halts by design; the proceed-or-block policy is spec §4 item 11, which is open.',
-  };
-  const heading = known[err.code] || `Backend reported a failure (${err.code || 'unknown code'})`;
-  document.getElementById('process-results').innerHTML = `
-    <div class="warning-banner warning-fail">
-      <strong>Processing halted — this is a finding, not a connection problem</strong>
-      ${escHtml(heading)}
-      <div style="margin-top:0.5rem;font-family:var(--font-mono);font-size:0.72rem;">${escHtml(err.message || '')}</div>
-    </div>`;
-}
-
-
-
-
-
-
-
-
-
-// ── Rendering: certificate summary, vocabulary note, panel tabs ─────────
-
-// Rebuilt 28 Jul against corres_methodology_specification_v2_0.md §3.6
-// (via briefs/d1dev's five-stage demonstration path) and the Working
-// Arrangements' article v0.6 §6 reference. Replaces the B/C/D/E tab
-// system with the article's own sequential five-stage narrative — each
-// stage adds one measured quantity, so the sequence itself is part of
-// the argument, not just a navigation convenience.
-function renderProcessResults() {
-  const rolesInfo = serverTtm.roles; // RolesInfo: {roles, unresolved_concept_ids}
-  const roles = rolesInfo.roles;
-  const conceptIds = dtmData.conceptIds.map(String);
-  const certified = conceptIds.filter(cid => roles[cid].role !== null && roles[cid].stability >= processParams.stability_threshold);
-  const resultsDiv = document.getElementById('process-results');
-
-
-  let html = renderWarnings(rolesInfo);
-
-  // Certificate summary (spec §3.3 framing: "no certificates" is a real
-  // result, not an error — kept as its own banner, not folded into the
-  // warnings block, since it isn't an error condition the way the four
-  // spec §3.3 warnings are).
-
-  html += renderStabilityDistribution(roles, conceptIds);
-  if (certified.length === 0) {
-    html += `<div class="cert-none-banner"><span class="cert-icon not-earned">◇</span> No concept earned a stability certificate at these settings — a legitimate result, not an error. Consider more splits or a different block count before concluding the structure is unstable.</div>`;
-  } else {
-    const { bea } = serverTtm;
-    html += `<div class="stats-row" style="margin-bottom:1.25rem;">
-      <div class="stat-item"><span class="stat-val">${certified.length}<span style="font-size:0.7rem;color:var(--ink-light);"> / ${conceptIds.length}</span></span><span class="stat-label">Concepts certified (σ ≥ ${processParams.stability_threshold})</span></div>
-      <div class="stat-item"><span class="stat-val">${(bea.adjacency*100).toFixed(0)}%</span><span class="stat-label">BEA block adjacency</span></div>
-      <div class="stat-item"><span class="stat-val">${(bea.null_p95*100).toFixed(0)}%</span><span class="stat-label">Null 95th pct. (${processParams.n_null} draws)</span></div>
-    </div>`;
-  }
-
-  html += `<p class="vocab-note">This is <strong>role classification</strong> (the five-role scheme below) applied to the fixed <strong>concept typology</strong> your matrix was coded against — the two are not interchangeable (spec §3.4).</p>`;
-
-  html += `<div class="handoff-row">
-    <button class="btn btn-outline" style="font-size:0.72rem;" onclick="exportForFrameNaming()">\u2193 Download analysis for frame naming</button>
-    <span class="handoff-note">Carries the groups, the roles and the stability values, with your concept names, for naming the frames in pluralitie.</span>
-  </div>`;
-
-  html += `<div id="stage-1"></div><div id="stage-2"></div><div id="stage-2b"></div><div id="stage-3"></div><div id="stage-4"></div><div id="stage-5"></div>`;
-
-  resultsDiv.innerHTML = html;
-  // Figures come from the back end: runRealProcessChain() calls
-  // /v1/corres/figures/render after classify-roles and bea-order and
-  // displays the matplotlib PNGs artie returns. This is the only
-  // rendering path - the client-side SVG renderers that once served the
-  // offline demo were deleted 26 August 2026 with the substitute-data
-  // path. Six panels, not five (4 Aug: panel B' inserted after B, no
-  // baked-in titles - see each renderer's caption line).
-    renderStage1RawMatrix(document.getElementById('stage-1'));
-    renderStage2Residuals(document.getElementById('stage-2'));
-    renderStage2bBlockOrder(document.getElementById('stage-2b'));
-    renderStage3Consensus(document.getElementById('stage-3'));
-    renderStage4RoleSpace(document.getElementById('stage-4'));
-    renderStage5Bea(document.getElementById('stage-5'));
-}
-
-// Spec §3.3: four warnings, "not logged — visible to the person reading
-// the result." UNRESOLVED count and cross-corpus-import are always
-// computable. The reliability gate (§2.9) and admissibility gate (§2.2a,
-// ratified 28 Jul) are now wired into the real path (29 Jul, artie
-// commit 4ab59ce) — shown as real pass/fail when serverTtm carries the
-// result (a completed real run), and as explicit "not yet available"
-// only when it doesn't - which, since the substitute-data path was removed
-// don't compute either — a true statement, not a stale placeholder).
-// Either way spec's "never hide" instruction holds: an absent warning
-// slot is indistinguishable from a checked-and-passing one, so the
-// unavailable case stays visible rather than omitted.
-// The scan the gate statistic is a maximum over. It was always computed - a
-// maximum cannot be taken without one - and always persisted on the
-// artefact, but only the maximum was ever shown, so a reader could not see
-// whether the block count actually in use was the best on the grid or
-// merely one that cleared the threshold. On a corpus large enough for the
-// block count to be in doubt that distinction is the whole question.
-// Surfaced 26 August 2026 at AD's request.
-// Specification section 2.4 and section 2.11 require two figures, not one.
-// A is the maximum over every (k, method) pair, so it establishes only that
-// SOME partition of the corpus is reproducible - it does not describe the
-// partition on screen. Where the maximum falls at a different k from the one
-// in use, "the value at the certified k is the quantity that describes the
-// partition being shown, and both are reported". That conflation is the
-// defect v2.5 repaired in the specification's own fixture row, where the
-// maximum sat at k=2 while the certified partition was k=3. The
-// implementation reported only the maximum until 26 August 2026, so it
-// carried the same defect the document had already fixed.
-function renderReliabilityPair(rel) {
-  const t = rel.ari_table || {};
-  const methods = Object.keys(t);
-  const operating = processParams.n_clusters;
-  let best = { v: -Infinity, k: null, m: null };
-  methods.forEach(m => Object.keys(t[m]).forEach(ks => {
-    const v = t[m][ks];
-    if (typeof v === 'number' && v > best.v) best = { v, k: Number(ks), m };
-  }));
-
-  const conds = `${rel.n_splits} splits, seed ${rel.seed}, k from ${rel.k_min} to ${rel.k_max}`;
-  if (best.k === null) {
-    return `Maximum split-half ARI: ${rel.max_ari.toFixed(4)} against \u03c4rel ${rel.tau_rel.toFixed(3)} (provisional, spec \u00a74 item 8). Conditions: ${conds}.`;
-  }
-  const atOperating = t[best.m] ? t[best.m][String(operating)] : undefined;
-  const gateLine = `<strong>Gate statistic A = ${best.v.toFixed(4)}</strong>, at k = ${best.k}, method ${escHtml(best.m)}, against \u03c4rel ${rel.tau_rel.toFixed(3)} (provisional, spec \u00a74 item 8). This establishes that <em>some</em> partition of your corpus is reproducible.`;
-  const partLine = (typeof atOperating === 'number')
-    ? (best.k === operating
-        ? `The partition on screen is at that same k, so this figure describes it.`
-        : `<strong>The partition on screen is at k = ${operating}, where the same method scores ${atOperating.toFixed(4)}.</strong> That is the figure describing the partition you are being shown; A above describes a different one.`)
-    : `The scan does not carry a value at k = ${operating}, so no figure describing the displayed partition is available.`;
-  return `${gateLine}<br/>${partLine}<br/><span style="color:var(--ink-light);">Conditions: ${conds}. A resampling statistic quoted without these is not reproducible.</span>`;
-}
-
-// How stability is distributed across concepts, not just how many cleared
-// the line. The count alone cannot distinguish a corpus whose uncertified
-// concepts sit just under the threshold from one where they are scattered
-// far below it, and those call for different readings. Every value is on the
-// artefact as roles.roles[cid].stability; the panel computed the count from
-// them and discarded the rest. Added 26 August 2026 at AD's request, after a
-// run certified 24 of 56 with no way to see the shape behind the ratio.
-function renderStabilityDistribution(roles, conceptIds) {
-  const tau = processParams.stability_threshold;
-  const vals = conceptIds
-    .map(cid => (roles[cid] || {}).stability)
-    .filter(v => typeof v === 'number')
-    .sort((a, b) => a - b);
-  if (!vals.length) return '';
-
-  const bins = 10;
-  const counts = new Array(bins).fill(0);
-  vals.forEach(v => {
-    const i = Math.min(bins - 1, Math.max(0, Math.floor(v * bins)));
-    counts[i]++;
-  });
-  const peak = maxOf(counts, 1);
-  const below = vals.filter(v => v < tau).length;
-  const median = vals[Math.floor((vals.length - 1) / 2)];
-  const nearMiss = vals.filter(v => v < tau && v >= tau - 0.05).length;
-
-  const bars = counts.map((n, i) => {
-    const lo = i / bins, hi = (i + 1) / bins;
-    const under = hi <= tau;
-    return `<div class="sd-bar" title="${lo.toFixed(1)}\u2013${hi.toFixed(1)}: ${n} concept${n === 1 ? '' : 's'}">
-      <div class="sd-col"><div class="sd-fill ${under ? 'sd-under' : 'sd-over'}" style="height:${Math.round(100 * n / peak)}%"></div></div>
-      <div class="sd-tick">${lo.toFixed(1)}</div></div>`;
-  }).join('');
-
-  const shape = below === 0
-    ? `Every concept cleared the threshold.`
-    : (nearMiss >= Math.ceil(below / 2)
-        ? `Most of the uncertified sit within 0.05 of the line, so the count is sensitive to exactly where the threshold is set.`
-        : `The uncertified are spread well below the line rather than bunched just under it, so the count is not an artefact of where the threshold sits.`);
-
-  return `<div class="stability-dist">
-    <div class="sd-title">Stability (\u03a3) across all ${vals.length} concepts \u2014 threshold ${tau}</div>
-    <div class="sd-chart">${bars}</div>
-    <p class="sd-note">${below} of ${vals.length} concepts fall below ${tau}. Median \u03a3 ${median.toFixed(3)}, range ${vals[0].toFixed(3)} to ${vals[vals.length - 1].toFixed(3)}. ${shape} The threshold is a declared setting calibrated on a reference corpus, not derived from yours.</p>
-  </div>`;
-}
-
-function renderAriTable(rel) {
-  const t = rel.ari_table;
-  if (!t || !Object.keys(t).length) return '';
-  const methods = Object.keys(t).sort();
-  const ks = Object.keys(t[methods[0]]).map(Number).sort((a, b) => a - b);
-  const operating = processParams.n_clusters;
-  let best = { v: -Infinity, k: null, m: null };
-  methods.forEach(m => ks.forEach(k => {
-    const v = t[m][String(k)];
-    if (typeof v === 'number' && v > best.v) best = { v, k, m };
-  }));
-
-  const head = ks.map(k => `<th${k === operating ? ' class="ari-operating"' : ''}>${k}</th>`).join('');
-  const body = methods.map(m => `<tr><th>${escHtml(m)}</th>` + ks.map(k => {
-    const v = t[m][String(k)];
-    const cls = [k === operating ? 'ari-operating' : '', (m === best.m && k === best.k) ? 'ari-best' : ''].filter(Boolean).join(' ');
-    return `<td${cls ? ` class="${cls}"` : ''}>${typeof v === 'number' ? v.toFixed(3) : '\u2014'}</td>`;
-  }).join('') + '</tr>').join('');
-
-  const note = best.k === operating
-    ? `The grid maximum falls at the block count in use (k = ${operating}).`
-    : `<strong>The grid maximum falls at k = ${best.k}, method ${escHtml(best.m)}, not at the k = ${operating} this run used.</strong> The block count is a declared setting rather than one chosen from your data, so a higher score elsewhere on the grid is a signal about that setting, not about your corpus.`;
-
-  return `<div class="ari-scan">
-    <div class="ari-scan-title">Split-half ARI by block count and clustering method</div>
-    <div class="ari-scan-scroll"><table class="ari-table"><thead><tr><th>method</th>${head}</tr></thead><tbody>${body}</tbody></table></div>
-    <p class="ari-scan-note">${note} Scan conditions: ${rel.n_splits} splits, seed ${rel.seed}, k from ${rel.k_min} to ${rel.k_max}. A maximum rises with grid size on noise alone, so this statistic compares between runs only where these conditions match.</p>
-  </div>`;
-}
-
-function renderWarnings(rolesInfo) {
-  let html = '<div class="warnings-block">';
-
-  // Concept admission (spec §2.1, amended 3 Aug: bipartite - documents as
-  // well as concepts, cascading together). Per D2Dev's 4 Aug handoff §2:
-  // concept exclusions are the surprising/reportable case (spec's "never
-  // silent" instruction for typology/corpus-fit findings) and get the
-  // same warning-fail/warning-pass treatment as the other gates; document
-  // exclusions are common at scale (MFC-A alone excludes 91 of 3,416,
-  // each coding exactly one concept) and are informational, not a fail
-  // state, so they get the neutral "unavailable"-styled banner instead.
-  const termById = {};
-  dtmData.conceptIds.forEach((cid, i) => { termById[String(cid)] = dtmData.concepts[i]; });
-  if (serverTtm.concept_admission) {
-    const ca = serverTtm.concept_admission;
-    const excludedConcepts = ca.excluded.filter(e => e.kind === 'concept');
-    const excludedDocs = ca.excluded.filter(e => e.kind === 'document');
-
-    if (excludedConcepts.length === 0) {
-      html += `<div class="warning-banner warning-pass"><strong>Concept admission — no exclusions.</strong> All ${ca.admitted_concept_ids.length} concepts in the typology were admitted.</div>`;
-    } else {
-      const rows = excludedConcepts.map(e => `${escHtml(termById[e.identifier] || e.identifier)} (${e.rule}, count ${e.count_at_exclusion})`).join(', ');
-      html += `<div class="warning-banner warning-fail"><strong>${excludedConcepts.length} concept(s) excluded before analysis.</strong> ${rows}</div>`;
-    }
-
-    if (excludedDocs.length > 0) {
-      html += `<div class="warning-banner warning-unavailable"><strong>${excludedDocs.length} of ${ca.admitted_doc_ids.length + excludedDocs.length} documents excluded (rule D2)</strong> — each coded exactly one concept, contributing nothing to co-occurrence. Common at scale; not itself a signal about typology fit.</div>`;
-    }
-  } else {
-    html += `<div class="warning-banner warning-unavailable">
-      <strong>Concept admission (spec §2.1) — not available this run</strong>
-      The back end did not return this field, so nothing was checked. This is not a clean-admission result; it is unchecked.
-    </div>`;
-  }
-
-  if (serverTtm.reliability) {
-    const rel = serverTtm.reliability;
-    const cls = rel.passed ? 'warning-pass' : 'warning-fail';
-    html += `<div class="warning-banner ${cls}">
-      <strong>Reliability gate (spec §2.9) — ${rel.passed ? 'passed' : 'FAILED'}</strong>
-      ${renderReliabilityPair(rel)}
-      ${renderAriTable(rel)}
-    </div>`;
-  } else {
-    html += `<div class="warning-banner warning-unavailable">
-      <strong>Reliability gate (spec §2.9) — not available this run</strong>
-      The back end did not return this field, so nothing was checked. This is not a pass; it is unchecked.
-    </div>`;
-  }
-
-  if (serverTtm.residual_admissibility) {
-    const adm = serverTtm.residual_admissibility;
-    const cls = adm.passed ? 'warning-pass' : 'warning-fail';
-    html += `<div class="warning-banner ${cls}">
-      <strong>Residual-matrix admissibility (spec §2.2a) — ${adm.passed ? 'passed' : 'FAILED'}</strong>
-      spread ${adm.spread.toFixed(3)} (≥ ${adm.spread_threshold.toFixed(3)} required), eff_dim ${adm.eff_dim.toFixed(3)} (≥ k=${adm.k} required), mean ${adm.mean.toFixed(3)}.
-    </div>`;
-  } else {
-    html += `<div class="warning-banner warning-unavailable">
-      <strong>Residual-matrix admissibility (spec §2.2a) — not available this run</strong>
-      The back end did not return this field, so nothing was checked. This is not a pass; it is unchecked.
-    </div>`;
-  }
-
-  if (rolesInfo.unresolved_concept_ids.length > 0) {
-    const names = rolesInfo.unresolved_concept_ids.map(cid => termById[cid] || cid).join(', ');
-    html += `<div class="warning-banner warning-fail">
-      <strong>${rolesInfo.unresolved_concept_ids.length} UNRESOLVED concept(s) — internal error, not a corpus finding</strong>
-      Internal error — a concept could not be classified. The classification is exhaustive by design, so this is a software defect, not a finding about your corpus. Do not interpret the run. Report this error.
-      ${escHtml(names)}
-    </div>`;
-  } else {
-    html += `<div class="warning-banner warning-pass"><strong>UNRESOLVED count: 0</strong> — clean run (spec §2.11).</div>`;
-  }
-
-  // Cross-corpus parameter import (spec section 3.3). This banner previously
-  // reported a pass, on the reasoning that the declared values came from
-  // "this corpus's own" verification file. That was true while the only
-  // corpus anyone ran was the benchmark itself. It stopped being true the
-  // moment a researcher could upload their own matrix: k, the stability
-  // threshold, the spread threshold and the reliability threshold were all
-  // calibrated on the reference corpus, which for any uploaded matrix is a
-  // different corpus. A pass here was a false reassurance in exactly the
-  // slot the specification created to prevent one. Uses warning-unavailable
-  // rather than warning-fail: it is a condition to carry into reading the
-  // result, not a failed run.
-  html += `<div class="warning-banner warning-unavailable"><strong>Settings calibrated on a reference corpus, not yours.</strong> The group count, stability threshold, spread threshold and reliability threshold were set against a benchmark corpus. They have not been derived from your matrix, and corres cannot yet propose them from it.</div>`;
-
-  html += '</div>';
-  return html;
-}
-
-function statusTagHtml(stability) {
-  const certified = stability >= processParams.stability_threshold;
-  return `<span class="status-tag ${certified ? 'status-certified' : 'status-exploratory'}">${certified ? 'Certified' : 'Exploratory'}</span>`;
-}
-
-
-
-
-
-
-
-
-// Real-path renderers (2026-07-29 figures handoff, panel set widened to
-// six 4 Aug): one <img> each, off figuresResult (set in
-// runRealProcessChain() after classify-roles/bea-order). None of the six
-// panels carry a baked-in title/suptitle any more (v3.0 §5) - that text
-// lives only in PanelImage.caption (rendered visibly via
-// panelCaptionHtml() below, not just as alt-text) and a fuller
-// sidecar_text (every parameter used to render the panel), offered as a
-// paired .txt download where present. panel-sub keeps this build's own
-// pedagogical framing (the article's own language for what each stage
-// argues) — distinct from caption, the backend's own account of the figure.
-function panelCaptionHtml(p, key) {
-  const dl = p.sidecar_text
-    ? ` <button class="btn btn-outline" style="font-size:0.62rem;padding:0.15rem 0.5rem;margin-left:0.5rem;" onclick="downloadPanelSidecar('${key}')">↓ parameters (.txt)</button>`
-    : '';
-  return `<p class="panel-caption">${escHtml(p.caption)}${dl}</p>`;
-}
-function downloadPanelSidecar(key) {
-  const p = figuresResult && figuresResult[key];
-  if (!p || !p.sidecar_text) return;
-  download(`CR_${key}_${today()}.txt`, p.sidecar_text, 'text/plain');
-}
-
-function renderStage1RawMatrix(target) {
-  const p = figuresResult.panel_a_raw_matrix;
-  target.innerHTML = `
-    <div class="stage-head"><span class="stage-num">Stage 1</span><span class="stage-name">Raw matrix — two panels</span></div>
-    <p class="panel-sub">Any sufficiently large matrix looks structured — this display proves nothing. Left: alphabetical order, deliberately, because at this stage nothing has been measured. Right: the same matrix sorted by total co-occurrence — this is the specific trap Stage 2 exists to spring, not a better view.</p>
-    <img src="data:image/png;base64,${p.data_base64}" style="max-width:100%;height:auto;" alt="${escHtml(p.caption)}">
-    ${panelCaptionHtml(p, 'panel_a_raw_matrix')}`;
-}
-
-function renderStage2Residuals(target) {
-  const p = figuresResult.panel_b_residuals;
-  target.innerHTML = `
-    <div class="stage-head"><span class="stage-num">Stage 2</span><span class="stage-name">Standardised residuals</span></div>
-    <p class="panel-sub">Alphabetical order. Red = resonance (co-occurs more than the independence baseline expects); blue = dissonance (less).</p>
-    <img src="data:image/png;base64,${p.data_base64}" style="max-width:100%;height:auto;" alt="${escHtml(p.caption)}">
-    ${panelCaptionHtml(p, 'panel_b_residuals')}`;
-}
-
-// Panel B' (new 4 Aug): the same residuals, reordered into consensus-
-// block order — see D2Dev's 4 Aug handoff §3.
-function renderStage2bBlockOrder(target) {
-  const p = figuresResult.panel_b_prime_block_order;
-  target.innerHTML = `
-    <div class="stage-head"><span class="stage-num">Stage 2'</span><span class="stage-name">Standardised residuals — block order</span></div>
-    <p class="panel-sub">Same matrix and colour convention as Stage 2, reordered into consensus-block order — no certification strips (Stage 5 carries those).</p>
-    <img src="data:image/png;base64,${p.data_base64}" style="max-width:100%;height:auto;" alt="${escHtml(p.caption)}">
-    ${panelCaptionHtml(p, 'panel_b_prime_block_order')}`;
-}
-
-function renderStage3Consensus(target) {
-  const p = figuresResult.panel_c_consensus;
-  target.innerHTML = `
-    <div class="stage-head"><span class="stage-num">Stage 3</span><span class="stage-name">Consensus co-classification</span></div>
-    <p class="panel-sub">Sorted by consensus block. Darker = higher co-classification rate across the resampled ensemble.</p>
-    <img src="data:image/png;base64,${p.data_base64}" style="max-width:100%;height:auto;" alt="${escHtml(p.caption)}">
-    ${panelCaptionHtml(p, 'panel_c_consensus')}`;
-}
-
-function renderStage4RoleSpace(target) {
-  const p = figuresResult.panel_d_role_space;
-  target.innerHTML = `
-    <div class="stage-head"><span class="stage-num">Stage 4</span><span class="stage-name">Role space — primary evidentiary weight</span></div>
-    <p class="panel-sub">Stability (x) vs. absolute own-block affinity (y). Shape and colour both distinguish role (spec §3.4) — legend in the figure.</p>
-    <img src="data:image/png;base64,${p.data_base64}" style="max-width:100%;height:auto;" alt="${escHtml(p.caption)}">
-    ${panelCaptionHtml(p, 'panel_d_role_space')}`;
-}
-
-function renderStage5Bea(target) {
-  const { bea } = serverTtm;
-  const p = figuresResult.panel_e_ordered_residuals;
-  target.innerHTML = `
-    <div class="stage-head"><span class="stage-num">Stage 5</span><span class="stage-name">Bond-energy seriation</span></div>
-    <p class="panel-sub">Rows and columns are sorted by block, most stable first within each block — the certified partition (spec §2.10). Bond-energy seriation places concepts within that order to maximise adjacent positive-residual bond strength; it is computed separately as corroborating evidence, not an independent test of the partition, and its block-adjacency statistic and permutation null are reported in the sidecar.</p>
-    <div class="bea-adjacency-stat" style="margin-bottom:1rem;">
-      <div class="stat-item"><span class="stat-val">${(bea.adjacency*100).toFixed(0)}%</span><span class="stat-label">Same-block adjacency, observed</span></div>
-      <div class="stat-item"><span class="stat-val">${(bea.null_mean*100).toFixed(0)}%</span><span class="stat-label">Null mean (${processParams.n_null} permutations)</span></div>
-      <div class="stat-item"><span class="stat-val">${(bea.null_p95*100).toFixed(0)}%</span><span class="stat-label">Null 95th percentile</span></div>
-    </div>
-    <img src="data:image/png;base64,${p.data_base64}" style="max-width:100%;height:auto;" alt="${escHtml(p.caption)}">
-    ${panelCaptionHtml(p, 'panel_e_ordered_residuals')}`;
-}
-
-// ── Step state helpers ────────────────────────────────────────────────
-function markStepDone(id) {
-  document.getElementById(`num-${id}`).classList.add('done');
-  document.getElementById(`num-${id}`).classList.remove('active');
-}
-function markStepActive(id) {
-  document.getElementById(`num-${id}`).classList.add('active');
-}
-function resetAll() {
-  dtmData = binaryMatrix = ttmData = serverTtm = null;
-  ['41','42','process'].forEach(id => {
-    document.getElementById(`num-${id}`).className = 'step-num';
-  });
-  document.getElementById('bin-waiting').style.display  = 'block';
-  document.getElementById('bin-controls').style.display = 'none';
-  document.getElementById('bin-status').textContent     = '';
-  document.getElementById('ttm-body').innerHTML    = '<p style="font-family:var(--font-display);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for binarisation…</p>';
-  document.getElementById('process-body').innerHTML = '<p style="font-family:var(--font-display);font-style:italic;font-size:0.82rem;color:var(--ink-light);">Waiting for term-term matrix…</p>';
-  document.getElementById('ttm-actions').innerHTML  = '';
-  document.getElementById('error-display').innerHTML = '';
-  // Reset heatmap canvas
-  const canvas = document.getElementById('dtm-heatmap');
-  if (canvas) { const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height); }
-}
-
-// ── Utilities ─────────────────────────────────────────────────────────
-function parseCSVRow(line) {
-  const cells = []; let cur = '', inQ = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
-    else if (ch === ',' && !inQ) { cells.push(cur); cur = ''; }
-    else cur += ch;
-  }
-  cells.push(cur); return cells;
-}
-
-
-
-function download(filename, content, type) {
-  const blob = new Blob([content], { type });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
-}
-
+  // G3's boot, unchanged.
   document.addEventListener('DOMContentLoaded', async () => {
     await loadFragment('edu-header', '/edu_header.html');
     markActiveNav();
@@ -1758,24 +274,24 @@ function download(filename, content, type) {
     renderBuildVersion();
   });
 
-// ── Registration gate (CD v0.1 §1) ──────────────────────────────────────────
-// The strings are CD's and are placed verbatim. This wiring is not CD's: no
-// registration mechanism exists on this site, so "where the visitor is not
-// registered" has no implementation to key to. The flag stands in for it and
-// is per-environment, in the same config the appActive flag already uses.
-(function applyCorresGate() {
-  var cfg = window.CORRES_CONFIG || {};
-  if (!cfg.registrationRequired) return;
-  var gate = document.getElementById('corres-gate');
-  if (gate) gate.hidden = false;
-  ['dtm-zone', 'card-41', 'card-42', 'card-43', 'card-44'].forEach(function (id) {
-    var el = document.getElementById(id);
-    if (el) el.hidden = true;
-  });
-  document.querySelectorAll('.section-head').forEach(function (el) {
-    if (el.textContent.trim() === 'Reviewed DTM') el.hidden = true;
-  });
-})();
+  // ── Registration gate (CD v0.1 §1) ────────────────────────────────────
+  // CD's strings, placed verbatim; the wiring is not CD's. Carried forward
+  // from G3 unchanged except for the card ids, which are now the nine steps.
+  (function applyCorresGate() {
+    var cfg = window.CORRES_CONFIG || {};
+    if (!cfg.registrationRequired) return;
+    var gate = document.getElementById('corres-gate');
+    if (gate) gate.hidden = false;
+    var ids = ['dtm-zone', 'method-unsighted'];
+    for (var i = 0; i <= 8; i += 1) ids.push('s' + i + '-card');
+    ids.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.hidden = true;
+    });
+    document.querySelectorAll('.section-head').forEach(function (el) {
+      if (el.textContent.trim() === 'Reviewed DTM') el.hidden = true;
+    });
+  })();
 </script>
 <!-- Navigation, CD corres_beta_copy v0.1 Page 2: exactly two destinations,
      both on the root. Phase numbering removed - CD's draft carries none on

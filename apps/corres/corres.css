@@ -459,3 +459,104 @@
 .cr-scale { border-collapse: collapse; margin: 0.75rem 0; font-size: 0.9rem; }
 .cr-scale td { padding: 0.25rem 1rem 0.25rem 0; vertical-align: top; }
 .cr-scale td:first-child { width: 2rem; }
+
+/* ── G4's four-part cards ──────────────────────────────────────────────
+   Rewrite brief v1.1 §2: the pattern is G3's, so `.step-card`,
+   `.step-card-header`, `.step-num`, `.step-name`, `.tmode-opt` and
+   `.tmode-sub` above are reused unchanged and are not redefined here. What
+   follows is only what the four parts add: a part heading, the flag
+   severities, a table, a figure and a tier label.
+   ──────────────────────────────────────────────────────────────────────── */
+
+.cr-part { margin: 0 0 1.4rem; }
+.cr-part:last-of-type { margin-bottom: 0.6rem; }
+.cr-part-head {
+  font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--ink-light); margin-bottom: 0.5rem;
+}
+.cr-done, .cr-look-sub {
+  font-family: var(--font-display); font-size: 0.86rem; line-height: 1.5;
+  margin: 0 0 0.6rem;
+}
+.cr-look-sub, .cr-waiting, .cr-look-empty, .cr-flag-none, .cr-decide-none {
+  font-style: italic; color: var(--ink-light); font-size: 0.82rem;
+}
+.cr-waiting { font-family: var(--font-display); margin: 0; }
+
+.cr-look-block { margin: 0 0 1rem; }
+.cr-look-title {
+  font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.06em;
+  margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.5rem;
+}
+
+/* A table is read, not skimmed, so it is monospaced and dense. */
+.cr-table {
+  border-collapse: collapse; font-family: var(--font-mono); font-size: 0.68rem;
+  width: 100%; display: block; overflow-x: auto; max-height: 26rem;
+}
+.cr-table th, .cr-table td {
+  border-bottom: 1px solid var(--rule, #d8d3ca); padding: 0.22rem 0.5rem;
+  text-align: left; white-space: nowrap;
+}
+.cr-table th { font-weight: 600; color: var(--ink-light); }
+.cr-table tfoot td { font-style: italic; white-space: normal; }
+
+.cr-figure { max-width: 100%; height: auto; display: block; }
+
+/* Flags at three severities. The colour carries the severity and the word
+   repeats it, so the distinction survives a monochrome print. */
+.cr-flag {
+  border-left: 3px solid var(--rule, #d8d3ca); padding: 0.4rem 0 0.4rem 0.7rem;
+  margin: 0 0 0.6rem; font-size: 0.8rem;
+}
+.cr-flag p { margin: 0.15rem 0; }
+.cr-flag-head { font-family: var(--font-mono); font-size: 0.66rem; }
+.cr-flag-sev { font-weight: 600; letter-spacing: 0.08em; }
+.cr-flag-proposal { font-style: italic; color: var(--ink-light); }
+.cr-flag[data-severity="stop"]    { border-left-color: #8c1c13; }
+.cr-flag[data-severity="stop"]    .cr-flag-sev { color: #8c1c13; }
+.cr-flag[data-severity="caution"] { border-left-color: #8a5a00; }
+.cr-flag[data-severity="caution"] .cr-flag-sev { color: #8a5a00; }
+.cr-flag[data-severity="note"]    { border-left-color: #38506b; }
+.cr-flag[data-severity="note"]    .cr-flag-sev { color: #38506b; }
+
+/* §4.7: the five tiers of draft 0.5 §14, each on screen beside what it
+   governs. `limits` is a destination, not a strength, so it reads as plain. */
+.cr-tier {
+  font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.08em;
+  text-transform: uppercase; padding: 0.08rem 0.4rem; border-radius: 2px;
+  border: 1px solid currentColor;
+}
+.cr-tier[data-tier="certified"]    { color: #1d5b3a; }
+.cr-tier[data-tier="confirmatory"] { color: #1d4a5b; }
+.cr-tier[data-tier="interpretive"] { color: #5b4a1d; }
+.cr-tier[data-tier="exploratory"]  { color: #5d5a54; }
+.cr-tier[data-tier="limits"]       { color: #8c1c13; }
+
+.cr-cap {
+  font-size: 0.76rem; color: var(--ink-light); margin: 0.8rem 0 0;
+  display: flex; align-items: baseline; gap: 0.4rem;
+}
+.cr-decide-q { font-family: var(--font-display); font-size: 0.86rem; margin-bottom: 0.5rem; }
+.cr-controls { margin: 1rem 0 0; }
+.cr-step-status {
+  font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-light);
+}
+
+/* The run and its export, above the cards: a run is a numbered thing and the
+   researcher should be able to take all of it away at any point. */
+.cr-run-bar {
+  display: flex; align-items: center; gap: 0.7rem; margin: 0 0 1.2rem;
+  font-family: var(--font-mono); font-size: 0.7rem;
+}
+.cr-run-label { letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-light); }
+
+.cr-declare { margin: 0 0 1.2rem; }
+.cr-declare-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.cr-declare-q { font-family: var(--font-display); font-size: 0.86rem; }
+
+/* Charter §2.3: unsighted method prose is marked, never shown quietly. */
+.cr-method-unsighted {
+  border: 1px solid #8a5a00; border-left-width: 3px; padding: 0.6rem 0.8rem;
+  margin: 0 0 1.2rem; font-size: 0.8rem; color: #8a5a00;
+}
