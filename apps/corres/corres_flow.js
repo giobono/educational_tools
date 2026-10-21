@@ -37,6 +37,12 @@
   var state = {
     runId: null,
     upload: null,
+    /* The File the researcher chose. Held because step 0 consumes the staging
+     * upload -- the API deletes it the moment step 0 succeeds (OD brief 20 Oct
+     * §2.4(a)), since A0 then holds the bytes and the manifest the sha256. So
+     * a second run cannot reuse the upload_id: it has to be uploaded again,
+     * and only the browser still has the file. */
+    file: null,
     fixed: {},        // step -> published `fixed` literals, from GET /config
     reports: {},      // step -> the four-part report
     furthest: -1,
@@ -485,6 +491,37 @@
 
   }
 
+  /* What was declared, once it is settled. Labels come from the same
+   * `declarations` entries that asked the questions, so a recorded answer
+   * and the question that produced it cannot drift apart. */
+  function renderDeclared(host) {
+    var D = M.declarations || {};
+    if (!D.valueType) { return; }
+    var ul = document.createElement('ul');
+    ul.className = 'cr-governing';
+    function line(label, value) {
+      if (value === null || value === undefined || value === '') { return; }
+      var li = document.createElement('li');
+      var b = document.createElement('code');
+      text(b, label);
+      li.appendChild(b);
+      li.appendChild(document.createTextNode(' = ' + value));
+      ul.appendChild(li);
+    }
+    function labelFor(spec, v) {
+      var hit = (spec.options || []).filter(function (o) { return o.value === v; })[0];
+      return hit ? hit.label : v;
+    }
+    line('values', labelFor(D.valueType, state.declared.value_type));
+    line('scale maximum', state.declared.scale_max);
+    line('shape', labelFor(D.compositional, state.declared.compositional));
+    Object.keys(state.declared.covariate_types || {}).forEach(function (cv) {
+      line(cv, state.declared.covariate_types[cv]);
+    });
+    if (state.declared.hypotheses) { line('hypotheses', state.declared.hypotheses); }
+    if (ul.childNodes.length) { host.appendChild(ul); }
+  }
+
   function renderDecide(host, step, rep) {
     clear(host);
     var decisions = (rep.decide || []).filter(function (d) {
@@ -575,6 +612,49 @@
     clear(body);
 
     if (!rep) {
+      /* Step 0 before it is run, once a matrix is uploaded. The upload has
+       * already proposed the column roles, so the researcher has everything
+       * needed to declare the rest (R2, R3, R5) and confirm. Step 0 then runs
+       * once, and A0 records exactly what was declared -- it cannot be run
+       * twice, because it consumes the staging upload. */
+      if (step === 0 && state.upload) {
+        var pre = document.createElement('div');
+        pre.className = 'cr-part';
+        var ph = document.createElement('div');
+        ph.className = 'cr-part-head';
+        text(ph, 'Proposed column roles');
+        pre.appendChild(ph);
+        var roles = state.upload.proposed_roles || {};
+        var rows = Object.keys(roles).map(function (c) {
+          return { column: c, 'proposed role': roles[c] };
+        });
+        pre.appendChild(tableFrom(rows, null));
+        body.appendChild(pre);
+
+        var dec = document.createElement('div');
+        dec.className = 'cr-part';
+        var dh2 = document.createElement('div');
+        dh2.className = 'cr-part-head';
+        text(dh2, 'Your decision');
+        dec.appendChild(dh2);
+        var host0 = document.createElement('div');
+        renderDeclarations(host0);
+        renderDecide(host0, 0, { decide: [] });
+        dec.appendChild(host0);
+        body.appendChild(dec);
+
+        var ctrl = document.createElement('p');
+        ctrl.className = 'cr-controls';
+        var go = document.createElement('button');
+        go.type = 'button';
+        go.className = 'cr-btn';
+        go.id = 's0-run';
+        text(go, 'Run step 0');
+        go.onclick = function () { runStep(0); };
+        ctrl.appendChild(go);
+        body.appendChild(ctrl);
+        return;
+      }
       var wait = document.createElement('p');
       wait.className = 'cr-waiting';
       text(wait, step === 0
@@ -673,7 +753,10 @@
     /* AD item 3: R2, R3 and R5 belong inside step 0's decision. They come
      * first, because confirming the roles without them would record a
      * corpus whose values mean nothing in particular. */
-    if (step === 0) { renderDeclarations(decideHost); }
+    /* After step 0 has run the declarations are part of A0 and cannot be
+     * changed within this run -- step 0 consumes its upload. They are shown
+     * as recorded; Back starts a new numbered run if they were wrong. */
+    if (step === 0) { renderDeclared(decideHost); }
     renderDecide(decideHost, step, rep);
     decide.appendChild(decideHost);
     body.appendChild(decide);
@@ -709,15 +792,7 @@
       text(next, 'The analysis is complete');
     } else {
       text(next, 'Run step ' + (step + 1));
-      /* Step 0 proposes and the researcher confirms (CR4-16 (2)). The
-       * declarations are answered on this card, so confirming re-runs step 0
-       * before step 1: A0 then records what was actually declared rather than
-       * what was assumed at upload, and step 1 reads it from A0 as it should.
-       * Without this the page would send the values straight to step 1 and
-       * leave A0 saying something else. */
-      next.onclick = (step === 0)
-        ? function () { runStep(0).then(function () { return runStep(1); }); }
-        : function () { runStep(step + 1); };
+      next.onclick = function () { runStep(step + 1); };
     }
     controls.appendChild(next);
 
@@ -818,7 +893,7 @@
   }
 
   async function runStep(step) {
-    var btn = $('s' + (step - 1) + '-next');
+    var btn = (step === 0) ? $('s0-run') : $('s' + (step - 1) + '-next');
     if (btn) { btn.disabled = true; }
     status(step, 'running…');
     var began = Date.now();
@@ -864,6 +939,11 @@
     }
     try {
       status(step, 'starting a new run…');
+      /* The staging upload went when step 0 first succeeded, so a new run
+       * cannot reuse its id -- /declare answers 404. The file is re-uploaded
+       * from the browser's own copy. Without this, Back 404s the first time
+       * anyone presses it. */
+      if (state.file) { state.upload = await window.G4.upload(state.file); }
       var run = await window.G4.createRun(
         (state.upload.name || 'corpus').replace(/\.[a-z0-9]+$/i, '')
           .replace(/[^a-z0-9]+/gi, '-').toLowerCase().replace(/^-+|-+$/g, '') || 'corpus',
@@ -889,6 +969,7 @@
   async function loadDTM(file) {
     try {
       status(0, 'reading…');
+      state.file = file;
       state.upload = await window.G4.upload(file);
       text($('dtm-stats'),
         state.upload.rows + ' rows · ' + state.upload.columns.length + ' columns · sha256 '
@@ -904,7 +985,12 @@
       $('run-export').href = window.G4.exportUrl(run.run_id);
       $('run-export').hidden = false;
       status(0, 'uploaded — run ' + run.run_id);
-      await runStep(0);
+      /* Step 0 is NOT run here. The declarations (R2, R3, R5) are answered on
+       * its card and are part of what A0 records, so running it on upload
+       * would write an A0 that says one thing while step 1 acts on another.
+       * The card renders its pre-run state instead, and the researcher runs
+       * step 0 once, with everything declared. */
+      renderCard(0);
     } catch (err) {
       status(0, 'failed');
       fail(err);
