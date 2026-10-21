@@ -567,3 +567,15 @@
   font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.06em;
   color: #8a5a00; margin-left: 0.7rem;
 }
+
+/* The values that governed a step, and the provisional mark. A provisional
+   value is shown, not hidden: the researcher is entitled to know which
+   thresholds are settled and which are not. */
+.cr-governing { list-style: none; margin: 0; padding: 0; font-family: var(--font-mono); font-size: 0.68rem; }
+.cr-governing li { padding: 0.12rem 0; }
+.cr-provisional {
+  margin-left: 0.5rem; font-size: 0.6rem; letter-spacing: 0.08em;
+  text-transform: uppercase; color: #8a5a00; border: 1px solid currentColor;
+  border-radius: 2px; padding: 0 0.3rem;
+}
+.cr-measure { font-size: 0.74rem; color: var(--ink-light); margin: 0.4rem 0 0; }

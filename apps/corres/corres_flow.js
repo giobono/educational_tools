@@ -136,9 +136,48 @@
 
   /* ---- part 2: the one thing to look at ---------------------------- */
 
+  /* AD 22 Oct item 9: round to 3 decimal places and print plain headings.
+   * An unrounded float is noise, and `J k` or `unusable fit failed` is an
+   * internal name a researcher has no reason to know. */
+  function cell(v) {
+    if (v === null || v === undefined || v === '') { return ''; }
+    if (typeof v === 'object') { return JSON.stringify(v); }
+    var n = (typeof v === 'number') ? v : (v !== '' && isFinite(v) ? Number(v) : null);
+    if (n === null) { return String(v); }
+    if (Number.isInteger(n)) { return String(n); }
+    return n.toFixed(3);
+  }
+
+  var HEADINGS = {
+    J_k: 'usable splits', pac: 'PAC', ci_low: 'interval low', ci_high: 'interval high',
+    reproducibility: 'reproducibility', k: 'k', passed: 'passes the gate',
+    evaluated: 'evaluated', splits: 'splits', concept: 'concept', frame: 'frame',
+  };
+
+  function heading(c) {
+    return HEADINGS[c] || c.replace(/_/g, ' ');
+  }
+
+  /* AD 22 Oct item 11 and 9: a column empty on every row tells the reader
+   * nothing, and an internal count that is zero on every row is noise. Both
+   * are dropped here rather than printed blank; the export carries them. */
+  function usefulColumns(rows) {
+    var INTERNAL = ['unusable_fit_failed', 'unusable_too_few_positive'];
+    return Object.keys(rows[0]).filter(function (c) {
+      var anyValue = rows.some(function (r) {
+        return r[c] !== null && r[c] !== undefined && r[c] !== '';
+      });
+      if (!anyValue) { return false; }
+      if (INTERNAL.indexOf(c) !== -1) {
+        return rows.some(function (r) { return Number(r[c]) > 0; });
+      }
+      return true;
+    });
+  }
+
   function tableFrom(rows, caption) {
     if (!rows || !rows.length) { return null; }
-    var cols = Object.keys(rows[0]);
+    var cols = usefulColumns(rows);
     var t = document.createElement('table');
     t.className = 'cr-table';
     if (caption) {
@@ -149,7 +188,7 @@
     var hr = t.createTHead().insertRow();
     cols.forEach(function (c) {
       var th = document.createElement('th');
-      text(th, c.replace(/_/g, ' '));
+      text(th, heading(c));
       hr.appendChild(th);
     });
     var body = t.createTBody();
@@ -157,8 +196,7 @@
       var tr = body.insertRow();
       cols.forEach(function (c) {
         var td = tr.insertCell();
-        var v = r[c];
-        text(td, (v !== null && typeof v === 'object') ? JSON.stringify(v) : v);
+        text(td, cell(r[c]));
       });
     });
     if (rows.length > 200) {
@@ -204,6 +242,39 @@
       }
       var t = tableFrom(rows, null);
       if (t) { wrap.appendChild(t); }
+
+      /* AD 22 Oct item 8: eta-squared is reported every run, not only when
+       * its Caution fires -- a reader needs the measure, not its absence. */
+      if (spec.prevalence_eta2 !== undefined && spec.prevalence_eta2 !== null) {
+        var eta = document.createElement('p');
+        eta.className = 'cr-measure';
+        text(eta, 'Prevalence across the frames: \u03b7\u00b2 = '
+          + cell(spec.prevalence_eta2)
+          + ' (a caution fires at ' + cell(spec.prevalence_eta2_caution) + ').'
+          + (spec.check_arm_ari === null || spec.check_arm_ari === undefined ? ''
+             : ' Main and check arms agree at ARI ' + cell(spec.check_arm_ari) + '.'));
+        wrap.appendChild(eta);
+      }
+
+      /* AD 22 Oct item 7: a neighbouring k means nothing without what it does
+       * to the frames, so R8's alternative is shown with its consequence. */
+      if (spec.neighbouring_k && Object.keys(spec.neighbouring_k).length) {
+        var nb = document.createElement('ul');
+        nb.className = 'cr-governing';
+        Object.keys(spec.neighbouring_k).forEach(function (key) {
+          var n = spec.neighbouring_k[key];
+          var li = document.createElement('li');
+          var what = (n.affected || []).map(function (a) {
+            return a.change === 'split' || a.becomes
+              ? a.frame + ' splits into ' + (a.becomes || []).join(' and ')
+              : (a.frames || []).join(' and ') + ' merge into ' + a.merge_into;
+          }).join('; ');
+          text(li, 'k = ' + n.k + ': ' + n.frames + ' frames — '
+            + (what || 'the same concepts, regrouped'));
+          nb.appendChild(li);
+        });
+        wrap.appendChild(nb);
+      }
       else if (!spec.no_opposition_at_k2) {
         var e = document.createElement('p');
         e.className = 'cr-look-empty';
@@ -268,7 +339,16 @@
       if (o.isDefault) { input.checked = true; }
       var label = document.createElement('label');
       label.setAttribute('for', input.id);
-      text(label, o.label);
+      /* AD 22 Oct item 7: "Take the recommended k" does not say what k is.
+       * The register's wording is AD's; the number is this run's, so it is
+       * substituted rather than rewritten. */
+      var labelText = o.label;
+      var rec = (((state.reports[step] || {}).look_at || {}).tables || {});
+      rec = (rec.by_k || {}).recommended_k;
+      if (step === 4 && rec !== undefined && rec !== null && /recommended/i.test(o.label)) {
+        labelText = o.label + ' — k = ' + rec;
+      }
+      text(label, labelText);
       var sub = document.createElement('span');
       sub.className = 'tmode-sub';          // G3's class, unchanged
       text(sub, o.consequence);
@@ -335,6 +415,39 @@
     look.appendChild(lookHost);
     body.appendChild(look);
 
+    /* AD 22 Oct item 10: each report shows the values that governed it, with
+     * the provisional ones marked. The mark comes from the published table,
+     * so a value cannot read as settled here while GET /config calls it
+     * provisional. */
+    var governing = (rep.done && rep.done.parameters) || [];
+    if (governing.length) {
+      var gov = document.createElement('div');
+      gov.className = 'cr-part';
+      var gh = document.createElement('div');
+      gh.className = 'cr-part-head';
+      text(gh, 'The values that governed this step');
+      gov.appendChild(gh);
+      var ul = document.createElement('ul');
+      ul.className = 'cr-governing';
+      governing.forEach(function (g) {
+        var li = document.createElement('li');
+        var nm = document.createElement('code');
+        text(nm, g.name);
+        li.appendChild(nm);
+        li.appendChild(document.createTextNode(' = ' + cell(g.value)));
+        if (g.provisional) {
+          var pv = document.createElement('span');
+          pv.className = 'cr-provisional';
+          text(pv, 'provisional');
+          li.appendChild(pv);
+        }
+        if (g.note) { li.title = g.note; }
+        ul.appendChild(li);
+      });
+      gov.appendChild(ul);
+      body.appendChild(gov);
+    }
+
     // part 3 — flags
     var flags = document.createElement('div');
     flags.className = 'cr-part';
@@ -359,8 +472,15 @@
     decide.appendChild(decideHost);
     body.appendChild(decide);
 
-    // the run's cap, stated where the claims are
-    if (rep.tier && rep.tier.run_cap) {
+    /* AD 22 Oct item 2. The cap sentence says the run "passes the
+     * reproducibility gate"; at steps 0-3 no gate has been computed, so it
+     * was false on four cards out of five. Shown only where tiers exist
+     * (step 4 onward, which the route states) and only once a k has actually
+     * passed -- both conditions, because either alone still lies somewhere. */
+    var tiersHere = rep.tier
+      && step >= (rep.tier.tiers_exist_from_step === undefined ? 4 : rep.tier.tiers_exist_from_step)
+      && rep.tier.gate_passed;
+    if (tiersHere && rep.tier.run_cap) {
       var cap = document.createElement('p');
       cap.className = 'cr-cap';
       cap.appendChild(tierBadge(rep.tier.run_cap));
@@ -386,6 +506,22 @@
       next.onclick = function () { runStep(step + 1); };
     }
     controls.appendChild(next);
+
+    /* AD 22 Oct item 12, and §4.5: "Back starts a new numbered run, and the
+     * run history is visible." It did not exist -- AD looked for it and found
+     * nothing. Back from a step re-runs the analysis from there under a new
+     * run id, so the earlier run stays whole and both are in the history;
+     * decision register §1.4 requires exactly that, and it is why a run is
+     * numbered at all. */
+    if (step > 0 && state.runId) {
+      var back = document.createElement('button');
+      back.type = 'button';
+      back.className = 'cr-btn ghost';
+      back.id = 's' + step + '-back';
+      text(back, 'Back to step ' + (step - 1));
+      back.onclick = function () { goBack(step - 1); };
+      controls.appendChild(back);
+    }
 
     if (step > SIGNED_THROUGH) {
       // Stage 3 signs screens 0-4; these are stage 4's and nobody has signed
@@ -458,6 +594,37 @@
       }
     } finally {
       if (btn) { btn.disabled = false; }
+    }
+  }
+
+  /* Back: a new numbered run from the step chosen, with the earlier run kept
+   * whole. §4.5 and decision register §1.4. The run history is the list of
+   * runs the server already keeps; nothing is discarded, so a reader can see
+   * how many paths were tried -- which is the point of numbering them. */
+  async function goBack(step) {
+    if (!state.upload) {
+      fail(new Error('the uploaded file is needed to start a new run; upload it again'));
+      return;
+    }
+    try {
+      status(step, 'starting a new run…');
+      var run = await window.G4.createRun(
+        (state.upload.name || 'corpus').replace(/\.[a-z0-9]+$/i, '')
+          .replace(/[^a-z0-9]+/gi, '-').toLowerCase().replace(/^-+|-+$/g, '') || 'corpus',
+        'back:' + Date.now());
+      var previous = state.runId;
+      state.runId = run.run_id;
+      state.reports = {};
+      state.furthest = -1;
+      text($('run-id'), run.run_id);
+      $('run-export').href = window.G4.exportUrl(run.run_id);
+      for (var i = 0; i <= 8; i += 1) { renderCard(i); }
+      status(0, 'new run ' + run.run_id + ' — the previous run ' + previous + ' is kept');
+      // Re-run from step 0, since every step reads the one before it.
+      await runStep(0);
+      for (var j = 1; j <= step; j += 1) { await runStep(j); }
+    } catch (err) {
+      fail(err);
     }
   }
 
