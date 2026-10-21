@@ -560,3 +560,10 @@
   border: 1px solid #8a5a00; border-left-width: 3px; padding: 0.6rem 0.8rem;
   margin: 0 0 1.2rem; font-size: 0.8rem; color: #8a5a00;
 }
+
+/* A screen past stage 3's sign-off. Marked, not hidden: hiding it is what
+   stopped a run at step 4 with no way on. */
+.cr-unsigned {
+  font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.06em;
+  color: #8a5a00; margin-left: 0.7rem;
+}

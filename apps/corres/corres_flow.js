@@ -23,10 +23,16 @@
   var ORDER = ['declare', 'binarise', 'admit', 'associate', 'stability',
                'covariates', 'structure', 'pairs', 'sensitivity'];
 
-  /* Stage 3 delivers screens 0-4. Steps 5-8 have their cards in the markup
-   * and are driven at stage 4; a card past this bound says so rather than
-   * looking broken. */
-  var STAGE = 4;
+  /* Stage 3 delivers screens 0-4 and stage 4 delivers 5-8. The card renderer
+   * is the same for all nine -- four parts from `reports/{step}` -- and the
+   * back end runs all nine, so the only thing that ever stopped 5-8 was this
+   * constant. It stopped a researcher mid-analysis at step 4 with no way on,
+   * which reads as broken rather than as staged.
+   *
+   * All nine now run. **Cards past 4 are marked not yet signed**, because
+   * stage 3's sign-off covers screens 0-4 and stage 4's covers the rest: a
+   * screen nobody has signed should say so rather than be hidden. */
+  var SIGNED_THROUGH = 4;
 
   var state = {
     runId: null,
@@ -372,14 +378,24 @@
     next.type = 'button';
     next.className = 'cr-btn';
     next.id = 's' + step + '-next';
-    if (step >= STAGE) {
+    if (step >= 8) {
       next.disabled = true;
-      text(next, 'Steps 5 to 8 arrive at stage 4');
+      text(next, 'The analysis is complete');
     } else {
       text(next, 'Run step ' + (step + 1));
       next.onclick = function () { runStep(step + 1); };
     }
     controls.appendChild(next);
+
+    if (step > SIGNED_THROUGH) {
+      // Stage 3 signs screens 0-4; these are stage 4's and nobody has signed
+      // them yet. Said on the card rather than hidden behind a disabled
+      // button, which is what stopped a run mid-analysis.
+      var unsigned = document.createElement('span');
+      unsigned.className = 'cr-unsigned';
+      text(unsigned, 'This screen is not yet signed off.');
+      controls.appendChild(unsigned);
+    }
     body.appendChild(controls);
   }
 
