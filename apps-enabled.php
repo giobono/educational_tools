@@ -13,7 +13,7 @@
 header('Content-Type: application/javascript; charset=utf-8');
 header('Cache-Control: no-store');
 
-$apps = ['gioianie', 'sanzognie', 'corres', 'corres_g4', 'pluralitie'];
+$apps = ['gioianie', 'sanzognie', 'corres', 'pluralitie'];
 $enabled = [];
 
 foreach ($apps as $app) {
