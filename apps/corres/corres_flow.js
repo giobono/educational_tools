@@ -240,8 +240,25 @@
         text(p, 'At k = 2 no opposition is reported.');
         wrap.appendChild(p);
       }
-      var t = tableFrom(rows, null);
-      if (t) { wrap.appendChild(t); }
+      /* AD 22 Oct item 5: step 1's reading is one row, and a one-row table
+       * is a worse way to say it than a sentence. The look-at string
+       * promises "how many cells counted as present, and the threshold that
+       * decided it"; this is that sentence. */
+      if (name === 'binarisation' && rows && rows.length === 1) {
+        var b = rows[0];
+        var sent = document.createElement('p');
+        sent.className = 'cr-measure';
+        text(sent,
+          cell(b.cells_present) + ' of ' + cell(b.cells_total) + ' cells counted as present ('
+          + (b.share_present === null || b.share_present === undefined
+              ? '' : Math.round(b.share_present * 100) + '%')
+          + '), at a threshold of ' + cell(b.threshold) + '.'
+          + (b.normalised ? ' Values were normalised within each document first.' : ''));
+        wrap.appendChild(sent);
+      } else {
+        var t = tableFrom(rows, null);
+        if (t) { wrap.appendChild(t); }
+      }
 
       /* AD 22 Oct item 8: eta-squared is reported every run, not only when
        * its Caution fires -- a reader needs the measure, not its absence. */
@@ -275,7 +292,7 @@
         });
         wrap.appendChild(nb);
       }
-      else if (!spec.no_opposition_at_k2) {
+      if (!wrap.querySelector('table, p.cr-measure') && !spec.no_opposition_at_k2) {
         var e = document.createElement('p');
         e.className = 'cr-look-empty';
         text(e, 'Nothing to show for this corpus.');
