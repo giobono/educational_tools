@@ -183,6 +183,19 @@
     evaluated: 'evaluated', splits: 'splits', concept: 'concept', frame: 'frame',
   };
 
+  /* AD's sentence for one direction of a pair (CR4-32 §1). Falls back to a
+   * bare arrow while the file is unsighted, rather than inventing prose. */
+  function said(f, g) {
+    var s = M.oppositionFrom;
+    return s ? s.replace('{F}', f).replace('{G}', g) : f + ' \u2192 ' + g;
+  }
+
+  function verdict(v) {
+    if (v === 'true') { return 'opposed'; }
+    if (v === 'false') { return 'not opposed'; }
+    return '\u2014';
+  }
+
   function heading(c) {
     return HEADINGS[c] || c.replace(/_/g, ' ');
   }
@@ -284,6 +297,31 @@
           + '), at a threshold of ' + cell(b.threshold) + '.'
           + (b.normalised ? ' Values were normalised within each document first.' : ''));
         wrap.appendChild(sent);
+      } else if (name === 'opposition_table' && spec.one_row_per_unordered_pair) {
+        /* CR4-32 §1. One row per unordered pair, with both verdicts
+         * labelled. delta and its interval are symmetric; the verdict is
+         * not, because each compares a frame with its own average over the
+         * other frames. The table used to show the pair twice, and a reader
+         * seeing F1-F4 false beside F4-F1 true read a contradiction rather
+         * than two different questions. Both sentences are AD's. */
+        var shown = (rows || []).map(function (r) {
+          var out = {
+            pair: r.frame_f + ' and ' + r.frame_g,
+            'δ': cell(r.delta),
+            'interval': cell(r.ci_low) + ' to ' + cell(r.ci_high),
+          };
+          out[said(r.frame_f, r.frame_g)] = verdict(r.opposed_from_f);
+          out[said(r.frame_g, r.frame_f)] = verdict(r.opposed_from_g);
+          return out;
+        });
+        var ot = tableFrom(shown, null);
+        if (ot) { wrap.appendChild(ot); }
+        if (M.oppositionNote) {
+          var note = document.createElement('p');
+          note.className = 'cr-look-sub';
+          text(note, M.oppositionNote);
+          wrap.appendChild(note);
+        }
       } else {
         var t = tableFrom(rows, null);
         if (t) { wrap.appendChild(t); }

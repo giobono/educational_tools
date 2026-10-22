@@ -17,7 +17,11 @@
  *       `page` and `steps` below);
  *   (c) the decisions R2-R6 for steps 0-2 read their wording from
  *       `declarations` and `decisions` below.
- * SIGHTED. The AD human half countersigned the sighting brief at 10:34 AEST on
+ * UN-SIGHTED by rule 3 below, 22 October 2026: `oppositionFrom` and
+ * `oppositionNote` were added under CR4-32 §1, which supplies their wording
+ * but is not itself a sighting of this file. AD sights them at stage 4.
+ *
+ * Previously SIGHTED. The AD human half countersigned the sighting brief at 10:34 AEST on
  * 22 October 2026, against this file at 8861cbe36793, and signed stage 3 in
  * the AD brief of 22 October §1. All three conditions were met and reported in
  * D2Dev's return of 22 October §1. The flag below is set on that signature and
@@ -36,7 +40,7 @@ window.G4_METHOD = {
   /* The sighting gate, machine-readable so the page cannot quietly show
    * unsighted prose. Set true only under the three conditions above; rule 3
    * flips it back whenever a string changes. */
-  sighted: true,
+  sighted: false,
 
   /* ---- the page's own one line, §8 ---------------------------------- */
   intro: 'Nine steps from a document–term matrix to tiered claims. Each step '
@@ -210,6 +214,16 @@ window.G4_METHOD = {
   /* ---- the cap while parameters are provisional (CR4-29) ------------ */
   provisionalCap: 'This run passes the reproducibility gate under parameter values that are still provisional. Certification awaits their review; until then its frames are reported as exploratory.',
   provisionalCapSource: 'CR4-29; AD method brief of 21 Oct §1.4, quoted exactly',
+
+  /* ---- opposition, read per frame and not per pair (CR4-32 §1) ------
+   * delta and its interval are symmetric; the verdict is not, because each
+   * one compares a frame with its own average over the other frames. So a
+   * pair can be opposed from one side and not the other, and the screen says
+   * which side rather than showing the pair twice. */
+  oppositionFrom: '{F} avoids {G} more than it avoids other frames',
+  oppositionNote: 'Each verdict compares a frame with its own average, so a '
+                + 'pair can be opposed from one side and not the other.',
+  oppositionSource: 'CR4-32 §1, quoted exactly',
 
   /* ---- scope, worded as reach and not as a fault in the data -------- */
   unsupportedShape: 'Compositional data is not yet supported in G4; results are exploratory.',
