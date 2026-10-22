@@ -17,9 +17,13 @@
  *       `page` and `steps` below);
  *   (c) the decisions R2-R6 for steps 0-2 read their wording from
  *       `declarations` and `decisions` below.
- * D2Dev sets `sighted: true` in the commit that meets all three, and says so
- * in its return. Until then it stays false. It goes to CD for a copy pass
- * before stage 4 deploys (SD ruling 21 Oct §3).
+ * SIGHTED. The AD human half countersigned the sighting brief at 10:34 AEST on
+ * 22 October 2026, against this file at 8861cbe36793, and signed stage 3 in
+ * the AD brief of 22 October §1. All three conditions were met and reported in
+ * D2Dev's return of 22 October §1. The flag below is set on that signature and
+ * on nothing else. It still goes to CD for a copy pass before stage 4 deploys
+ * (SD ruling 21 Oct §3); a copy pass changes strings, and rule 3 below then
+ * un-sights the file until AD sights it again.
  *
  * Rules for whoever edits this next:
  *   1. A new sentence about the method goes HERE, never in index.html.
@@ -32,7 +36,7 @@ window.G4_METHOD = {
   /* The sighting gate, machine-readable so the page cannot quietly show
    * unsighted prose. Set true only under the three conditions above; rule 3
    * flips it back whenever a string changes. */
-  sighted: false,
+  sighted: true,
 
   /* ---- the page's own one line, §8 ---------------------------------- */
   intro: 'Nine steps from a document–term matrix to tiered claims. Each step '
