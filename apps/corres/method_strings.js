@@ -17,7 +17,12 @@
  *       `page` and `steps` below);
  *   (c) the decisions R2-R6 for steps 0-2 read their wording from
  *       `declarations` and `decisions` below.
- * SIGHTED. CR4-33 §4 sights this file as `8861cbe36793` plus exactly six
+ * UN-SIGHTED by rule 3, 22 October 2026: CR4-34 §3 (3) moves the figure
+ * captions here, and three of the four have never been sighted -- they are
+ * carried over verbatim from the code that drew them. `labelled_consensus`
+ * is sighted in advance by that brief. AD sights the other three.
+ *
+ * Previously SIGHTED. CR4-33 §4 sighted this file as `8861cbe36793` plus exactly six
  * keys: `oppositionFrom` and `oppositionNote` (CR4-32 §1), and
  * `oppositionColFirst`, `oppositionColSecond`, `opposed` and `notOpposed`
  * (CR4-33 §4). Nothing else differs, and the return lists the diff. It was
@@ -42,7 +47,7 @@ window.G4_METHOD = {
   /* The sighting gate, machine-readable so the page cannot quietly show
    * unsighted prose. Set true only under the three conditions above; rule 3
    * flips it back whenever a string changes. */
-  sighted: true,
+  sighted: false,
 
   /* ---- the page's own one line, §8 ---------------------------------- */
   intro: 'Nine steps from a document–term matrix to tiered claims. Each step '
@@ -216,6 +221,47 @@ window.G4_METHOD = {
   /* ---- the cap while parameters are provisional (CR4-29) ------------ */
   provisionalCap: 'This run passes the reproducibility gate under parameter values that are still provisional. Certification awaits their review; until then its frames are reported as exploratory.',
   provisionalCapSource: 'CR4-29; AD method brief of 21 Oct §1.4, quoted exactly',
+
+
+  /* ---- figure captions and legends, CR4-34 §3 (3) -------------------
+   * "Captions and legends are method wording." They were in the Python that
+   * draws the figures, and -- found while moving them -- **no caption was
+   * shown on screen at all**: each figure rendered with an `alt` of its own
+   * name and nothing else, so a researcher saw four plots and no statement
+   * of what any of them meant.
+   *
+   * `labelled_consensus` is sighted in advance by CR4-34 §3 (3): the caption
+   * exactly as that brief words it, and the five class labels of
+   * `g4_class_vocabulary_v0_1.json` with their glyphs. **The other three are
+   * carried over from the drawing code and have never been sighted**, which
+   * is why `sighted` is false above. They are what has been served; AD sights
+   * or amends them. */
+  figures: {
+    concept_prevalence: {
+      caption: 'Share of documents in which each concept is present, after binarisation.',
+      sighted: false,
+    },
+    residual_heatmap: {
+      caption: 'Quasi-independence residual, seriated. Red attracts, blue repels.',
+      sighted: false,
+    },
+    consensus_heatmap: {
+      caption: 'Consensus matrix at the chosen k: how often each pair clustered together.',
+      sighted: false,
+    },
+    labelled_consensus_heatmap: {
+      caption: 'Consensus at the chosen k, with each concept\u2019s class marked',
+      legend: [
+        { mark: '\u25cf', label: 'Core' },
+        { mark: '\u25c6', label: 'Interface' },
+        { mark: '\u00b7', label: 'Diffuse' },
+        { mark: '\u25b3', label: 'Method-contingent' },
+        { mark: '\u25cb', label: 'Outside support' },
+      ],
+      sighted: true,
+      source: 'CR4-34 §3 (3), sighted in advance; labels from g4_class_vocabulary_v0_1.json',
+    },
+  },
 
   /* ---- opposition, read per frame and not per pair (CR4-32 §1) ------
    * delta and its interval are symmetric; the verdict is not, because each

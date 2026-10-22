@@ -428,6 +428,25 @@
       img.src = window.G4.figureUrl(state.runId, f.name);
       img.loading = 'lazy';
       wrap.appendChild(img);
+      /* CR4-34 §3 (3). No caption was shown at all: a figure rendered with
+       * an `alt` of its own name and nothing else. The wording is AD's and
+       * lives in method_strings.js, so a figure whose caption is not sighted
+       * shows no caption rather than unsighted prose. */
+      var fig = (M.figures || {})[f.name] || {};
+      if (fig.caption && fig.sighted !== false) {
+        var cap = document.createElement('p');
+        cap.className = 'cr-look-sub';
+        text(cap, fig.caption);
+        wrap.appendChild(cap);
+      }
+      if (fig.legend && fig.legend.length && fig.sighted !== false) {
+        var leg = document.createElement('p');
+        leg.className = 'cr-look-sub';
+        text(leg, fig.legend.map(function (e) {
+          return e.mark + ' ' + e.label;
+        }).join('   '));
+        wrap.appendChild(leg);
+      }
       host.appendChild(wrap);
       any = true;
     });
