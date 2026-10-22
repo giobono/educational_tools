@@ -171,6 +171,12 @@
    * internal name a researcher has no reason to know. */
   function cell(v) {
     if (v === null || v === undefined || v === '') { return ''; }
+    /* Audit A5 and A7. A list came out as JSON -- `["binarisation","null"]`
+     * in step 8's governing values, `[0.1,0.9]` for step 4's PAC band. A
+     * nested object came out as a wall of JSON in one cell. A list reads as
+     * a list; an object that still reaches here is a defect in the route
+     * rather than something to render, so it says so. */
+    if (Array.isArray(v)) { return v.map(cell).join(', '); }
     if (typeof v === 'object') { return JSON.stringify(v); }
     var n = (typeof v === 'number') ? v : (v !== '' && isFinite(v) ? Number(v) : null);
     if (n === null) { return String(v); }
@@ -287,7 +293,25 @@
        * is a worse way to say it than a sentence. The look-at string
        * promises "how many cells counted as present, and the threshold that
        * decided it"; this is that sentence. */
-      if (name === 'binarisation' && rows && rows.length === 1) {
+      if (name === 'spread' && rows && rows.length === 1) {
+        /* Audit A2. Step 3 served no number at all, while its one thing to
+         * look at is the spread. One row is better said than tabulated. */
+        var s = rows[0];
+        var sp = document.createElement('p');
+        sp.className = 'cr-measure';
+        text(sp, 'The association values spread ' + cell(s.spread)
+                 + ', against a threshold of ' + cell(s.spread_threshold)
+                 + (s.passed === true || s.passed === 'True'
+                     ? ' — enough to group.'
+                     : s.passed === undefined ? '.' : ' — not enough to group.'));
+        wrap.appendChild(sp);
+        if (spec.provisional_note) {
+          var pn = document.createElement('p');
+          pn.className = 'cr-look-sub';
+          text(pn, 'The threshold is ' + spec.provisional_note);
+          wrap.appendChild(pn);
+        }
+      } else if (name === 'binarisation' && rows && rows.length === 1) {
         var b = rows[0];
         var sent = document.createElement('p');
         sent.className = 'cr-measure';
