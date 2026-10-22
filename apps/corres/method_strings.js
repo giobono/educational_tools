@@ -17,12 +17,13 @@
  *       `page` and `steps` below);
  *   (c) the decisions R2-R6 for steps 0-2 read their wording from
  *       `declarations` and `decisions` below.
- * UN-SIGHTED by rule 3, 22 October 2026: CR4-34 §3 (3) moves the figure
- * captions here, and three of the four have never been sighted -- they are
- * carried over verbatim from the code that drew them. `labelled_consensus`
- * is sighted in advance by that brief. AD sights the other three.
+ * SIGHTED, 22 October 2026 17:47 AEST. The figure captions brief of 22 Oct
+ * sights all four: `concept_prevalence` as served, the two heatmaps amended
+ * in AD's words, and `labelled_consensus` as already sighted at CR4-34 §3
+ * (3). The diff against `8861cbe36793` is the six keys of CR4-33 §4 plus the
+ * `figures` block, and nothing else.
  *
- * Previously SIGHTED. CR4-33 §4 sighted this file as `8861cbe36793` plus exactly six
+ * Earlier: CR4-33 §4 sighted this file as `8861cbe36793` plus exactly six
  * keys: `oppositionFrom` and `oppositionNote` (CR4-32 §1), and
  * `oppositionColFirst`, `oppositionColSecond`, `opposed` and `notOpposed`
  * (CR4-33 §4). Nothing else differs, and the return lists the diff. It was
@@ -47,7 +48,7 @@ window.G4_METHOD = {
   /* The sighting gate, machine-readable so the page cannot quietly show
    * unsighted prose. Set true only under the three conditions above; rule 3
    * flips it back whenever a string changes. */
-  sighted: false,
+  sighted: true,
 
   /* ---- the page's own one line, §8 ---------------------------------- */
   intro: 'Nine steps from a document–term matrix to tiered claims. Each step '
@@ -230,24 +231,28 @@ window.G4_METHOD = {
    * name and nothing else, so a researcher saw four plots and no statement
    * of what any of them meant.
    *
-   * `labelled_consensus` is sighted in advance by CR4-34 §3 (3): the caption
-   * exactly as that brief words it, and the five class labels of
-   * `g4_class_vocabulary_v0_1.json` with their glyphs. **The other three are
-   * carried over from the drawing code and have never been sighted**, which
-   * is why `sighted` is false above. They are what has been served; AD sights
-   * or amends them. */
+   * All four are sighted. `labelled_consensus` was sighted in advance by
+   * CR4-34 §3 (3). The other three went to AD in the CR4-34 return §4 and
+   * came back at the sighting brief of 22 Oct: `concept_prevalence` as
+   * served, and the two heatmaps **amended** -- the residual one now says
+   * what red and blue mean rather than "attracts" and "repels", and the
+   * consensus one says the grouping is across the half-samples. Both are
+   * AD's words exactly. */
   figures: {
     concept_prevalence: {
       caption: 'Share of documents in which each concept is present, after binarisation.',
-      sighted: false,
+      sighted: true,
     },
     residual_heatmap: {
-      caption: 'Quasi-independence residual, seriated. Red attracts, blue repels.',
-      sighted: false,
+      caption: 'Standardised residuals under quasi-independence, with related '
+             + 'concepts placed together. Red: the pair occurs together more '
+             + 'often than chance predicts. Blue: less often.',
+      sighted: true,
     },
     consensus_heatmap: {
-      caption: 'Consensus matrix at the chosen k: how often each pair clustered together.',
-      sighted: false,
+      caption: 'Consensus at the chosen k: how often each pair of concepts was '
+             + 'grouped together across the half-samples.',
+      sighted: true,
     },
     labelled_consensus_heatmap: {
       caption: 'Consensus at the chosen k, with each concept\u2019s class marked',
