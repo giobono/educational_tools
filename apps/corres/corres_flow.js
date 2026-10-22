@@ -49,6 +49,10 @@
     /* Step 0's declarations (R2, R3, R5). Held here, not read off the DOM at
      * the moment they are needed, because confirming at step 0 re-renders the
      * card and would otherwise reset the researcher's answers to defaults. */
+    /* R10's answers (closing fixes S1). Held here, not read off the DOM at
+     * the moment they are needed, because re-rendering step 6's card would
+     * otherwise lose what the researcher typed. */
+    r10: { frame_names: {}, interfaces_discussed: [], interface_readings: {} },
     declared: { value_type: 'count', scale_max: null, compositional: 'detected',
                 covariate_types: {}, hypotheses: '',
                 proposed_value_type: null, proposed_because: '' },
@@ -181,7 +185,23 @@
     var n = (typeof v === 'number') ? v : (v !== '' && isFinite(v) ? Number(v) : null);
     if (n === null) { return String(v); }
     if (Number.isInteger(n)) { return String(n); }
+    /* Closing fixes F2. toFixed(3) showed 1e-9 as "0.000", so a tolerance
+     * that is deliberately tiny read as zero -- and a reader cannot tell a
+     * small number from an absent one. Anything below a thousandth, and not
+     * actually zero, is shown in powers of ten. */
+    if (n !== 0 && Math.abs(n) < 0.001) {
+      var e = n.toExponential(0).split('e');
+      return e[0] + '\u00d710' + sup(Number(e[1]));
+    }
     return n.toFixed(3);
+  }
+
+  /* Superscript digits, so 10^-9 reads as 10\u207b\u2079 rather than 1e-9. */
+  function sup(k) {
+    var map = { '-': '\u207b', '0': '\u2070', '1': '\u00b9', '2': '\u00b2',
+                '3': '\u00b3', '4': '\u2074', '5': '\u2075', '6': '\u2076',
+                '7': '\u2077', '8': '\u2078', '9': '\u2079' };
+    return String(k).split('').map(function (c) { return map[c] || c; }).join('');
   }
 
   var HEADINGS = {
@@ -636,6 +656,97 @@
     if (ul.childNodes.length) { host.appendChild(ul); }
   }
 
+  /* ---- R10: naming the frames, and reading the interfaces -------------
+   * Closing fixes S1. `decisions[6]` carries the prompt and no options, so
+   * the decision renderer showed AD's sentence -- "Name each frame, and
+   * record your reading of each interface concept you intend to discuss" --
+   * and nothing to type into. The parameters existed; the screen never
+   * offered them.
+   *
+   * The frames and the interface concepts come from this step's own report,
+   * so the fields are whatever this run actually produced. */
+  function renderR10(host, rep) {
+    var tables = (rep.look_at || {}).tables || {};
+    var frames = ((tables.frame_table || {}).rows) || [];
+    var classes = ((tables.concept_classes || {}).rows) || [];
+    if (!frames.length && !classes.length) { return; }
+
+    var box = document.createElement('div');
+    box.className = 'cr-r10';
+
+    if (frames.length) {
+      var fh = document.createElement('div');
+      fh.className = 'cr-decide-q';
+      text(fh, 'Name each frame');
+      box.appendChild(fh);
+      frames.forEach(function (f) {
+        var row = document.createElement('label');
+        row.className = 'cr-declare-row';
+        var lab = document.createElement('span');
+        text(lab, f.frame);
+        var inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = 'cr-declare-text';
+        inp.id = 'frame-name-' + f.frame;
+        /* The default stands in the placeholder, not the value: a name the
+         * researcher did not type must not be recorded as theirs. */
+        inp.placeholder = f.name || '';
+        inp.value = state.r10.frame_names[f.frame] || '';
+        inp.oninput = function () {
+          if (inp.value.trim()) { state.r10.frame_names[f.frame] = inp.value.trim(); }
+          else { delete state.r10.frame_names[f.frame]; }
+        };
+        row.appendChild(lab);
+        row.appendChild(inp);
+        box.appendChild(row);
+      });
+    }
+
+    var interfaces = classes.filter(function (c) { return c.class === 'interface'; });
+    var ih = document.createElement('div');
+    ih.className = 'cr-decide-q';
+    text(ih, interfaces.length
+      ? 'Interface concepts: mark each one you intend to discuss, and record your reading'
+      : 'No concept was classed as an interface on this run, so there is no reading to record.');
+    box.appendChild(ih);
+
+    interfaces.forEach(function (c) {
+      var row = document.createElement('div');
+      row.className = 'cr-r10-interface';
+      var tick = document.createElement('input');
+      tick.type = 'checkbox';
+      tick.id = 'discuss-' + c.concept;
+      tick.checked = state.r10.interfaces_discussed.indexOf(c.concept) !== -1;
+      var lab = document.createElement('label');
+      lab.setAttribute('for', tick.id);
+      text(lab, c.concept + ' — between ' + (c.frame || '?') + ' and ' + (c.target || '?'));
+      var reading = document.createElement('textarea');
+      reading.rows = 2;
+      reading.className = 'cr-declare-text';
+      reading.id = 'reading-' + c.concept;
+      reading.placeholder = 'your reading of the documents where it co-occurs with both frames';
+      reading.value = state.r10.interface_readings[c.concept] || '';
+      reading.hidden = !tick.checked;
+      tick.onchange = function () {
+        var at = state.r10.interfaces_discussed.indexOf(c.concept);
+        if (tick.checked && at === -1) { state.r10.interfaces_discussed.push(c.concept); }
+        if (!tick.checked && at !== -1) { state.r10.interfaces_discussed.splice(at, 1); }
+        reading.hidden = !tick.checked;
+      };
+      reading.oninput = function () {
+        if (reading.value.trim()) {
+          state.r10.interface_readings[c.concept] = reading.value.trim();
+        } else { delete state.r10.interface_readings[c.concept]; }
+      };
+      row.appendChild(tick);
+      row.appendChild(lab);
+      row.appendChild(reading);
+      box.appendChild(row);
+    });
+
+    host.appendChild(box);
+  }
+
   function renderDecide(host, step, rep) {
     clear(host);
     var decisions = (rep.decide || []).filter(function (d) {
@@ -871,6 +982,7 @@
      * changed within this run -- step 0 consumes its upload. They are shown
      * as recorded; Back starts a new numbered run if they were wrong. */
     if (step === 0) { renderDeclared(decideHost); }
+    if (step === 6) { renderR10(decideHost, rep); }
     renderDecide(decideHost, step, rep);
     decide.appendChild(decideHost);
     body.appendChild(decide);
@@ -906,7 +1018,13 @@
       text(next, 'The analysis is complete');
     } else {
       text(next, 'Run step ' + (step + 1));
-      next.onclick = function () { runStep(step + 1); };
+      /* Step 6 writes A6, and R10's answers are given on its card after it
+       * has run -- so advancing re-runs step 6 with them before step 7, the
+       * way confirming re-ran step 0. Step 6 consumes nothing, so unlike
+       * step 0 it can simply be run again. */
+      next.onclick = (step === 6)
+        ? function () { runStep(6).then(function () { return runStep(7); }); }
+        : function () { runStep(step + 1); };
     }
     controls.appendChild(next);
 
@@ -999,6 +1117,18 @@
       }
     }
     if (step === 3 && answer === 'exclude') { p.exclude_low_signal = true; }
+    /* R10. Sent on step 6, which writes A6: the names appear in the frame
+     * table as the researcher's, and a concept marked without a reading
+     * raises G4-S6-INTERFACE-UNREAD. */
+    if (step === 6) {
+      if (Object.keys(state.r10.frame_names).length) {
+        p.frame_names = state.r10.frame_names;
+      }
+      if (state.r10.interfaces_discussed.length) {
+        p.interfaces_discussed = state.r10.interfaces_discussed.slice();
+        p.interface_readings = state.r10.interface_readings;
+      }
+    }
     if (step === 4 && answer === 'choose') {
       var sel = $('k-choice');
       if (sel) { p.k = Number(sel.value); }

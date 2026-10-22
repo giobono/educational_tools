@@ -621,3 +621,16 @@
   border: 1px solid var(--cr-rule, #ccc);
   border-radius: 4px;
 }
+
+/* ── R10's fields at step 6 (closing fixes S1) ────────────────────────
+   The prompt was shown with nothing to type into. */
+.cr-r10 { margin: 0.4rem 0 0.2rem; }
+.cr-r10-interface {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.2rem 0.5rem;
+  align-items: start;
+  margin: 0.5rem 0;
+}
+.cr-r10-interface > textarea { grid-column: 2; }
+.cr-r10-interface > label { font-size: 0.95em; }
