@@ -50,7 +50,8 @@
      * the moment they are needed, because confirming at step 0 re-renders the
      * card and would otherwise reset the researcher's answers to defaults. */
     declared: { value_type: 'count', scale_max: null, compositional: 'detected',
-                covariate_types: {}, hypotheses: '' },
+                covariate_types: {}, hypotheses: '',
+                proposed_value_type: null, proposed_because: '' },
   };
 
   function $(id) { return document.getElementById(id); }
@@ -191,8 +192,8 @@
   }
 
   function verdict(v) {
-    if (v === 'true') { return 'opposed'; }
-    if (v === 'false') { return 'not opposed'; }
+    if (v === 'true') { return M.opposed || 'opposed'; }
+    if (v === 'false') { return M.notOpposed || 'not opposed'; }
     return '\u2014';
   }
 
@@ -304,18 +305,43 @@
          * other frames. The table used to show the pair twice, and a reader
          * seeing F1-F4 false beside F4-F1 true read a contradiction rather
          * than two different questions. Both sentences are AD's. */
+        /* CR4-33 D1. This used AD's sentence as the column *key*, so every
+         * row made its own two columns: the headings came from row 1 and
+         * rows 2 to 10 had nothing under them. The headings are now fixed
+         * and name no frames, and the sentence is used below the table
+         * where it belongs -- as a sentence. */
+        var colF = M.oppositionColFirst || 'Seen from the first frame';
+        var colS = M.oppositionColSecond || 'Seen from the second frame';
         var shown = (rows || []).map(function (r) {
           var out = {
             pair: r.frame_f + ' and ' + r.frame_g,
             'δ': cell(r.delta),
             'interval': cell(r.ci_low) + ' to ' + cell(r.ci_high),
           };
-          out[said(r.frame_f, r.frame_g)] = verdict(r.opposed_from_f);
-          out[said(r.frame_g, r.frame_f)] = verdict(r.opposed_from_g);
+          out[colF] = verdict(r.opposed_from_f);
+          out[colS] = verdict(r.opposed_from_g);
           return out;
         });
         var ot = tableFrom(shown, null);
         if (ot) { wrap.appendChild(ot); }
+        /* Each opposition in AD's words, once, for the directions that hold.
+         * This is what `oppositionFrom` is for: it reads as a finding, not
+         * as a column heading. */
+        var found = [];
+        (rows || []).forEach(function (r) {
+          if (r.opposed_from_f === 'true') { found.push(said(r.frame_f, r.frame_g)); }
+          if (r.opposed_from_g === 'true') { found.push(said(r.frame_g, r.frame_f)); }
+        });
+        if (found.length) {
+          var ul = document.createElement('ul');
+          ul.className = 'cr-governing';
+          found.forEach(function (s) {
+            var li = document.createElement('li');
+            text(li, s);
+            ul.appendChild(li);
+          });
+          wrap.appendChild(ul);
+        }
         if (M.oppositionNote) {
           var note = document.createElement('p');
           note.className = 'cr-look-sub';
@@ -441,11 +467,18 @@
     if (!D.valueType) { return; }        // unsighted file: declare nothing
     var box = host;                      // inside step 0's decision, not beside it
 
-    // R2a -- what the values mean.
+    // R2a -- what the values mean, pre-selected from the upload's proposal.
     declField(box, D.valueType, 'value-type', state.declared.value_type, function (v) {
       state.declared.value_type = v;
       renderCard(0);
     });
+    if (state.declared.proposed_because) {
+      var why = document.createElement('p');
+      why.className = 'cr-declare-conseq';
+      text(why, 'Proposed as ' + state.declared.proposed_value_type
+                + ': ' + state.declared.proposed_because);
+      box.appendChild(why);
+    }
 
     /* A rating scale has a maximum the method cannot infer, and step 1's rule
      * is half of it. Asked only for ratings, because it means nothing else. */
@@ -1009,6 +1042,17 @@
       status(0, 'reading…');
       state.file = file;
       state.upload = await window.G4.upload(file);
+      /* CR4-33 D3. R2's default is the *proposed* type, and the selector used
+       * to pre-select `count` whatever the matrix held -- which is how a run
+       * on data that is only 0 and 1 came to record a count threshold. The
+       * proposal comes from the upload, which has seen the values. */
+      var pv = state.upload.proposed_value_type || {};
+      if (pv.value_type) {
+        state.declared.value_type = pv.value_type;
+        state.declared.proposed_value_type = pv.value_type;
+        state.declared.proposed_because = pv.because || '';
+        if (pv.scale_max != null) { state.declared.scale_max = pv.scale_max; }
+      }
       text($('dtm-stats'),
         state.upload.rows + ' rows · ' + state.upload.columns.length + ' columns · sha256 '
         + String(state.upload.sha256).slice(0, 12));
