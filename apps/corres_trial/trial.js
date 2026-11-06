@@ -190,6 +190,7 @@
       : `The frames' tier: <b>${esc(f.tier)}</b>.`;
     $('#p5-table').innerHTML = f.frames.map((fr) => `<div class="tr-frame">
       <input class="tr-name" data-frame="${esc(fr.id)}" value="${esc(fr.name)}" aria-label="Frame name"/> <span class="tr-small">${esc(fr.tier)}</span>
+      ${fr.relabelled ? `<div class="tr-small"><b>Relabelled:</b> ${esc(fr.relabelled)}. It appears only when the groups are pooled.</div>` : ''}
       <div class="k">Distinguishing</div><div>${concepts(fr.distinguishing)}</div>
       <div class="k">Bridging candidates</div><div>${concepts(fr.bridging_candidates, true)}</div>
       <div class="k">Diffuse</div><div>${concepts(fr.diffuse)}</div>
