@@ -40,7 +40,9 @@ h3 { font-size: 1rem; margin: 1.4rem 0 .5rem; }
 .tr-roles { columns: 2; font-size: .85rem; max-width: 46rem; }
 .tr-roles label { display: block; break-inside: avoid; }
 .tr-roles select { font-size: .8rem; }
-.tr-framing fieldset { border: 1px solid var(--rule, #ccc); margin: .6rem 0; max-width: 46rem; }
+.tr-framing fieldset { border: 1px solid var(--rule, #ccc); margin: .8rem 0; padding: .6rem 1rem; max-width: 46rem; }
+.tr-framing legend { padding: 0 .3rem; font-weight: 600; }
+.tr-framing label { margin-right: 1rem; }
 .tr-fv { margin: 1rem 0; }
 .tr-fv-label { font-family: var(--font-mono, monospace); font-size: .78rem; color: var(--accent, #0a7ea4); margin-bottom: .3rem; }
 canvas { max-width: 100%; height: auto; border: 1px solid var(--rule, #ddd); }

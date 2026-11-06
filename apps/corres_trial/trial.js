@@ -70,9 +70,9 @@
     $$('.tr-notes').forEach((box) => {
       const page = box.dataset.page;
       const mine = ((run && run.notes) || []).filter((n) => n.page === page);
-      box.innerHTML = `<label class="tr-small">Your notes on this page${run ? '' : ' (start a run to save them)'}</label>
+      box.innerHTML = `<label class="tr-small" style="display:block">Your notes on this page${run ? '' : ' (start a run to save them)'}</label>
         <textarea placeholder="What you noticed, how long it felt, what you would want here"></textarea>
-        <button class="tr-btn">Save note</button>
+        <br><button class="tr-btn">Save note</button>
         <div class="saved">${mine.map((n) => `${esc(n.at)}: ${esc(n.text)}`).join('<br>')}</div>`;
       $('button', box).onclick = async () => {
         const text = $('textarea', box).value; if (!text.trim() || !run) return;
@@ -137,18 +137,19 @@
   function heat(canvas, labels, values, diverging) {
     const n = labels.length, ctx = canvas.getContext('2d');
     const pad = Math.min(160, 8 + Math.max(...labels.map((l) => l.length)) * 5.2);
+    const top = 6;
     const cell = Math.max(3, Math.floor((canvas.width - pad) / n));
-    canvas.height = canvas.width; ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.height = top + n * cell + 6; ctx.clearRect(0, 0, canvas.width, canvas.height);
     let lim = 0; values.forEach((r) => r.forEach((v) => { lim = Math.max(lim, Math.abs(v)); })); lim = lim || 1;
     for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
       const v = values[i][j]; let col;
       if (diverging) { const t = Math.max(-1, Math.min(1, v / lim)); col = t >= 0 ? `rgb(${255},${Math.round(255 * (1 - t))},${Math.round(255 * (1 - t))})` : `rgb(${Math.round(255 * (1 + t))},${Math.round(255 * (1 + t))},255)`; }
       else { const g = Math.round(255 * (1 - Math.max(0, Math.min(1, v)))); col = `rgb(${g},${g},${g})`; }
-      ctx.fillStyle = col; ctx.fillRect(pad + j * cell, pad + i * cell, cell, cell);
+      ctx.fillStyle = col; ctx.fillRect(pad + j * cell, top + i * cell, cell, cell);
     }
     if (cell >= 7) {
       ctx.fillStyle = '#333'; ctx.font = `${Math.min(11, cell - 1)}px Barlow, sans-serif`; ctx.textAlign = 'right';
-      labels.forEach((l, i) => ctx.fillText(l.slice(0, 26), pad - 4, pad + i * cell + cell * 0.8));
+      labels.forEach((l, i) => ctx.fillText(l.slice(0, 26), pad - 4, top + i * cell + cell * 0.8));
     }
   }
   async function runMain(taskId) {
