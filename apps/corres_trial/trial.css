@@ -1,0 +1,74 @@
+/* The CR3 trial's own styles. Tokens (--paper, --ink, --accent, --rule,
+   the fonts) come from /edu_common.css, which loads first. */
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper, #fff); color: var(--ink, #1d1d1f);
+  font-family: var(--font-body, 'Barlow', sans-serif); font-size: 15px; line-height: 1.6; }
+.tr-head { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+  border-bottom: 2px solid var(--ink, #1d1d1f); padding: 1rem 2rem; position: sticky; top: 0;
+  background: var(--paper, #fff); z-index: 5; }
+.tr-logo { font-family: var(--font-display, 'Spectral', serif); font-weight: 300; font-size: 1.35rem; }
+.tr-logo em { color: var(--accent, #0a7ea4); }
+.tr-steps { display: flex; gap: .25rem; flex-wrap: wrap; flex: 1; }
+.tr-steps button { font: inherit; font-size: .8rem; border: 1px solid var(--rule, #ccc); background: none;
+  padding: .2rem .55rem; border-radius: 3px; color: var(--ink-mid, #555); cursor: pointer; }
+.tr-steps button.on { border-color: var(--ink, #1d1d1f); color: var(--ink, #1d1d1f); font-weight: 600; }
+.tr-steps button:disabled { opacity: .4; cursor: default; }
+.tr-clock { font-family: var(--font-mono, monospace); font-size: .8rem; color: var(--ink-mid, #555); }
+.tr-main { max-width: 1040px; margin: 0 auto; padding: 1.5rem 1.5rem 4rem; }
+.tr-page { display: none; }
+.tr-page.on { display: block; }
+.tr-eyebrow { font-family: var(--font-mono, monospace); font-size: .72rem; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--accent, #0a7ea4); }
+.tr-title { font-family: var(--font-display, serif); font-weight: 400; font-size: 1.7rem; line-height: 1.3; max-width: 40rem; }
+.tr-lede { font-family: var(--font-display, serif); font-size: 1.05rem; max-width: 40rem; color: var(--ink-mid, #444); }
+h2 { font-family: var(--font-display, serif); font-weight: 400; font-size: 1.45rem; }
+h3 { font-size: 1rem; margin: 1.4rem 0 .5rem; }
+.tr-btn { display: inline-block; font: inherit; font-weight: 600; font-size: .9rem; padding: .45rem 1rem;
+  border: 1px solid var(--ink, #1d1d1f); background: none; border-radius: 3px; cursor: pointer;
+  color: var(--ink, #1d1d1f); text-decoration: none; margin: .3rem .4rem .3rem 0; }
+.tr-btn.tr-primary { background: var(--ink, #1d1d1f); color: var(--paper, #fff); }
+.tr-btn:disabled { opacity: .45; cursor: default; }
+.tr-choice { margin: 2rem 0; }
+.tr-or { margin: 1rem 0 .5rem; color: var(--ink-mid, #555); font-size: .9rem; }
+.tr-examples { display: flex; flex-wrap: wrap; gap: .4rem; }
+.tr-setting { margin-top: 2rem; font-size: .9rem; }
+.tr-callout { border-left: 3px solid var(--accent, #0a7ea4); padding: .6rem 1rem; background: var(--accent-dim, #eef7fb);
+  font-family: var(--font-display, serif); max-width: 46rem; }
+.tr-q { border: 1px solid var(--rule, #ccc); border-radius: 4px; padding: .8rem 1rem; margin: .8rem 0; max-width: 46rem; }
+.tr-q p { margin: 0 0 .5rem; }
+.tr-q label { display: block; font-size: .92rem; }
+.tr-roles { columns: 2; font-size: .85rem; max-width: 46rem; }
+.tr-roles label { display: block; break-inside: avoid; }
+.tr-roles select { font-size: .8rem; }
+.tr-framing fieldset { border: 1px solid var(--rule, #ccc); margin: .6rem 0; max-width: 46rem; }
+.tr-fv { margin: 1rem 0; }
+.tr-fv-label { font-family: var(--font-mono, monospace); font-size: .78rem; color: var(--accent, #0a7ea4); margin-bottom: .3rem; }
+canvas { max-width: 100%; height: auto; border: 1px solid var(--rule, #ddd); }
+.tr-small { font-size: .82rem; color: var(--ink-mid, #555); max-width: 46rem; }
+.tr-runlines { font-size: .9rem; }
+.tr-runlines li.done::marker { color: var(--accent, #0a7ea4); }
+.tr-card { border: 1px solid var(--rule, #ccc); border-radius: 4px; padding: .6rem .9rem; margin: .5rem 0; }
+.tr-two { display: grid; grid-template-columns: 1.3fr 1fr; gap: 1.5rem; }
+@media (max-width: 800px) { .tr-two { grid-template-columns: 1fr; } }
+.tr-frame { border: 1px solid var(--rule, #ccc); border-radius: 4px; padding: .6rem .9rem; margin-bottom: .7rem; }
+.tr-frame input.tr-name { font: inherit; font-weight: 600; border: none; border-bottom: 1px dashed var(--rule, #aaa); width: 70%; }
+.tr-frame .k { font-size: .78rem; color: var(--ink-mid, #666); text-transform: uppercase; letter-spacing: .05em; }
+.tr-frame ul { margin: .2rem 0 .5rem; padding-left: 1.1rem; font-size: .9rem; }
+.tr-tier { font-family: var(--font-display, serif); background: #f6f3ea; border-left: 3px solid #b08900; padding: .5rem 1rem; }
+.tr-where { border: 2px solid var(--ink, #1d1d1f); padding: .5rem 1.2rem 1rem; margin: 1.5rem 0; border-radius: 4px; }
+.tr-where .draft { color: #7a5c00; font-style: italic; font-size: .85rem; }
+.tr-items li { margin: .7rem 0; }
+.tr-item { border: 1px solid var(--rule, #ccc); border-radius: 4px; padding: .6rem .9rem; }
+.tr-item .lab { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-mid, #666); }
+.tr-running { background: #eef7fb; border: 1px solid var(--accent, #0a7ea4); padding: .6rem 1rem; border-radius: 4px; }
+.tr-review { background: #f4f9ee; border: 1px solid #5a8a22; padding: .6rem 1rem; border-radius: 4px; margin: .8rem 0; }
+.tr-steptime { font-family: var(--font-mono, monospace); font-size: .78rem; color: var(--ink-mid, #666); margin-top: 1.2rem; }
+.tr-notes { margin-top: 1.5rem; border-top: 1px solid var(--rule, #ddd); padding-top: .8rem; }
+.tr-notes textarea { width: 100%; max-width: 46rem; min-height: 4.5rem; font: inherit; font-size: .9rem; }
+.tr-notes .saved { font-size: .8rem; color: var(--ink-mid, #666); }
+.tr-basket { border: 1px solid var(--rule, #ccc); border-radius: 4px; padding: .8rem 1rem; }
+.tr-toast { position: fixed; bottom: 1rem; right: 1rem; background: var(--ink, #1d1d1f); color: #fff;
+  padding: .6rem 1rem; border-radius: 4px; max-width: 30rem; font-size: .9rem; }
+.tr-doclist { font-size: .82rem; max-height: 14rem; overflow: auto; border: 1px solid var(--rule, #ddd); padding: .4rem .7rem; }
+table.tr-k { border-collapse: collapse; font-size: .85rem; }
+table.tr-k td, table.tr-k th { border: 1px solid var(--rule, #ddd); padding: .15rem .5rem; }
