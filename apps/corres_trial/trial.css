@@ -74,3 +74,17 @@ canvas { max-width: 100%; height: auto; border: 1px solid var(--rule, #ddd); }
 .tr-doclist { font-size: .82rem; max-height: 14rem; overflow: auto; border: 1px solid var(--rule, #ddd); padding: .4rem .7rem; }
 table.tr-k { border-collapse: collapse; font-size: .85rem; }
 table.tr-k td, table.tr-k th { border: 1px solid var(--rule, #ddd); padding: .15rem .5rem; }
+
+/* Hovers (AD plain-language review of 12 Nov §5): one mechanism for every
+   string, fed by glossary.js. Shown on hover or focus; a tap pins it. */
+.tr-tip { display: inline-flex; align-items: center; justify-content: center; width: 1.15rem; height: 1.15rem;
+  margin-left: .3rem; padding: 0; border: 1px solid var(--rule, #bbb); border-radius: 50%; background: none;
+  font: 600 .68rem/1 var(--font-body, 'Barlow', sans-serif); color: var(--ink-mid, #555); cursor: help;
+  vertical-align: .12em; }
+.tr-tip:hover, .tr-tip:focus-visible, .tr-tip[aria-expanded="true"] { border-color: var(--accent, #0a7ea4);
+  color: var(--accent, #0a7ea4); outline: none; }
+.tr-pop { position: absolute; z-index: 20; max-width: min(22rem, calc(100vw - 2rem)); padding: .6rem .8rem;
+  background: var(--paper, #fff); color: var(--ink, #1d1d1f); border: 1px solid var(--ink, #1d1d1f);
+  border-radius: 4px; box-shadow: 0 4px 14px rgba(0, 0, 0, .12); font-size: .86rem; line-height: 1.45;
+  font-weight: 400; text-align: left; }
+.tr-pop a { display: block; margin-top: .35rem; color: var(--accent, #0a7ea4); }

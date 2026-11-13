@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>corres trial · The Ebono Institute</title>
+<title>Correlating Resonance · trial</title>
 <!--
   The CR3 trial of corres v3.0 (AD trial brief v1.1, on OD's build route).
   Local only: it talks to a local artie backend at 127.0.0.1:8000 and is
@@ -16,10 +16,11 @@
 <link href="/edu_common.css" rel="stylesheet"/>
 <link href="trial.css" rel="stylesheet"/>
 <script src="trial_config.js"></script>
+<script src="glossary.js"></script>
 </head>
 <body>
 <header class="tr-head">
-  <div class="tr-logo">corres <em>trial</em></div>
+  <div class="tr-logo">Correlating Resonance <em>trial</em></div>
   <nav class="tr-steps" id="tr-steps" aria-label="Pages"></nav>
   <div class="tr-clock" id="tr-clock" title="Time for this run so far"></div>
 </header>
@@ -29,22 +30,23 @@
 <!-- Page 1 -->
 <section class="tr-page" id="p1" data-title="Welcome">
   <p class="tr-eyebrow">corres</p>
-  <h1 class="tr-title">corres v3.0: the trial</h1>
-  <!-- v3.0 draft 0.4 §14, "The method in one sentence", placed verbatim (AD's text). -->
-  <p class="tr-lede">CorRes identifies concepts that co-occur beyond what their frequencies predict, groups them by their reproducibility across independent halves of the corpus, reads each group for the concepts that distinguish it and the populations that voice it, and reports every result against references computed by permuting the corpus itself; it certifies no frame.</p>
+  <h1 class="tr-title">Correlating Resonance: see the frames in your coded corpus</h1>
+  <!-- AD plain-language review of 12 Nov (p1.lede, a claim, placed as written). The
+       method's one-sentence statement (v3.0 §14) is kept for the article export. -->
+  <p class="tr-lede" data-tip-id="p1.lede">You have coded a set of documents against a list of concepts. Correlating Resonance shows you which concepts tend to appear together, how firmly they hold together when the corpus is split in half, which concepts mark each group out, and who voices each group. It tells you what each result has earned the right to be called. It certifies nothing.</p>
   <div class="tr-choice">
-    <button class="tr-btn tr-primary" data-go="p2">Bring your matrix</button>
-    <div class="tr-or">or try a worked example</div>
+    <button class="tr-btn tr-primary" data-go="p2">Bring your matrix</button><span data-tip-id="p1.start"></span>
+    <div class="tr-or">or try it on an example corpus</div>
     <div id="tr-examples" class="tr-examples"></div>
   </div>
-  <details class="tr-setting"><summary>Trial setting: where the app first stops</summary>
-    <p>Point X is a setting in this trial. Later settings run the earlier checklist items automatically, in order, with no review in between.</p>
+  <details class="tr-setting"><summary>Trial setting: where the app pauses for you</summary>
+    <p>In the trial you can choose how far the app runs before it pauses. Later settings run the earlier checklist items in order, without pausing between them.</p>
     <select id="tr-pointx">
-      <option value="first_stop">At the first stop: your frames (default)</option>
-      <option value="after_1">After checklist item 1: the chance check</option>
-      <option value="after_2">After item 2: compare document types</option>
-      <option value="after_3">After item 3: the standard reruns</option>
-      <option value="after_4">After item 4: the second grouping method</option>
+      <option value="first_stop">At your frames (default)</option>
+      <option value="after_1">After the chance check</option>
+      <option value="after_2">After comparing kinds of document</option>
+      <option value="after_3">After the standard reruns</option>
+      <option value="after_4">After the second grouping method</option>
     </select>
   </details>
   <div class="tr-notes" data-page="page 1"></div>
@@ -53,11 +55,11 @@
 <!-- Page 2 -->
 <section class="tr-page" id="p2" data-title="Bring your matrix">
   <h2>Bring your matrix</h2>
-  <p>A table with one row per document and one column per concept, as a CSV file. Columns that describe each document (who wrote it, when, what kind of document it is) can sit in the same file. Your file stays on this computer.</p>
+  <p data-tip-id="p2.intro">A table with one row per document and one column per concept, saved as a CSV file. Columns that describe each document (who wrote it, when, what kind of document it is) can sit in the same file. Your file stays on this computer.</p>
   <form id="tr-upload" class="tr-upload">
     <input type="file" id="tr-file" accept=".csv,text/csv" required/>
-    <label>A short name for this corpus <input type="text" id="tr-cid" value="my_corpus" pattern="[a-z0-9_]+"/></label>
-    <button class="tr-btn tr-primary" type="submit">Check my matrix</button>
+    <label>A short name for this corpus (used in file names) <input type="text" id="tr-cid" value="my_corpus" pattern="[a-z0-9_]+"/></label>
+    <button class="tr-btn tr-primary" type="submit">Check my file</button>
   </form>
   <div class="tr-steptime" id="p2-time"></div>
   <div class="tr-notes" data-page="page 2"></div>
@@ -65,19 +67,19 @@
 
 <!-- Page 3 -->
 <section class="tr-page" id="p3" data-title="Check your matrix">
-  <h2>Check your matrix</h2>
+  <h2>Check your file</h2>
   <div class="tr-callout" id="p3-opening"></div>
   <div id="p3-summary"></div>
   <div id="p3-questions"></div>
   <div id="p3-roles"></div>
   <div class="tr-framing">
-    <h3>Two questions before the analysis</h3>
-    <fieldset><legend id="fq1"></legend>
+    <h3>Two questions before we start</h3>
+    <fieldset><legend><span id="fq1"></span><span data-tip-id="p3.fq1"></span></legend>
       <label><input type="radio" name="fq1" value="yes"/> Yes</label>
       <label><input type="radio" name="fq1" value="no" checked/> No</label>
     </fieldset>
-    <fieldset><legend>Document attributes</legend>
-      <p id="fq2"></p>
+    <fieldset><legend>Document details you may want to discuss</legend>
+      <p><span id="fq2"></span><span data-tip-id="p3.fq2"></span></p>
       <div id="fq2-list"></div>
     </fieldset>
   </div>
@@ -87,10 +89,10 @@
 </section>
 
 <!-- Page 4 -->
-<section class="tr-page" id="p4" data-title="First view, and the run">
+<section class="tr-page" id="p4" data-title="First view and run">
   <h2>First view, and the run</h2>
   <div class="tr-fv">
-    <div class="tr-fv-label">First view. Descriptive. Not yet a frame.</div>
+    <div class="tr-fv-label">First view. Descriptive. Not yet a frame.<span data-tip-id="p4.fv.label"></span></div>
     <canvas id="fv-canvas" width="560" height="560"></canvas>
     <p class="tr-small" id="fv-caption"></p>
   </div>
@@ -105,9 +107,9 @@
   <h2>Your frames</h2>
   <div id="p5-tier" class="tr-tier"></div>
   <div class="tr-two">
-    <div><h3>The frame table</h3><div id="p5-table"></div></div>
+    <div><h3>Your frames</h3><div id="p5-table"></div></div>
     <div><h3>Stability diagram</h3><canvas id="sd-canvas" width="420" height="420"></canvas>
-      <p class="tr-small">Concepts in the same frame fell together in most half-analyses: dark blocks on the diagonal. Faint bands are pairs that sometimes did.</p></div>
+      <p class="tr-small" data-tip-id="p5.sd.caption">Dark blocks on the diagonal are concepts that fell together in most of the fifty splits. Fainter bands are pairs that sometimes did.</p></div>
   </div>
   <div id="p5-chosen"></div>
   <div id="p5-where" class="tr-where"></div>
@@ -118,8 +120,8 @@
 </section>
 
 <!-- Page 6 -->
-<section class="tr-page" id="p6" data-title="Firming up">
-  <h2>Firming up: the checklist</h2>
+<section class="tr-page" id="p6" data-title="Firm up">
+  <h2>Firm up: the checklist<span data-tip-id="p6.title"></span></h2>
   <div id="p6-running" class="tr-running" hidden></div>
   <div id="p6-review" class="tr-review" hidden></div>
   <ol id="p6-items" class="tr-items"></ol>
@@ -131,11 +133,11 @@
 
 <!-- Page 7 -->
 <section class="tr-page" id="p7" data-title="Export">
-  <h2>Export: two baskets</h2>
+  <h2>Export</h2>
   <div class="tr-two">
-    <div class="tr-basket"><h3>For your article</h3><p>Where you stand: what was found, how firm each frame is, sentences you can use, and what each unticked checklist item would add. Then a plain summary of the three records.</p>
+    <div class="tr-basket"><h3>For your article</h3><p data-tip-id="p7.article.text">Where you stand: what was found, how firm each frame is, sentences you can use, and what each remaining checklist item would add. Then a plain account of the three records.</p>
       <a class="tr-btn tr-primary" id="p7-article" target="_blank">Open</a></div>
-    <div class="tr-basket"><h3>For your reviewer</h3><p>The full report, the figures, and the three records (decision log, run history, parameter record) as JSON, for interrogating the findings.</p>
+    <div class="tr-basket"><h3>For your reviewer</h3><p data-tip-id="p7.reviewer.text">The full report in the method's order, the figures, and the three records (what you decided, what was run, every setting and seed) as JSON, so a reviewer can retrace the analysis.</p>
       <a class="tr-btn tr-primary" id="p7-reviewer">Download</a></div>
   </div>
   <div id="p7-limit"></div>
@@ -144,6 +146,7 @@
 
 </main>
 <div class="tr-toast" id="tr-toast" hidden></div>
+<div class="tr-pop" id="tr-pop" role="tooltip" hidden></div>
 <script src="trial.js"></script>
 </body>
 </html>
