@@ -1,0 +1,125 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>metering harness</title>
+<!--
+  Behaviour harness for the metering front end (phase 3 brief v1.1 §4), kept on
+  the branch scratch/metering-harness only (OD's response of 19 Nov, §2). It is
+  never merged into develop: beta serves the work tree. Run it from the work
+  tree root, e.g.  python -m http.server 8010 --bind 127.0.0.1  then open
+  http://127.0.0.1:8010/tests/harness/harness.html and read the <pre> below.
+  Every state is driven against a stubbed /v1/account; no network, no supplier.
+-->
+<script>
+// Stand-ins for what the pages get from config.php and apps-enabled.php.
+window.CORRES_CONFIG = { apiBase: 'http://api.test', appId: 'gioianie', appVersion: 't', appActive: true };
+window.ARTIE_AUTH_CONFIG = { domain: 'https://issuer.test', clientId: 'cid', audience: 'https://api-dev.ebono.net',
+  termsUrl: 'https://ebono.au/terms/', privacyUrl: 'https://ebono.au/privacy/', supportUrl: 'https://ebono.au/support/', allowanceDisplay: 'percent' };
+window.__errors = [];
+window.onerror = (m, s, l, c) => { window.__errors.push(`${m} @${(s||'').split('/').pop()}:${l}:${c}`); };
+window.onunhandledrejection = (e) => { window.__errors.push('unhandled: ' + (e.reason && e.reason.message || e.reason)); };
+</script>
+<script src="/edu_common.js"></script>
+<script src="/apps/common/metering_strings.js"></script>
+<script src="/apps/common/signin.js"></script>
+<script src="/apps/common/metering.js"></script>
+</head><body>
+<div id="edu-header"></div>
+<div id="artie-metering"></div>
+<pre id="out"></pre>
+<script>
+const out = [];
+const log = (name, ok, detail) => out.push(`${ok ? 'PASS' : 'FAIL'}  ${name}${ok ? '' : '  -- ' + detail}`);
+const text = () => document.getElementById('artie-metering').innerText;
+const ACCOUNT = { person: { id: 'p1', email: 'r@example.edu', class: 'd', status: 'active', terms_version: null },
+  projects: [{ id: 'prj1', name: 'Standard', product: 'gioianie', role: 'owner', allowance: 100, used: 12.4, held: 0, remaining: 87.6, used_pct: 12.4, member_cap: null, resets_on: '2026-12-01', warning: null }],
+  usage: { period: '2026-11', calls: 3, ebonis: 6.2 }, warning: null, terms: { current: '1.0', accepted: false } };
+let account = JSON.parse(JSON.stringify(ACCOUNT));
+let posts = [];
+window.fetch = async (url, init) => {
+  const method = (init && init.method) || 'GET';
+  if (url.endsWith('/v1/account') && method === 'GET') return new Response(JSON.stringify(account), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  if (url.endsWith('/v1/account/terms')) { posts.push(JSON.parse(init.body)); account.person.terms_version = '1.0'; account.terms.accepted = true;
+    return new Response(JSON.stringify({ terms_version: '1.0' }), { status: 200 }); }
+  return new Response(JSON.stringify({ detail: { code: 'unexpected', message: url } }), { status: 500 });
+};
+(async () => {
+  // 1. signed out: S1
+  window.getToken = async () => null;
+  await window.ArtieMetering.init({ appId: 'gioianie' });
+  log('S1 signed-out panel', text().includes('Sign in to continue') && text().includes('Email me a code'), text());
+  // 2. signed in: banner S4 with the date and the controls
+  window.getToken = async () => 'TOKEN';
+  await window.ArtieMetering.refresh();
+  log('S4 banner', text().includes('12% of this month’s allowance used · resets 1 December'.replace('’', "'")) && text().includes('Sign out'), text());
+  log('S1 panel cleared once signed in', !text().includes('Sign in to continue'), text());
+  // 3. the 80% and 95% states
+  account.projects[0].used_pct = 83; account.projects[0].warning = 80; await window.ArtieMetering.refresh();
+  log('S5 at 80', text().includes('83%') && text().includes('getting close to the limit') && document.querySelector('.artie-banner').dataset.warning === '80', text());
+  account.projects[0].used_pct = 96; account.projects[0].warning = 95; await window.ArtieMetering.refresh();
+  log('S6 at 95', text().includes('New requests pause when it reaches 100%') && document.querySelector('.artie-banner').dataset.warning === '95', text());
+  // 4. headers on a response update the banner
+  window.ArtieMetering.observeResponse(new Response('', { headers: { 'X-Allowance-Used-Pct': '40.0', 'X-Allowance-Remaining': '60.00' } }));
+  log('X-Allowance headers read', text().includes('40% of this month'), text());
+  // 5. the display setting
+  window.ARTIE_AUTH_CONFIG.allowanceDisplay = 'ebonis'; await window.ArtieMetering.refresh();
+  log('ebonis display shows the unfilled marker', text().includes('[S4, Ebonis form') && text().includes('Ebonis left'), text());
+  window.ARTIE_AUTH_CONFIG.allowanceDisplay = 'percent'; await window.ArtieMetering.refresh();
+  // 6. the account panel S16: projects, own use, no pool/ceiling words
+  document.getElementById('artie-account-btn').click();
+  log('S16 account panel', text().includes('Your account') && text().includes('Standard: 96%') && text().includes('Your use this month: 6% of Standard') && !/pool|ceiling/i.test(text()), text());
+  log('S16 sends X-Project-Id for the chosen project', window.ArtieMetering.projectId() === 'prj1', window.ArtieMetering.projectId());
+  // 7. the stop, project scope, with the partial result (S7 wording as amended 19 Nov)
+  const task = { task_id: 't-1', state: 'cancelled', result: { reason: 'allowance_exhausted' }, progress: { items_done: 2 } };
+  const err = Object.assign(new Error('x'), { code: 'allowance_exhausted', task });
+  log('S7 stop handled', window.ArtieMetering.handled(err) && text().includes('This month\'s allowance is used') && text().includes('paused until 1 December') && text().includes('Download a record of the task so far'), text());
+  log('S7 carries no retention claim', !/7 days/.test(text()), text());
+  log('S7 top-up slot hidden', document.querySelector('.artie-topup').hidden === true, '');
+  log('contact us is a link to support', !!document.querySelector('#artie-panel a[href="https://ebono.au/support/"]'), '');
+  // 8. the stop, member scope: S8, from the 402 body's scope and from a cancelled task's result.scope (D2's brief §2.2)
+  log('S8 for scope member', window.ArtieMetering.handled(Object.assign(new Error('x'), { code: 'allowance_exhausted', scope: 'member' })) && text().includes('reached your share of this project'), text());
+  // 9. the other codes
+  const codes = { service_at_capacity: 'The service is at capacity', suspended: 'Your account is suspended', email_unverified: 'the code we send to r@example.edu', no_project: 'You don\'t have a project yet', not_a_member: 'not a member of this project', identity_unavailable: 'can\'t reach our sign-in service', terms_not_configured: 'isn\'t quite ready', model_not_available: 'model_not_available' };
+  for (const [code, expect] of Object.entries(codes)) {
+    const ok = window.ArtieMetering.handled(Object.assign(new Error('msg'), { code })) && text().includes(expect);
+    log(`code ${code} shows its string`, ok, text().slice(-200));
+  }
+  log('an unknown code is not handled', window.ArtieMetering.handled(Object.assign(new Error('m'), { code: 'something_else' })) === false, '');
+  // 10. the Terms: S2 with the version, tick enables the button, accept posts the current version
+  account.person.terms_version = null; account.terms.accepted = false;
+  const p = window.ArtieMetering.requireTerms();
+  await new Promise(r => setTimeout(r, 50));
+  const modal = document.getElementById('artie-terms-modal');
+  const tick = document.getElementById('artie-terms-tick'), accept = document.getElementById('artie-terms-accept');
+  log('S2 Terms modal', modal.classList.contains('is-open') && modal.innerText.includes('Before you start') && modal.innerText.includes('(version 1.0)') && accept.disabled, modal.innerText);
+  log('Terms links are to the configured pages', modal.querySelector('a[href="https://ebono.au/terms/"]') && modal.querySelector('a[href="https://ebono.au/privacy/"]'), '');
+  tick.checked = true; tick.onchange(); log('tick enables accept', !accept.disabled, '');
+  accept.click();
+  log('accept posts the current version and resolves', (await p) === true && posts.length === 1 && posts[0].version === '1.0', JSON.stringify(posts));
+  // 11. S3 when the version has moved
+  account.person.terms_version = '0.9'; account.terms.current = '1.0'; account.terms.accepted = false;
+  await window.ArtieMetering.refresh();
+  const p2 = window.ArtieMetering.requireTerms(); await new Promise(r => setTimeout(r, 50));
+  log('S3 when the Terms moved', document.getElementById('artie-terms-modal').innerText.includes('Our terms have changed') && document.getElementById('artie-terms-modal').innerText.includes('to version 1.0'), document.getElementById('artie-terms-modal').innerText);
+  document.getElementById('artie-terms-tick').checked = true; document.getElementById('artie-terms-tick').onchange(); document.getElementById('artie-terms-accept').click(); await p2;
+  // 12. edu_common: pollTask turns a cancelled-for-allowance task into its own code with the task and scope attached
+  const memberTask = { task_id: 't-m', state: 'cancelled', result: { reason: 'allowance_exhausted', scope: 'member' } };
+  window.fetch = async (url) => new Response(JSON.stringify(memberTask), { status: 200 });
+  try { await window.pollTask('gioianie', 't-m'); log('pollTask allowance cancel', false, 'no throw'); }
+  catch (e) { log('pollTask allowance cancel -> code + task + scope', e.code === 'allowance_exhausted' && e.task && e.task.task_id === 't-m' && e.scope === 'member', `${e.code} ${e.scope}`);
+    log('a cancelled task with scope member shows S8', window.ArtieMetering.handled(e) && text().includes('reached your share of this project'), text()); }
+  // 13. edu_common: callAppAPI retries after the Terms are accepted
+  let calls = 0;
+  window.fetch = async (url, init) => { if (url.endsWith('/v1/account/terms')) return new Response('{}', { status: 200 });
+    if (url.endsWith('/v1/account')) return new Response(JSON.stringify(account), { status: 200 });
+    calls++; if (calls === 1) return new Response(JSON.stringify({ detail: { code: 'terms_required', message: 'Accept the Terms to continue.' } }), { status: 403 });
+    return new Response(JSON.stringify({ task_id: 't-2', headers_seen: init.headers }), { status: 202 }); };
+  const req = window.callAppAPI('gioianie', 'phase1/consolidate', { corpus: {}, params: {} });
+  await new Promise(r => setTimeout(r, 50));
+  document.getElementById('artie-terms-tick').checked = true; document.getElementById('artie-terms-tick').onchange(); document.getElementById('artie-terms-accept').click();
+  const created = await req;
+  log('callAppAPI: 403 terms_required -> Terms -> retry, with the token and project headers', created.task_id === 't-2' && created.headers_seen.Authorization === 'Bearer TOKEN' && created.headers_seen['X-Project-Id'] === 'prj1' && calls === 2, JSON.stringify(created));
+  // 14. callAPI is gone
+  log('callAPI retired', typeof window.callAPI === 'undefined' && typeof window.CR_MODEL === 'undefined', '');
+  log('no script errors', window.__errors.length === 0, window.__errors.join(' | '));
+  document.getElementById('out').textContent = out.join('\n') + `\n${out.filter(l => l.startsWith('FAIL')).length} failed of ${out.length}\nHARNESS-DONE`;
+})().catch(e => { document.getElementById('out').textContent = out.join('\n') + '\nHARNESS-CRASH ' + (e.stack || e) + '\nHARNESS-DONE'; });
+</script></body></html>
