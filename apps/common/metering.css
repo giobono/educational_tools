@@ -1,0 +1,65 @@
+/* apps/common/metering.css — the banner, the sign-in and stop panels, the
+   Terms modal and the account panel (metering phase 3, OD brief v1.1 of
+   19 Nov 2026). Presentation only; every string is CD's and lives in
+   metering_strings.js. Reuses the product's own variables (ebono_brand.css)
+   and the .cr-gate, .modal and .btn-primary components of edu_common.css, so
+   the stop reads as the product working, not as an error page (spec v0.2 F5). */
+
+#artie-metering { max-width: 1100px; margin: 0 auto; padding: 0 3rem; }
+
+/* The banner row: allowance text, then the account and sign-out controls. */
+.artie-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  margin: 1rem 0 0; padding: 0.6rem 1rem;
+  border-left: 3px solid var(--ink-mid, #555);
+  background: var(--paper-mid, #f3f1ec);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.8rem; color: var(--ink-mid, #444);
+}
+.artie-banner[data-warning="80"] { border-left-color: var(--warning, #b7791f); background: var(--warning-bg, #fff7e6); color: var(--warning, #7a4f00); }
+.artie-banner[data-warning="95"] { border-left-color: #c03030; background: #fef2f2; color: #5a1010; }
+.artie-banner-controls { display: flex; gap: 0.5rem; flex-shrink: 0; }
+.artie-banner-controls button {
+  background: none; border: 1px solid var(--paper-dark, #ccc); border-radius: 3px;
+  padding: 0.3rem 0.7rem; cursor: pointer;
+  font-family: var(--font-mono, ui-monospace, monospace); font-size: 0.7rem;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-mid, #444);
+}
+.artie-banner-controls button:hover { background: var(--paper, #fff); color: var(--ink, #111); }
+
+/* Panels: signed out (S1), the stop (S7/S8), capacity (S9), the one-line
+   states (S10–S15). The .cr-gate look is the product's own. */
+.artie-panel { margin: 1.25rem 0 0; }
+.artie-panel .cr-gate-body a { color: var(--accent, #0b5fa5); }
+.artie-panel form { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: end; margin: 0.75rem 0; }
+.artie-panel label { font-family: var(--font-mono, ui-monospace, monospace); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-light, #777); display: block; margin-bottom: 0.3rem; }
+.artie-panel button.cr-gate-action { border: 0; cursor: pointer; font: inherit; font-weight: 600; margin: 0; }
+.artie-panel button.cr-gate-action:disabled { opacity: 0.4; cursor: not-allowed; }
+.artie-panel input[type="email"] { padding: 0.55rem 0.7rem; border: 1px solid var(--paper-dark, #ccc); border-radius: 3px; min-width: 16rem; font-size: 0.9rem; }
+.artie-panel .artie-partial { margin: 0.75rem 0 0; }
+.artie-panel .artie-partial a { font-family: var(--font-mono, ui-monospace, monospace); font-size: 0.78rem; color: var(--accent, #0b5fa5); }
+.artie-panel .artie-topup[hidden] { display: none; }
+.artie-panel .artie-technical { font-family: var(--font-mono, ui-monospace, monospace); font-size: 0.75rem; color: var(--ink-light, #777); }
+
+/* The Terms modal reuses .modal-overlay/.modal; these add the tick-box row
+   and the links. */
+.artie-terms-links { margin: 0.5rem 0 1rem; display: flex; gap: 1.25rem; }
+.artie-terms-links a { color: #a9dcef; font-size: 0.9rem; }
+.artie-terms-check { display: flex; gap: 0.6rem; align-items: flex-start; margin: 1rem 0 0; color: var(--paper, #eee); font-size: 0.85rem; line-height: 1.45; }
+.artie-terms-check input { margin-top: 0.25rem; flex-shrink: 0; }
+.modal .modal-submit:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+.modal .modal-body { color: var(--ink-light, #bbb); font-size: 0.9rem; line-height: 1.5; margin: 0 0 0.5rem; }
+
+/* The account panel (S16). */
+.artie-account { margin: 0.75rem 0 0; padding: 1rem 1.25rem; border: 1px solid var(--rule, #e2ded5); background: var(--paper, #fff); }
+.artie-account h3 { font-family: var(--font-display, Georgia, serif); font-size: 1.1rem; margin: 0 0 0.5rem; color: var(--ink, #111); }
+.artie-account h4 { font-family: var(--font-mono, ui-monospace, monospace); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-light, #777); margin: 0.75rem 0 0.35rem; }
+.artie-account ul { list-style: none; margin: 0; padding: 0; }
+.artie-account li { padding: 0.35rem 0; font-size: 0.85rem; color: var(--ink-mid, #444); display: flex; gap: 0.6rem; align-items: baseline; }
+.artie-account li input { margin: 0; }
+.artie-account .artie-my-use { font-size: 0.85rem; color: var(--ink-mid, #444); margin: 0.5rem 0 0; }
+
+@media (max-width: 700px) {
+  #artie-metering { padding: 0 1rem; }
+  .artie-banner { flex-direction: column; align-items: flex-start; }
+}

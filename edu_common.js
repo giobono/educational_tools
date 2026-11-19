@@ -16,7 +16,7 @@
  *                                     disappears when platform parsing ships
  *
  * Globals introduced by this file (intentional, used by page scripts):
- *   CR_MODEL, callAPI, pollTask, friendlyTaskError, readFile, sanitiseText,
+ *   callAppAPI, pollTask, friendlyTaskError, readFile, sanitiseText,
  *   csvCell, downloadBlob, today, assignConceptIds, formatBytes,
  *   escHtml, showError, clearError
  *
@@ -29,24 +29,22 @@
 /* ============================================================================
  * §A  PLATFORM-BINDING — stays browser-side
  *
- * The thin client over the platform LLM endpoint. Per contract §6 the
- * platform abstraction is the only path to the provider; per §6.1 the
- * platform holds the credentials. Per §6 the model registry will eventually
- * replace pinned_model with task-semantic selection (Q6b); for now we pin.
+ * The thin client over the platform's per-app task endpoints. Per contract
+ * §6 the platform abstraction is the only path to the provider; per §6.1 the
+ * platform holds the credentials; the model is chosen server-side by task.
  *
- * Stage 3 will change three things about this section, none of which alter
- * its location:
- *   1. callAPI gains a `task` parameter and calls the registry instead of
- *      passing pinned_model (or in addition to it for academic reproduction).
- *   2. callAPI returns parsed objects rather than raw text once the platform
- *      structured-output parsing layer ships (retires §E below).
- *   3. The endpoint path changes per app (/v1/gioianie/, /v1/sanzognie/, etc.)
- *      once the four-app split is provisioned.
+ * Metering phase 3 (OD brief v1.1 of 19 Nov 2026, §3–§4): every call carries
+ * the signed-in person's token (`Authorization: Bearer`) and the chosen
+ * project (`X-Project-Id`), from apps/common/signin.js and metering.js where
+ * a page loads them. On 401 the person is sent to sign in; on 403
+ * `terms_required` the Terms are shown and the call retried once accepted.
+ * Pages that load neither (corres's non-LLM pages) call exactly as before.
+ *
+ * `callAPI`, the direct client of corres's synchronous messages route, was
+ * retired here: that route is closed at nginx (D2Dev's switch-off return of
+ * 18 Nov §8.4) and no page called it. The pinned model it carried (CR_MODEL)
+ * went with it.
  * ============================================================================ */
-
-// Pinned model identifier. Will become a fallback / explicit-pin escape hatch
-// once the registry ships (contract §6, paragraph on identifier pinning).
-window.CR_MODEL = 'claude-sonnet-5';
 
 // Single-sourced graceful copy for structured errors the platform's LLM
 // abstraction can return (billing ceiling brief v1.1 §2.2/§2.4:
@@ -71,63 +69,81 @@ const CR_FRIENDLY_ERROR_MESSAGES = {
   response_truncated: 'The response was too large to complete in one step. This usually means the corpus or document set is too large for the current limits — try a smaller batch, or flag this to the project team.',
 };
 
-// Shared response-error parsing for callAPI/callAppAPI — one implementation,
-// not two copies of the same detail/code extraction logic.
+// CD's text takes over where it exists (apps/common/metering_strings.js, S9
+// for capacity): the sentence here stays for pages that do not load it.
+function _crFriendly(code) {
+  const s = window.ARTIE_STRINGS;
+  if (s && code === 'service_at_capacity' && s.S9 && s.S9.body) return s.S9.body;
+  return CR_FRIENDLY_ERROR_MESSAGES[code];
+}
+
+// Shared response-error parsing for callAppAPI/pollTask — one implementation,
+// not two copies of the same detail/code extraction logic. The platform's
+// shape is {"detail": {"code", "message", ...}}; `scope` rides along for the
+// 402 (project or member), and the front end chooses by `code`, never by the
+// message (phase 3 brief §4.2).
 async function _crParseApiError(res) {
   let detail = res.statusText;
   let code = `http_${res.status}`;
+  let body = null;
   try {
-    const err = await res.json();
-    code = err?.detail?.code || err?.error?.code || code;
-    detail = err?.detail?.message || err?.error?.message || detail;
+    body = await res.json();
+    code = body?.detail?.code || body?.error?.code || code;
+    detail = body?.detail?.message || body?.error?.message || detail;
   } catch (_) { /* keep statusText */ }
 
-  const friendly = CR_FRIENDLY_ERROR_MESSAGES[code];
+  const friendly = _crFriendly(code);
   const error = new Error(friendly || `API error ${res.status}: ${detail}`);
   error.code = code;
   error.status = res.status;
+  error.scope = body?.detail?.scope;
+  error.detail = body?.detail;
   return error;
 }
 
-/**
- * Call the platform LLM endpoint and return the response text.
- *
- * @param {string} system    System prompt
- * @param {string} user      User message
- * @param {number} maxTokens Max output tokens (default 4096)
- * @returns {Promise<string>} Response text (raw — parsing is the caller's
- *                            responsibility until §E retires; see §6)
- */
-window.callAPI = async function callAPI(system, user, maxTokens = 4096) {
-  const cfg = window.CORRES_CONFIG;
-  if (!cfg || !cfg.apiBase) {
-    throw new Error('CORRES_CONFIG not loaded — check config.js is deployed');
+// The sign-in and project headers, where a page has loaded them. Uses only
+// getToken() of the three sign-in functions (phase 3 brief §4.1).
+async function _crAuthHeaders() {
+  const headers = {};
+  if (typeof window.getToken === 'function') {
+    const token = await window.getToken();
+    if (token) headers['Authorization'] = `Bearer ${token}`;
   }
-
-  const requestId = (crypto.randomUUID && crypto.randomUUID()) ||
-                    (Date.now() + '-' + Math.random().toString(36).slice(2));
-
-  const res = await fetch(`${cfg.apiBase}/v1/corres/llm/messages`, {
-    method: 'POST',
-    headers: {
-      'Content-Type':  'application/json',
-      'X-Request-Id':  requestId,
-    },
-    body: JSON.stringify({
-      system,
-      user,
-      max_tokens:   maxTokens,
-      pinned_model: window.CR_MODEL,
-    }),
-  });
-
-  if (!res.ok) {
-    throw await _crParseApiError(res);
+  if (window.ArtieMetering) {
+    const project = window.ArtieMetering.projectId();
+    if (project) headers['X-Project-Id'] = project;
   }
+  return headers;
+}
 
-  const data = await res.json();
-  return data.text;
-};
+// One fetch with the headers above; the allowance headers on the response
+// go to the banner when it is present.
+async function _crFetch(url, init = {}) {
+  const headers = { ...(init.headers || {}), ...(await _crAuthHeaders()) };
+  const res = await fetch(url, { ...init, headers });
+  if (window.ArtieMetering) window.ArtieMetering.observeResponse(res);
+  return res;
+}
+
+// A request that sends the person to sign in on 401, and on 403
+// terms_required shows the Terms and retries once they are accepted.
+async function _crRequest(url, init) {
+  let res = await _crFetch(url, init);
+  if (res.ok) return res;
+  const error = await _crParseApiError(res);
+  if (error.status === 401 && typeof window.signIn === 'function') {
+    await window.signIn(window.location.href);
+    throw error; // the redirect normally leaves the page before this
+  }
+  if (error.code === 'terms_required' && window.ArtieMetering) {
+    if (await window.ArtieMetering.requireTerms()) {
+      res = await _crFetch(url, init);
+      if (res.ok) return res;
+      throw await _crParseApiError(res);
+    }
+  }
+  throw error;
+}
 
 // §A — App-specific endpoint helper
 //
@@ -152,7 +168,7 @@ async function callAppAPI(appId, path, body) {
   const idempotencyKey = (crypto.randomUUID && crypto.randomUUID()) ||
                           (Date.now() + '-' + Math.random().toString(36).slice(2));
 
-  const res = await fetch(`${cfg.apiBase}/v1/${appId}/${path}`, {
+  const res = await _crRequest(`${cfg.apiBase}/v1/${appId}/${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -162,12 +178,9 @@ async function callAppAPI(appId, path, body) {
     body: JSON.stringify(body),
   });
 
-  if (!res.ok) {
-    throw await _crParseApiError(res);
-  }
-
   return res.json();
 }
+window.callAppAPI = callAppAPI;
 
 // §A — Task polling
 //
@@ -213,7 +226,7 @@ window.pollTask = async function pollTask(appId, taskId, opts = {}) {
   const segment = opts.routeSegment ? `${opts.routeSegment}/` : '';
 
   while (true) {
-    const res = await fetch(`${cfg.apiBase}/v1/${appId}/${segment}tasks/${taskId}`);
+    const res = await _crFetch(`${cfg.apiBase}/v1/${appId}/${segment}tasks/${taskId}`);
     if (!res.ok) {
       throw await _crParseApiError(res);
     }
@@ -221,17 +234,31 @@ window.pollTask = async function pollTask(appId, taskId, opts = {}) {
 
     if (opts.onProgress) opts.onProgress(task.progress);
 
-    if (task.state === 'succeeded') return task.result;
+    if (task.state === 'succeeded') {
+      if (window.ArtieMetering) window.ArtieMetering.refresh().catch(() => {});
+      return task.result;
+    }
 
     if (task.state === 'failed') {
       const error = new Error(window.friendlyTaskError(task.error));
       error.code = task.error && task.error.code;
+      error.task = task;
       throw error;
     }
 
     if (task.state === 'cancelled') {
-      const error = new Error('Processing was cancelled.');
-      error.code = 'cancelled';
+      // Metering phase 1 §3.6: an allowance running out mid-task ends it
+      // `cancelled` with reason `allowance_exhausted`, the work already done
+      // kept in the task record. That is our refusal, not a cancellation by
+      // the person: it carries its own code, and the task, so the stop
+      // screen can offer the results so far (phase 3 brief §4.4).
+      const reason = task.result && task.result.reason;
+      const error = new Error(reason === 'allowance_exhausted'
+        ? _crFriendly('allowance_exhausted') || 'The allowance for this month is used.'
+        : 'Processing was cancelled.');
+      error.code = reason || 'cancelled';
+      error.scope = task.result && task.result.scope;
+      error.task = task;
       throw error;
     }
 
@@ -251,7 +278,7 @@ window.pollTask = async function pollTask(appId, taskId, opts = {}) {
 // regardless of which path (direct endpoint vs task polling) produced it.
 window.friendlyTaskError = function friendlyTaskError(taskError) {
   if (!taskError) return 'An unknown error occurred.';
-  return CR_FRIENDLY_ERROR_MESSAGES[taskError.code] || taskError.detail || taskError.message || 'An unknown error occurred.';
+  return _crFriendly(taskError.code) || taskError.detail || taskError.message || 'An unknown error occurred.';
 };
 
 
@@ -623,7 +650,7 @@ window.enforceAppActive = function enforceAppActive() {
  *
  * Per platform contract §6, structured-output parsing and repair is a
  * platform-layer responsibility: applications "do not implement parsing or
- * repair locally." The current pages inline JSON.parse after every callAPI;
+ * repair locally." The current pages inline JSON.parse after every workflow call;
  * that pattern is incompatible with §6 and retires at Stage 3 when the
  * platform parsing layer ships (Q4a–Q4b).
  *
@@ -633,14 +660,14 @@ window.enforceAppActive = function enforceAppActive() {
  * a callsite sweep, not a hunt through page-specific JS.
  *
  * Stage 3 action: delete this section; replace callsites with the parsed
- * object returned directly by callAPI; close out the §6 contract debt.
+ * object returned directly by the platform; close out the §6 contract debt.
  * ============================================================================ */
 
 /**
  * Parse an LLM response as JSON. Tolerates the common failure mode of the
  * model wrapping its JSON in a ```json ... ``` fence.
  *
- * @param {string} text Response text from callAPI
+ * @param {string} text Response text from a workflow
  * @param {string} [context] Optional context string for error messages
  *                            (e.g. "Phase 1 typology generation")
  * @throws {Error} If parsing fails after de-fencing.

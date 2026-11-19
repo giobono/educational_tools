@@ -22,3 +22,50 @@
   RewriteRule ^apps/(gioianie|sanzognie|corres|pluralitie)/([A-Za-z0-9_.-]+\.html)$ app_gate.php?app=$1&page=$2 [L,QSA]
   RewriteRule ^apps/(gioianie|sanzognie|corres|pluralitie)/?$ app_gate.php?app=$1&page=index.html [L,QSA]
 </IfModule>
+
+# ── Nothing but the site is served ────────────────────────────────────────
+# OD brief to D2Dev, 19 November 2026, §4.1.
+#
+# The git root of this repository IS the served root, so a committed file is
+# a live URL. Measured before this rule was written, on beta:
+#   /tests/test_signin_boundary.py   HTTP 200, 3,123 bytes
+#   /.gitignore                      HTTP 200
+# The test names the identity supplier and the closed route, which is why the
+# brief puts this rule before the next pull rather than after it.
+#
+# `.git/`, `.htaccess` and `.DS_Store` were already refused by the host. That
+# is the host's default, not ours, and a default can change with a host or a
+# plan — so they are named here too. A rule we can read is worth more than a
+# refusal we are relying on without knowing its source.
+#
+# This rule is interim. The repository and site structure are reviewed after
+# promotion (brief §4.1).
+#
+# `.well-known/` is exempt deliberately: it begins with a dot, and denying it
+# would break ACME certificate renewal. Its challenge filenames carry no
+# leading dot, so the FilesMatch fallback below does not reach them either.
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # The test suite is not part of the site.
+  RewriteRule ^tests(/|$) - [F,L]
+
+  # The repository's own metadata.
+  RewriteRule ^\.git(/|$) - [F,L]
+
+  # Dotfiles and dot-directories at any depth, except .well-known.
+  RewriteCond %{REQUEST_URI} !^/\.well-known(/|$)
+  RewriteRule (^|/)\.[^/]+ - [F,L]
+</IfModule>
+
+# Belt and braces: should mod_rewrite ever be absent, dotfiles stay refused.
+<FilesMatch "^\.">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
