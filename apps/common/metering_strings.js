@@ -52,8 +52,8 @@ window.ARTIE_STRINGS = {
   // S7 — the stop: the project's allowance is used (402 allowance_exhausted, scope project)
   S7: {
     heading:      'This month\'s allowance is used',
-    body:         'Your project has used its full allowance for this month. New requests are paused until {reset_date}. Everything you\'ve already finished is safe. If a task was running when the limit was reached, the results it had produced are kept for 7 days.', // [AD]
-    partial_link: 'Download the results so far',
+    body:         'Your project has used its full allowance for this month. New requests are paused until {reset_date}. Everything you\'ve already finished is safe.', // [AD] — retention sentence struck, OD notice of 19 Nov (CD decided, AD sighted)
+    partial_link: 'Download a record of the task so far',                     // OD notice of 19 Nov: the download is the task record, not the coded documents
     topup:        'Need more now? Add A${topup_aud} of use to this project.', // hidden until the paid half is live
     topup_button: 'Add use',                                                  // hidden
     team:         'Working with a team or an institution? Contact us.',
