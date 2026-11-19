@@ -16,9 +16,9 @@
  *   {terms_version}  terms.current from /v1/account, or the 409's `current`
  *   {email}          person.email
  *   {project}        project.name
- *   {my_pct}         usage.ebonis (the person's own, this period, across
- *                    their projects) as a share of the chosen project's
- *                    allowance — the nearest the API gives; see the return
+ *   {my_pct}         projects[].mine.used_pct (the person's own use of the
+ *                    chosen project this period, computed by the API against
+ *                    the member cap where one applies, else the allowance)
  *   {topup_aud}      not available until the paid half; the slot is hidden
  *
  * The banner reads /v1/account. The X-Allowance-* headers are also read when
@@ -199,8 +199,16 @@
     const lines = ps.map(p => `<li>${ps.length > 1
       ? `<input type="radio" name="artie-project" value="${esc(p.id)}" ${cur && cur.id === p.id ? 'checked' : ''} aria-label="${esc(p.name)}">` : ''}
       <span>${esc(fmt(str('S16.project_line'), vars(p)))}</span></li>`).join('');
+    // {my_pct}: the person's own use of the chosen project this period, as the
+    // API computes it (`projects[].mine.used_pct`, D2Dev's Part B follow-up of
+    // 19 Nov: against the member cap where one applies, else the allowance).
+    // The earlier approximation from `usage.ebonis` stands in only where the
+    // field is absent, which no current API build produces.
+    const mine = cur && cur.mine;
     const own = (a.usage && a.usage.ebonis) || 0;
-    const myPct = cur && cur.allowance ? Math.round(own / cur.allowance * 100) : 0;
+    const myPct = mine && typeof mine.used_pct === 'number'
+      ? Math.round(mine.used_pct)
+      : (cur && cur.allowance ? Math.round(own / cur.allowance * 100) : 0);
     el.innerHTML = `<section class="artie-account">
       <h3>${esc(str('S16.title'))}</h3>
       <div class="artie-technical">${esc((a.person && a.person.email) || '')}</div>
