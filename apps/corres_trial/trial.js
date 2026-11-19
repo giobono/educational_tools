@@ -44,6 +44,11 @@
     const link = C.articlesBase ? ` data-link="${esc(C.articlesBase + slug)}"` : '';
     return `<button type="button" class="tr-tip" aria-label="What this means" aria-expanded="false" data-tip="${esc(g.hover)}"${link}>?</button>`;
   }
+  // A hover whose text the engine builds: the academic form of a plain
+  // sentence (AD note of 16 Nov §2.1).
+  function rawTip(text) {
+    return text ? `<button type="button" class="tr-tip" aria-label="What this means" aria-expanded="false" data-tip="${esc(text)}">?</button>` : '';
+  }
   const pop = () => $('#tr-pop');
   let pinned = null;
   function openTip(b) {
@@ -251,7 +256,10 @@
       ? 'These frames are <b>descriptive</b> so far: true of this corpus, not yet tested against chance. The chance check is the first item on the Firm up page.' + tip('p5.tier.descriptive')
       : `How firm these frames are: <b>${esc(f.tier)}</b>.` + tip('p5.tier.other');
     // B.6's caution, once the second grouping has run (AD response of 12 Nov §1.1).
-    if (f.b6_caution) $('#p5-tier').innerHTML += `<br><span class="tr-small">The two grouping methods agree at ${(+f.b6_caution.ari).toFixed(3)}, below 0.5, so where a concept sits depends partly on how the grouping is done.</span>${tip('p6.review.grouping.ari')}`;
+    // AD note of 16 Nov §2.3: the figure is in the reviewer's report.
+    if (f.b6_caution) $('#p5-tier').innerHTML += `<br><span class="tr-small">The two grouping methods agree only weakly, so where a concept sits depends partly on how the grouping is done.</span>${tip('p6.review.grouping.ari')}`;
+    // A run started by a change after the first stop (AD note of 16 Nov §1.2).
+    if (f.variation) $('#p5-tier').innerHTML += `<br><span class="tr-small">This run is a variation of run ${esc(f.variation.of)}: ${esc(f.variation.label.toLowerCase())}. Chosen after the first stop, so its results are exploratory.</span>`;
     $('#p5-table').innerHTML = f.frames.map((fr) => `<div class="tr-frame">
       <input class="tr-name" data-frame="${esc(fr.id)}" value="${esc(fr.name)}" aria-label="Frame name"/> <span class="tr-small">${esc(fr.tier_statement || fr.tier)}</span>${tip('p5.frame.tier')}
       ${fr.relabelled ? `<div class="tr-small">This isn't a frame within any one kind of document: it appears only when the kinds are pooled (${esc(fr.relabelled)}). It marks a difference between them.${tip('p5.frame.relabelled')}</div>` : ''}
@@ -274,7 +282,7 @@
     const w = f.where_you_stand;
     $('#p5-where').innerHTML = `<h3>Where you stand</h3>
       ${w.meets_reporting_minimum ? '' : `<p class="tr-small">Taken before the chance check: not yet enough to report from.${tip('p5.where.before')}</p>`}
-      <ul>${w.how_firm.map((x) => `<li>${esc(x.sentence)}${tip('p5.where.firm.' + x.tier)}</li>`).join('')}</ul>
+      <ul>${w.how_firm.map((x) => `<li>${esc(x.sentence)}${x.academic ? rawTip(x.academic + '\n\n' + x.read_more) : tip('p5.where.firm.' + x.tier)}</li>`).join('')}</ul>
       <p class="draft">Sentences you can use (draft wording):</p><ul>${w.sentences_you_can_use.map((s) => `<li>${esc(s.sentence)}</li>`).join('')}</ul>
       <p>${w.checklist_unticked.length ? 'Still to do: ' + w.checklist_unticked.map((m) => `☐ ${esc(m.item)}`).join(' · ') : 'Every checklist item has been run.'}</p>`;
     const t = run.timings || {};
@@ -303,6 +311,32 @@
     $$('[data-item]').forEach((b) => { b.onclick = () => runItem(b.dataset.item); });
     $$('[data-bridge]').forEach((b) => { b.onclick = showBridging; });
     $('#p6-notin').innerHTML = f.not_in_trial.map((x) => `<li>${esc(x)}: not in this trial</li>`).join('');
+    renderVariations();
+  }
+  // Page 6: settings the researcher can change after the first stop (AD note of 16 Nov §1.2).
+  function renderVariations() {
+    const f = frames, box = $('#p6-variations'); if (!box) return;
+    const list = f.variations || [];
+    box.innerHTML = (list.length || f.variation) ? '<h3>Settings you can change</h3>'
+      + list.map((v) => `<div class="tr-card"><b>${esc(v.label)}</b><br><span class="tr-small">This starts a new run, with its own chance check. Chosen now, after the first stop, its results are exploratory.</span><br>
+        <button class="tr-btn" data-variation="${esc(v.key)}" ${liveItem ? 'disabled' : ''}>Start the new run</button>
+        ${v.runs.map((r) => `<br><a href="#" data-open-run="${esc(r)}">Open run ${esc(r)}</a>`).join('')}</div>`).join('')
+      + (f.variation ? `<p class="tr-small">This run changed one setting from run <a href="#" data-open-run="${esc(f.variation.of)}">${esc(f.variation.of)}</a>: ${esc(f.variation.label.toLowerCase())}.</p>` : '') : '';
+    $$('[data-variation]').forEach((b) => { b.onclick = () => runVariation(b.dataset.variation); });
+    $$('[data-open-run]').forEach((a) => { a.onclick = async (e) => { e.preventDefault(); run = await call('GET', `/runs/${a.dataset.openRun}`); await refreshFrames(); show('p5'); }; });
+  }
+  async function runVariation(key) {
+    liveItem = true; renderChecklist();
+    const box = $('#p6-running'); box.hidden = false; const t0 = Date.now();
+    try {
+      const out = await call('POST', `/runs/${run.run_id}/variations`, { change: key });
+      run = out.run;
+      await waitTask(out.task_id, async () => {
+        const r = await call('GET', `/runs/${run.run_id}`);
+        box.innerHTML = `<b>Running: the new run</b>. ${esc(r.running ? r.running.line : 'Working')}. ${fmtS((Date.now() - t0) / 1000)} so far.`;
+      });
+    } catch (e) { toast(e.message); }
+    liveItem = false; box.hidden = true; await refreshFrames(); show('p5');
   }
   // Values a review line's hover refers to ({ref}, {s}): the chance check's own.
   function reviewVars(res) {

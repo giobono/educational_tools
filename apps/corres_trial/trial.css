@@ -83,7 +83,7 @@ table.tr-k td, table.tr-k th { border: 1px solid var(--rule, #ddd); padding: .15
   vertical-align: .12em; }
 .tr-tip:hover, .tr-tip:focus-visible, .tr-tip[aria-expanded="true"] { border-color: var(--accent, #0a7ea4);
   color: var(--accent, #0a7ea4); outline: none; }
-.tr-pop { position: absolute; z-index: 20; max-width: min(22rem, calc(100vw - 2rem)); padding: .6rem .8rem;
+.tr-pop { white-space: pre-line; position: absolute; z-index: 20; max-width: min(22rem, calc(100vw - 2rem)); padding: .6rem .8rem;
   background: var(--paper, #fff); color: var(--ink, #1d1d1f); border: 1px solid var(--ink, #1d1d1f);
   border-radius: 4px; box-shadow: 0 4px 14px rgba(0, 0, 0, .12); font-size: .86rem; line-height: 1.45;
   font-weight: 400; text-align: left; }
