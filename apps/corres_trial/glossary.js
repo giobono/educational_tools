@@ -262,10 +262,6 @@ window.CR3_HOVERS = {
   "hover": "Concepts held between this frame and one other, so they may be where two ways of talking meet. The method calls them bridging candidates. What the overlap means is for you to read in the documents (Firm up, last item).",
   "link": "distinguishing-bridging-diffuse"
  },
- "p5.frame.diffuse": {
-  "hover": "In this frame, but not firmly: {failed test}. Possibly noise; possibly a concept that sits uneasily here.",
-  "link": "distinguishing-bridging-diffuse"
- },
  "p5.frame.contingent": {
   "hover": "These concepts land in a different frame when the grouping is done a second way (Firm up, item 4). Treat their place as uncertain.",
   "link": "the-second-grouping-method"

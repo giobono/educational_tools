@@ -3,12 +3,11 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Correlating Resonance · trial</title>
+<title>Correlating Resonance</title>
 <!--
-  The CR3 trial of corres v3.0 (AD trial brief v1.1, on OD's build route).
-  Local only: it talks to a local artie backend at 127.0.0.1:8000 and is
-  never served. It edits no existing app folder; it borrows the shared
-  brand and common stylesheets so that it looks like the app.
+  CR3: implements CorRes methodology v3.0. Merges to develop under AD trial
+  brief v1.2 (on OD's build route). It borrows the shared brand and common
+  stylesheets so that it looks like the other apps.
 -->
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&amp;family=JetBrains+Mono:wght@400;500&amp;family=Barlow:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
@@ -20,7 +19,7 @@
 </head>
 <body>
 <header class="tr-head">
-  <div class="tr-logo">Correlating Resonance <em>trial</em></div>
+  <div class="tr-logo">Correlating Resonance</div>
   <nav class="tr-steps" id="tr-steps" aria-label="Pages"></nav>
   <div class="tr-clock" id="tr-clock" title="Time for this run so far"></div>
 </header>
@@ -39,8 +38,8 @@
     <div class="tr-or">or try it on an example corpus</div>
     <div id="tr-examples" class="tr-examples"></div>
   </div>
-  <details class="tr-setting"><summary>Trial setting: where the app pauses for you</summary>
-    <p>In the trial you can choose how far the app runs before it pauses. Later settings run the earlier checklist items in order, without pausing between them.</p>
+  <details class="tr-setting"><summary>Setting: where the app pauses for you</summary>
+    <p>In this version you can choose how far the app runs before it pauses. Later settings run the earlier checklist items in order, without pausing between them.</p>
     <select id="tr-pointx">
       <option value="first_stop">At your frames (default)</option>
       <option value="after_1">After the chance check</option>
@@ -127,7 +126,7 @@
   <ol id="p6-items" class="tr-items"></ol>
   <div id="p6-variations"></div>
   <div id="p6-bridging"></div>
-  <details class="tr-notin"><summary>Analyses not in this trial</summary><ul id="p6-notin"></ul></details>
+  <details class="tr-notin"><summary>Analyses not in this version</summary><ul id="p6-notin"></ul></details>
   <div class="tr-steptime" id="p6-time"></div>
   <div class="tr-notes" data-page="page 6"></div>
 </section>

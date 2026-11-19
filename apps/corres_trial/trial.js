@@ -46,9 +46,14 @@
   }
   // A hover whose text the engine builds: the academic form of a plain
   // sentence (AD note of 16 Nov §2.1).
-  function rawTip(text) {
-    return text ? `<button type="button" class="tr-tip" aria-label="What this means" aria-expanded="false" data-tip="${esc(text)}">?</button>` : '';
+  function rawTip(text, link) {
+    return text ? `<button type="button" class="tr-tip" aria-label="What this means" aria-expanded="false" data-tip="${esc(text)}"${link ? ` data-link="${esc(link)}"` : ''}>?</button>` : '';
   }
+  // Trial brief v1.2 §2.2 (F1, F16): a count with its noun in the right
+  // number, and a time the engine recorded in UTC shown in the researcher's own.
+  const cnt = (k, w, p) => `${k} ${k === 1 ? w : (p || w + 's')}`;
+  const localTime = (iso) => { const d = new Date(iso); return isNaN(d) ? String(iso) : d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }); };
+  const zone = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { return ''; } };
   const pop = () => $('#tr-pop');
   let pinned = null;
   function openTip(b) {
@@ -89,7 +94,16 @@
     return data;
   }
   function toast(msg) { const t = $('#tr-toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; }, 6000); }
-  const fmtS = (s) => s == null ? '—' : (s < 60 ? `${(+s).toFixed(s < 10 ? 2 : 1)} s` : `${Math.floor(s / 60)} min ${Math.round(s % 60)} s`);
+  // Trial brief v1.2 §2.2 (F10): whole seconds from a minute up, so neither
+  // "1 min 60 s" nor "60.0 s" can appear; hours once there are any.
+  const fmtS = (s) => {
+    if (s == null) return '—';
+    s = +s;
+    if (s < 10) return `${s.toFixed(2)} s`;
+    if (s < 59.95) return `${s.toFixed(1)} s`;
+    const t = Math.round(s), h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), r = t % 60;
+    return h ? `${h} h ${m} min` : `${m} min ${r} s`;
+  };
   async function waitTask(taskId, onTick) {
     for (;;) {
       const t = await call('GET', `/tasks/${taskId}`);
@@ -126,7 +140,7 @@
       box.innerHTML = `<label class="tr-small" style="display:block">Your notes on this page${run ? '' : ' (start a run to save them)'}</label>
         <textarea placeholder="What you noticed, how long it felt, what you would have wanted here"></textarea>
         <br><button class="tr-btn">Save note</button>
-        <div class="saved">${mine.map((n) => `${esc(n.at)}: ${esc(n.text)}`).join('<br>')}</div>`;
+        <div class="saved">${mine.map((n) => `${esc(localTime(n.at))}: ${esc(n.text)}`).join('<br>')}</div>`;
       $('button', box).onclick = async () => {
         const text = $('textarea', box).value; if (!text.trim() || !run) return;
         await call('POST', `/runs/${run.run_id}/notes`, { page, text });
@@ -141,7 +155,11 @@
       const ex = await call('GET', '/examples');
       $('#tr-examples').innerHTML = ex.map((e) => `<button class="tr-btn" data-ex="${esc(e.id)}" ${e.available ? '' : 'disabled title="The file isn’t where the record says it is"'}>${esc(e.title)}</button>${e.id === 'marpor' ? tip('p1.example.marpor') : ''}`).join('');
       $$('[data-ex]').forEach((b) => { b.onclick = () => startExample(b.dataset.ex); });
-    } catch (e) { $('#tr-examples').textContent = 'The analysis engine isn’t answering at ' + C.apiBase + '. Start it and reload.'; }
+    } catch (e) {
+      // Trial brief v1.2 §2.1 (E8): the address goes to the log, not the page.
+      console.error('The analysis engine isn’t answering at ' + C.apiBase, e);
+      $('#tr-examples').textContent = 'The analysis engine isn’t answering. Try again in a few minutes.';
+    }
   }
   async function startExample(id) {
     try { const t0 = performance.now(); run = await call('POST', `/runs/example/${id}`); started = Date.now(); afterCheck((performance.now() - t0) / 1000); }
@@ -168,11 +186,11 @@
     const failedSS = (sd.tested || []).filter((f) => !f.passes);
     const dg = (c.diagnostics || {}).identical;
     $('#p3-summary').innerHTML = (c.document_details.length
-      ? `<p>${c.documents} documents. ${c.concepts.length} concepts. Document details: ${esc(c.document_details.join(', '))}.${tip('p3.summary')}</p>`
-      : `<p>${c.documents} documents and ${c.concepts.length} concepts. No document details were found, so the frames will be shown without who voices them.</p>`)
-      + ss.map((f) => `<p class="tr-small">${esc(f.name)}: treated as one detail with ${f.columns.length + 1} values (${esc(f.columns.map((col) => col.slice(f.name.length + 1)).join(', '))}, or none)</p>`).join('')
-      + failedSS.map((f) => `<p class="tr-small">${esc(f.name)}: ${esc(f.reason_plain || f.reason)}</p>`).join('')
-      + (dg ? `<p class="tr-small">${dg.documents} documents share their values with others (${dg.sets} sets; the largest ${dg.largest_set}). On yes/no data that is expected, and nothing is changed.</p>` : '');
+      ? `<p>${cnt(c.documents, 'document')}. ${cnt(c.concepts.length, 'concept')}. Document details: ${esc(c.document_details.join(', '))}.${tip('p3.summary')}</p>`
+      : `<p>${cnt(c.documents, 'document')} and ${cnt(c.concepts.length, 'concept')}. No document details were found, so the frames will be shown without who voices them.</p>`)
+      + ss.map((f) => `<p class="tr-small">${esc(f.name)}: treated as one detail with ${f.columns.length + 1} values (${esc(f.columns.map((col) => col.slice(f.name.length + 1)).join(', '))}, or none).</p>`).join('')
+      + failedSS.map((f) => `<p class="tr-small">${esc(f.name)}: ${esc(f.reason_plain || f.reason)}.</p>`).join('')
+      + (dg ? `<p class="tr-small">${cnt(dg.documents, 'document')} share their values with others (${cnt(dg.sets, 'set')}; the largest ${dg.largest_set}). On yes/no data that is expected, and nothing is changed.</p>` : '');
     const qTip = (id) => tip(id.startsWith('family_') ? 'p3.q.family' : id.startsWith('group_') ? 'p3.q.group' : id.startsWith('total_') ? 'p3.q.total' : 'p3.q.' + id);
     $('#p3-questions').innerHTML = c.questions.length ? c.questions.map((q) => `<div class="tr-q" data-q="${esc(q.id)}"><p>${esc(q.ask)}${qTip(q.id)}</p>${q.options.map((o, i) => `<label><input type="radio" name="q_${esc(q.id)}" value="${esc(o.value)}" ${i === 0 ? 'checked' : ''}/> ${esc(o.label)}</label>`).join('')}${q.id === 'scale' ? '<label>Top of the scale (for example 3 for a 0–3 rating) <input type="number" min="1" max="100" id="q-scale-max" style="width:5rem"/></label>' : ''}</div>`).join('')
       : '<div class="tr-q"><p>Your file is ready. Nothing in it needs a decision before the analysis.</p></div>';
@@ -231,12 +249,21 @@
       const step = [['declare', 'Reading how your file is set up'], ['binarise', 'Deciding what counts as \'present\''], ['admit', 'Setting aside documents and concepts that can\'t say anything about co-occurrence'], ['first_view', 'Drawing the first view'],
         ['associate', 'Measuring how far concepts appear together beyond what their frequencies predict'], ['stability', 'Splitting the corpus in half, many times, to find the groups that keep reappearing'], ['covariates', 'Relating each frame to the document details, to see who voices it'], ['structure', 'Reading the inside of each frame: which concepts mark it out, which sit between frames'], ['pairs', 'Recording any specific pairs you asked about']];
       lines.innerHTML = step.filter(([k]) => t[k] != null).map(([k, l]) => `<li class="done">${esc(l)}: ${fmtS(t[k])}${tip('p4.line.' + k)}</li>`).join('')
-        + (run.running && run.running.line ? `<li>${esc(run.running.line)}…</li>` : '');
+        + (run.running && run.running.line ? `<li>${esc(String(run.running.line).replace(/\.$/, ''))}…</li>` : '');
       $('#p4-time').textContent = 'This page so far: ' + fmtS((Date.now() - t0) / 1000);
     });
     // AD review of 12 Nov §5: a plain line, never G4's raw output; the
     // technical message is in the reviewer's report.
-    if (done.state !== 'succeeded') { const er = done.error || {}; toast(`The run couldn't continue: ${(er.plain || 'the analysis stopped').replace(/\.$/, '')}. Details are in the reviewer's report.`); return; }
+    // Trial brief v1.2 §2.2 (F4): the plain lines are sentences; the report
+    // sentence is added once, and "couldn't continue" is not said before a
+    // line that says the first view is still shown.
+    if (done.state !== 'succeeded') {
+      const er = done.error || {};
+      const plain = String(er.plain || 'The analysis stopped.').trim();
+      const lead = /first view is still shown/.test(plain) ? '' : "The run couldn't continue. ";
+      const details = /reviewer's report\.?$/.test(plain) ? '' : " Details are in the reviewer's report.";
+      toast(lead + plain + details); return;
+    }
     await refreshFrames();
     if (frames.defaults) $('#p4-defaults').innerHTML = `<h3>What the app chose for you, and why${tip('p4.defaults.title')}</h3>` + frames.defaults.choices.map((c) => `<div class="tr-card"><b>${esc(c.fork)}</b>: ${esc(c.chosen)}.${c.reason ? ` <span class="tr-small">${esc(c.reason)}</span>` : ''}${c.id ? tip(c.id) : ''}</div>`).join('') + '<p class="tr-small">All five were chosen from the shape of your data before any result was seen.</p>';
     reached = Math.max(reached, 5); show('p5');
@@ -252,9 +279,13 @@
   function concepts(list, withTarget, withFailed) { return list.length ? list.map((c) => esc(c.concept) + (withTarget && c.towards ? ` <span class="tr-small">(towards ${esc(c.towards)})</span>` : '') + (withFailed && (c.failed_test_plain || c.failed_test) ? ` <span class="tr-small">(${esc(c.failed_test_plain || c.failed_test)})</span>` : '')).join(', ') : '<span class="tr-small">none</span>'; }
   function renderFrames() {
     const f = frames;
-    $('#p5-tier').innerHTML = f.tier === 'descriptive'
+    // Trial brief v1.2 §2.1 (F5): the frames' own tiers, listed when they differ.
+    const tiers = f.frames.map((fr) => fr.tier);
+    $('#p5-tier').innerHTML = (!tiers.length || tiers.every((t) => t === 'descriptive'))
       ? 'These frames are <b>descriptive</b> so far: true of this corpus, not yet tested against chance. The chance check is the first item on the Firm up page.' + tip('p5.tier.descriptive')
-      : `How firm these frames are: <b>${esc(f.tier)}</b>.` + tip('p5.tier.other');
+      : tiers.every((t) => t === tiers[0])
+        ? `How firm these frames are: <b>${esc(tiers[0])}</b>.` + tip('p5.tier.other')
+        : `How firm these frames are: ${f.frames.map((fr) => `${esc(fr.name)} <b>${esc(fr.tier)}</b>`).join(', ')}.` + tip('p5.tier.other');
     // B.6's caution, once the second grouping has run (AD response of 12 Nov §1.1).
     // AD note of 16 Nov §2.3: the figure is in the reviewer's report.
     if (f.b6_caution) $('#p5-tier').innerHTML += `<br><span class="tr-small">The two grouping methods agree only weakly, so where a concept sits depends partly on how the grouping is done.</span>${tip('p6.review.grouping.ari')}`;
@@ -263,26 +294,31 @@
     $('#p5-table').innerHTML = f.frames.map((fr) => `<div class="tr-frame">
       <input class="tr-name" data-frame="${esc(fr.id)}" value="${esc(fr.name)}" aria-label="Frame name"/> <span class="tr-small">${esc(fr.tier_statement || fr.tier)}</span>${tip('p5.frame.tier')}
       ${fr.relabelled ? `<div class="tr-small">This isn't a frame within any one kind of document: it appears only when the kinds are pooled (${esc(fr.relabelled)}). It marks a difference between them.${tip('p5.frame.relabelled')}</div>` : ''}
-      <div class="k">Marks this frame out${tip('p5.frame.distinguishing')}</div><div>${concepts(fr.distinguishing)}</div>
+      <div class="k">Marks this frame out${tip('p5.frame.distinguishing')}</div><div>${fr.distinguishing_note ? `<span class="tr-small">${esc(fr.distinguishing_note)}</span>` : concepts(fr.distinguishing)}</div>
       <div class="k">Shared with another frame${tip('p5.frame.bridging')}</div><div>${concepts(fr.bridging_candidates, true)}</div>
       <div class="k">Weakly placed${glossTip('distinguishing-bridging-diffuse')}</div><div>${concepts(fr.diffuse, false, true)}</div>
       ${fr.method_contingent.length ? `<div class="k">Depends on the grouping method${tip('p5.frame.contingent')}</div><div>${concepts(fr.method_contingent)}</div>` : ''}
       ${fr.outside_support.length ? `<div class="k">Too rare or too common to say anything${tip('p5.frame.outside')}</div><div>${concepts(fr.outside_support)}</div>` : ''}
-      ${fr.shares_by_population.length ? `<div class="k">Who voices this frame${tip('p5.frame.shares')}</div><ul>${fr.shares_by_population.filter((s) => s.share != null).map((s) => `<li>${esc(s.population)} (${esc(s.detail)}; ${s.documents} documents, about ${s.mean_concepts_per_document.toFixed(1)} concepts each): ${s.share.toFixed(2)}</li>`).join('')}</ul>` : ''}
+      <div class="k">Who voices this frame${tip('p5.frame.shares')}</div>${fr.shares_by_population.some((s) => s.share != null) ? `<ul>${fr.shares_by_population.filter((s) => s.share != null).map((s) => `<li>${esc(s.population)} (${esc(s.detail)}; ${cnt(s.documents, 'document')}, about ${s.mean_concepts_per_document.toFixed(1)} concepts each): ${s.share.toFixed(2)}</li>`).join('')}</ul>` : '<div class="tr-small">no category details, so who voices it isn’t shown</div>'}
     </div>`).join('') + (f.unplaced.length ? `<div class="tr-frame"><div class="k">In no frame${tip('p5.unplaced')}</div><div>${concepts(f.unplaced)}</div></div>` : '')
       + (f.number_of_frames === 0 ? `<p>No group held up well enough to be called a frame, so everything here is descriptive: a picture of this corpus, not a finding about frames.${tip('p5.no_frame')}</p>` : '');
     $$('input.tr-name').forEach((inp) => { inp.onchange = async () => { await call('POST', `/runs/${run.run_id}/frames/${inp.dataset.frame}/name`, { name: inp.value }); refreshFrames(); }; });
     if (f.consensus) heat($('#sd-canvas'), f.consensus.concepts, f.consensus.values, false);
-    const nf = `${f.number_of_frames} frame${f.number_of_frames === 1 ? '' : 's'} among ${f.number_of_groups} groups`;
-    $('#p5-chosen').innerHTML = `<h3>What the app chose, and why</h3><p>${f.k === f.recommended_k ? `${nf}, with ${f.k} groups being the number that held up best.${tip('p5.chosen.k')}` : `${nf}; you chose ${f.k} groups, where ${f.recommended_k} held up best.${tip('p5.chosen.k_other')}`}</p>
+    const nf = `${cnt(f.number_of_frames, 'frame')} among ${cnt(+f.number_of_groups, 'group')}`;
+    $('#p5-chosen').innerHTML = `<h3>What the app chose, and why</h3><p>${f.k === f.recommended_k ? `${nf}, with ${cnt(f.k, 'group')} being the number that held up best.${tip('p5.chosen.k')}` : `${nf}; you chose ${cnt(f.k, 'group')}, where ${f.recommended_k} held up best.${tip('p5.chosen.k_other')}`}</p>
       <table class="tr-k"><tr><th>Number of groups</th>${f.by_k.map((r) => `<td>${r.k}</td>`).join('')}</tr><tr><th>How well it held up${tip('p5.chosen.table')}</th>${f.by_k.map((r) => `<td>${r.evaluated ? r.reproducibility.toFixed(3) : 'not tried'}</td>`).join('')}</tr></table>
       ${f.compositional ? `<p class="tr-small">Your values are shares of a whole, so some of the 'together' and 'apart' between concepts is forced by the arithmetic. Read the frames with that in mind. Who voices each frame is not affected.${tip('p5.compositional')}</p>` : ''}
       <p class="tr-small"><a href="#" id="values-used">Settings used in this run (all provisional)</a></p>`;
-    $('#values-used').onclick = (e) => { e.preventDefault(); toast('49 shuffles for the chance line; 50 splits; 10 starts per grouping; 19 shuffles per concept for the pattern test; concepts count when in 10 or more documents and fewer than 90%; at least 50 documents and 6 concepts; class cut-offs 0.5, 0.10 and 0.6. All provisional.'); };
+    // Trial brief v1.2 §2.2 (F16): the counts come from the parameter record,
+    // which the frames view carries as `settings`, not from this file.
+    const pv = f.settings;
+    $('#values-used').onclick = (e) => { e.preventDefault(); toast(pv
+      ? `${pv.permutations} shuffles for the chance line; ${pv.splits} splits; ${pv.kmeans_starts} starts per grouping; ${pv.signal_shuffles} shuffles per concept for the pattern test; concepts count when in ${pv.support_min_documents} or more documents and fewer than ${Math.round(pv.support_max_share * 100)}%; at least ${pv.minimum_documents} documents and ${pv.minimum_concepts} concepts; class cut-offs ${pv.cutoff_own}, ${pv.cutoff_pull} and ${pv.cutoff_concentration}. All provisional.`
+      : 'Every setting is in the settings record, in the download for your reviewer.'); };
     const w = f.where_you_stand;
     $('#p5-where').innerHTML = `<h3>Where you stand</h3>
       ${w.meets_reporting_minimum ? '' : `<p class="tr-small">Taken before the chance check: not yet enough to report from.${tip('p5.where.before')}</p>`}
-      <ul>${w.how_firm.map((x) => `<li>${esc(x.sentence)}${x.academic ? rawTip(x.academic + '\n\n' + x.read_more) : tip('p5.where.firm.' + x.tier)}</li>`).join('')}</ul>
+      <ul>${w.how_firm.map((x) => `<li>${esc(x.sentence)}${x.academic ? rawTip(x.academic + (x.read_more_url ? '' : '\n\n' + x.read_more), x.read_more_url) : tip('p5.where.firm.' + x.tier)}</li>`).join('')}</ul>
       <p class="draft">Sentences you can use (draft wording):</p><ul>${w.sentences_you_can_use.map((s) => `<li>${esc(s.sentence)}</li>`).join('')}</ul>
       <p>${w.checklist_unticked.length ? 'Still to do: ' + w.checklist_unticked.map((m) => `☐ ${esc(m.item)}`).join(' · ') : 'Every checklist item has been run.'}</p>`;
     const t = run.timings || {};
@@ -310,7 +346,7 @@
     }).join('');
     $$('[data-item]').forEach((b) => { b.onclick = () => runItem(b.dataset.item); });
     $$('[data-bridge]').forEach((b) => { b.onclick = showBridging; });
-    $('#p6-notin').innerHTML = f.not_in_trial.map((x) => `<li>${esc(x)}: not in this trial</li>`).join('');
+    $('#p6-notin').innerHTML = f.not_in_trial.map((x) => `<li>${esc(x)}: not in this version</li>`).join('');
     renderVariations();
   }
   // Page 6: settings the researcher can change after the first stop (AD note of 16 Nov §1.2).
@@ -333,7 +369,7 @@
       run = out.run;
       await waitTask(out.task_id, async () => {
         const r = await call('GET', `/runs/${run.run_id}`);
-        box.innerHTML = `<b>Running: the new run</b>. ${esc(r.running ? r.running.line : 'Working')}. ${fmtS((Date.now() - t0) / 1000)} so far.`;
+        box.innerHTML = `<b>Running: the new run</b>. ${esc(String(r.running ? r.running.line : 'Working').replace(/\.$/, ''))}. ${fmtS((Date.now() - t0) / 1000)} so far.`;
       });
     } catch (e) { toast(e.message); }
     liveItem = false; box.hidden = true; await refreshFrames(); show('p5');
@@ -352,7 +388,7 @@
       await waitTask(t.task_id, async () => {
         const r = await call('GET', `/runs/${run.run_id}`);
         const line = r.running ? r.running.line : 'Working';
-        box.innerHTML = `<b>Running: ${esc(frames.checklist.find((i) => i.key === key).title)}</b>. ${esc(line)}. ${fmtS((Date.now() - t0) / 1000)} so far.<br><span class="tr-small">Nothing else starts while this runs. You can rename frames, browse the table and read the shared concepts.</span>`;
+        box.innerHTML = `<b>Running: ${esc(frames.checklist.find((i) => i.key === key).title)}</b>. ${esc(String(line).replace(/\.$/, ''))}. ${fmtS((Date.now() - t0) / 1000)} so far.<br><span class="tr-small">Nothing else starts while this runs. You can rename frames, browse the table and read the shared concepts.</span>`;
       });
     } catch (e) { toast(e.message); }
     liveItem = false; box.hidden = true; await refreshFrames();
@@ -362,7 +398,7 @@
   const READINGS = [['shared priority', 'shared priority'], ['distinct framings of the same problem', 'two framings of the same problem'], ['explicit disagreement', 'explicit disagreement'], ['co-mention only', 'mentioned together, nothing more']];
   async function showBridging() {
     const list = await call('GET', `/runs/${run.run_id}/bridging`);
-    $('#p6-bridging').innerHTML = '<h3>Reading the shared concepts</h3>' + (list.length ? list.map((b) => `<div class="tr-card"><b>${esc(b.concept)}</b> sits in ${esc(b.frame)} and is pulled towards ${esc(b.towards)}: ${b.document_count} documents carry it alongside concepts from both.
+    $('#p6-bridging').innerHTML = '<h3>Reading the shared concepts</h3>' + (list.length ? list.map((b) => `<div class="tr-card"><b>${esc(b.concept)}</b> sits in ${esc(b.frame)} and is pulled towards ${esc(b.towards)}: ${cnt(b.document_count, 'document')} ${b.document_count === 1 ? 'carries' : 'carry'} it alongside concepts from both.
       <div class="tr-doclist">${b.documents.slice(0, 60).map((d) => `${esc(d.document)} ${esc(d.label)}: with ${esc(d.with_own.join(', '))} | ${esc(d.with_other.join(', '))}`).join('<br>')}</div>
       <label>What the overlap means, in your reading${tip('p6.bridging.reading')} <select data-reading="${esc(b.concept)}"><option value="">not yet read</option>${READINGS.map(([v, l]) => `<option value="${esc(v)}" ${b.reading && b.reading.reading === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label></div>`).join('') : '<p>No concept in this run is shared between frames.</p>');
     $$('[data-reading]').forEach((s) => { s.onchange = async () => { if (!s.value) return; await call('POST', `/runs/${run.run_id}/bridging/reading`, { concept: s.dataset.reading, reading: s.value }); toast('Reading recorded.'); }; });
@@ -371,7 +407,7 @@
   // --- page 7 ---------------------------------------------------------------------
   function renderExport() {
     if (!run) return;
-    $('#p7-article').href = `${API}/runs/${run.run_id}/export/article`;
+    $('#p7-article').href = `${API}/runs/${run.run_id}/export/article?tz=${encodeURIComponent(zone())}`;
     $('#p7-reviewer').href = `${API}/runs/${run.run_id}/export/reviewer`;
     $('#p7-limit').innerHTML = frames && !frames.where_you_stand.meets_reporting_minimum
       ? `<p class="tr-tier">A report taken now is marked interim, because the chance check hasn't run.${tip('p7.limit')}</p>` : '';
