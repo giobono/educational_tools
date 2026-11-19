@@ -13,7 +13,9 @@
 header('Content-Type: application/javascript; charset=utf-8');
 header('Cache-Control: no-store');
 
-$apps = ['gioianie', 'sanzognie', 'corres', 'pluralitie'];
+// corres is CR3; corres_v2 is the earlier CorRes app, moved aside for it
+// (OD's merge brief of 19 Nov 2026 §2.2). Each has its own config folder.
+$apps = ['gioianie', 'sanzognie', 'corres', 'corres_v2', 'pluralitie'];
 $enabled = [];
 
 foreach ($apps as $app) {

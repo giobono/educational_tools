@@ -3,8 +3,14 @@
 // carries a notes box whose notes are saved with the run by page and time.
 (function () {
   'use strict';
-  const C = window.CR3_TRIAL || { apiBase: 'http://127.0.0.1:8000', prefix: '/trial/corres' };
-  const API = C.apiBase + C.prefix;
+  // The engine's address comes from this app's config (config/apps/corres/
+  // config.js, served by config.php), never from a constant here; the prefix
+  // is the engine's on the one API (OD's merge brief of 19 Nov 2026 §2.1).
+  const C = window.CORRES_CONFIG || {};
+  const PREFIX = '/v3/corres';
+  const API = (C.apiBase || '') + PREFIX;
+  // The page's half of the sign-in switch (§3): false runs with no sign-in.
+  const SIGN_IN = C.requireSignIn !== false;
   const $ = (s, el) => (el || document).querySelector(s);
   const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -78,9 +84,15 @@
   function fillTips(root) { $$('[data-tip-id]', root).forEach((el) => { if (!el.dataset.tipDone) { el.insertAdjacentHTML('beforeend', tip(el.dataset.tipId)); el.dataset.tipDone = '1'; } }); }
 
   // --- plumbing ---------------------------------------------------------------
-  async function call(method, path, body, isForm) {
+  async function call(method, path, body, isForm, retried) {
     const opt = { method, headers: { 'X-Request-Id': crypto.randomUUID() } };
     if (method === 'POST') opt.headers['Idempotency-Key'] = crypto.randomUUID();
+    // Sign-in without metering (§3): the token on every call, from signin.js
+    // alone; no project header, because nothing here is charged.
+    if (SIGN_IN && typeof window.getToken === 'function') {
+      const tok = await window.getToken();
+      if (tok) opt.headers['Authorization'] = `Bearer ${tok}`;
+    }
     if (body && !isForm) { opt.headers['Content-Type'] = 'application/json'; opt.body = JSON.stringify(body); }
     if (body && isForm) opt.body = body;
     const r = await fetch(API + path, opt);
@@ -88,10 +100,20 @@
     let data; try { data = JSON.parse(text); } catch (e) { data = text; }
     if (!r.ok) {
       const d = data && data.detail;
+      const code = d && typeof d === 'object' ? d.code : null;
+      // The Terms once (S2/S3, shown by metering.js), then the call again.
+      if (SIGN_IN && code === 'terms_required' && !retried && window.ArtieMetering
+          && await window.ArtieMetering.requireTerms()) return call(method, path, body, isForm, true);
       const msg = typeof d === 'string' ? d : (d && d.message) || `Something went wrong (${r.status}). Try again; if it repeats, note it here.`;
-      const err = new Error(msg); err.status = r.status; err.detail = d; throw err;
+      const err = new Error(msg); err.status = r.status; err.detail = d; err.code = code; throw err;
     }
     return data;
+  }
+  // An error's string comes from metering.js where its code has one (401
+  // sends the person to sign in; S10–S15 by code); the page's toast otherwise.
+  function fail(e) {
+    if (SIGN_IN && window.ArtieMetering && window.ArtieMetering.handled(e)) return;
+    fail(e);
   }
   function toast(msg) { const t = $('#tr-toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; }, 6000); }
   // Trial brief v1.2 §2.2 (F10): whole seconds from a minute up, so neither
@@ -118,7 +140,7 @@
     const n = PAGES.indexOf(id) + 1; if (n > reached) reached = n;
     PAGES.forEach((p) => $('#' + p).classList.toggle('on', p === id));
     renderSteps(id); window.scrollTo(0, 0);
-    if (id === 'p5' || id === 'p6' || id === 'p7') refreshFrames().catch((e) => toast(e.message));
+    if (id === 'p5' || id === 'p6' || id === 'p7') refreshFrames().catch((e) => fail(e));
   }
   function renderSteps(cur) {
     const nav = $('#tr-steps'); nav.innerHTML = '';
@@ -156,6 +178,8 @@
       $('#tr-examples').innerHTML = ex.map((e) => `<button class="tr-btn" data-ex="${esc(e.id)}" ${e.available ? '' : 'disabled title="The file isn’t where the record says it is"'}>${esc(e.title)}</button>${e.id === 'marpor' ? tip('p1.example.marpor') : ''}`).join('');
       $$('[data-ex]').forEach((b) => { b.onclick = () => startExample(b.dataset.ex); });
     } catch (e) {
+      // Signed out: the shared panel asks the person to sign in; nothing to say here.
+      if (e.status === 401 || e.status === 403) { $('#tr-examples').textContent = ''; return; }
       // Trial brief v1.2 §2.1 (E8): the address goes to the log, not the page.
       console.error('The analysis engine isn’t answering at ' + C.apiBase, e);
       $('#tr-examples').textContent = 'The analysis engine isn’t answering. Try again in a few minutes.';
@@ -163,7 +187,7 @@
   }
   async function startExample(id) {
     try { const t0 = performance.now(); run = await call('POST', `/runs/example/${id}`); started = Date.now(); afterCheck((performance.now() - t0) / 1000); }
-    catch (e) { toast(e.message); }
+    catch (e) { fail(e); }
   }
 
   // --- page 2 ---------------------------------------------------------------------
@@ -172,7 +196,7 @@
     const f = $('#tr-file').files[0]; if (!f) return;
     const fd = new FormData(); fd.append('file', f); fd.append('corpus_id', $('#tr-cid').value || 'upload');
     try { const t0 = performance.now(); run = await call('POST', '/runs/upload', fd, true); started = Date.now(); const s = (performance.now() - t0) / 1000; $('#p2-time').textContent = 'Upload and check took ' + fmtS(s); afterCheck(s); }
-    catch (e) { toast(e.message); }
+    catch (e) { fail(e); }
   };
 
   // --- page 3 ---------------------------------------------------------------------
@@ -213,7 +237,7 @@
     try {
       const t = await call('POST', `/runs/${run.run_id}/confirm`, { answers, framing, point_x: $('#tr-pointx').value });
       show('p4'); await runMain(t.task_id);
-    } catch (e) { toast(e.message); } finally { $('#p3-go').disabled = false; }
+    } catch (e) { fail(e); } finally { $('#p3-go').disabled = false; }
   };
 
   // --- page 4 ---------------------------------------------------------------------
@@ -371,7 +395,7 @@
         const r = await call('GET', `/runs/${run.run_id}`);
         box.innerHTML = `<b>Running: the new run</b>. ${esc(String(r.running ? r.running.line : 'Working').replace(/\.$/, ''))}. ${fmtS((Date.now() - t0) / 1000)} so far.`;
       });
-    } catch (e) { toast(e.message); }
+    } catch (e) { fail(e); }
     liveItem = false; box.hidden = true; await refreshFrames(); show('p5');
   }
   // Values a review line's hover refers to ({ref}, {s}): the chance check's own.
@@ -390,7 +414,7 @@
         const line = r.running ? r.running.line : 'Working';
         box.innerHTML = `<b>Running: ${esc(frames.checklist.find((i) => i.key === key).title)}</b>. ${esc(String(line).replace(/\.$/, ''))}. ${fmtS((Date.now() - t0) / 1000)} so far.<br><span class="tr-small">Nothing else starts while this runs. You can rename frames, browse the table and read the shared concepts.</span>`;
       });
-    } catch (e) { toast(e.message); }
+    } catch (e) { fail(e); }
     liveItem = false; box.hidden = true; await refreshFrames();
     $('#p6-time').textContent = `The last item took ${fmtS((Date.now() - t0) / 1000)}`;
   }

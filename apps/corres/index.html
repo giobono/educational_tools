@@ -1,324 +1,174 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>corres — run the analysis · The Ebono Institute</title>
-<link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Correlating Resonance</title>
+<!--
+  CR3: implements CorRes methodology v3.0. Merges to develop under AD trial
+  brief v1.2 (on OD's build route). It borrows the shared brand and common
+  stylesheets so that it looks like the other apps.
+-->
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
-<meta name="theme-color" content="#05070a">
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&amp;family=JetBrains+Mono:wght@400;500&amp;family=Barlow:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="/ebono_brand.css" rel="stylesheet"/>
+<link href="/edu_common.css" rel="stylesheet"/>
+<link href="trial.css" rel="stylesheet"/>
+<!-- The app flag and this app's config (apiBase, requireSignIn), as every app loads them. -->
 <script src="/apps-enabled.php"></script>
 <script src="config.php"></script>
-<script src="/edu_common.js?v=202608231842"></script>
+<script src="/edu_common.js?v=202611192000"></script>
 <script>window.enforceAppActive();</script>
-<link href="/ebono_brand.css?v=202608231842" rel="stylesheet"/>
-<link href="/edu_common.css?v=202608231842" rel="stylesheet"/>
-<link href="corres.css?v=202610230030" rel="stylesheet"/></head>
+<!-- Sign-in without metering (OD's merge brief of 19 Nov 2026 §3): the shared
+     sign-in and the Terms, with no banner and no stop. This is the one CR3
+     page that signs people in. -->
+<script src="/apps/common/config.php"></script>
+<script src="/apps/common/metering_strings.js?v=202611192000"></script>
+<script src="/apps/common/signin.js?v=202611192000"></script>
+<script src="/apps/common/metering.js?v=202611192000"></script>
+<link href="/apps/common/metering.css?v=202611192000" rel="stylesheet"/>
+<script src="glossary.js"></script>
+</head>
 <body>
-<div id="edu-header" class="cr-nav"></div>
-<!-- ── Front page ──
-     Sighted final copy (AD, 11 Aug, register append) placed per
-     2026-08-12_briefs_od_d1dev_front_page_copy_corrections_and_promotion_v1_0.md
-     s1-s2, amending 2026-08-11_mailbox_cd_od_corres_front_page_and_fork_sequence_v1_0.md
-     s3/Annex A item 2. Wording is not D1Dev's to edit beyond the two
-     corrections named in the brief; placement, type scale and layout are.
+<header class="tr-head">
+  <div class="tr-logo">Correlating Resonance</div>
+  <nav class="tr-steps" id="tr-steps" aria-label="Pages"></nav>
+  <div class="tr-clock" id="tr-clock" title="Time for this run so far"></div>
+</header>
+<div id="artie-metering"></div>
 
-     Two corrections applied against CD's committed text:
-     s1.1 - "It also found a defect in analysis we had already published,
-     which we have since corrected" replaced (ambiguous clause read as
-     false; the method is corrected, the analysis is not - claimable set
-     s2.3/s4).
-     s1.2 - "published" -> "report" in "we published both refusals".
-     Checked first-hand, not assumed: ebono_research holds no public URL,
-     blog post or preprint carrying either refusal case (the only related
-     draft, CorRes_Article_Headline_Draft_v0_6.md, is an unpublished
-     working draft, reconciled against the now-void 17 July fixture, and
-     explicitly scopes the second-corpus refusal OUT - "A second-corpus
-     negative case was drafted and removed"). Not publicly reachable at
-     commit -> "report" substituted, per the brief's own specified branch. -->
-<!-- ── Orientation, CD corres_beta_copy v0.1 Page 2, placed verbatim ──────
-     The argument has moved to the root and does not repeat here. One orienting
-     line is mandatory: with the upstream applications closed this page has no
-     inbound path but a direct link, and a cold arrival from a conference slide
-     meets a lowercase word it has never seen. DRAFT, NOT SIGHTED. -->
-<section class="cr-front" id="cr-front">
-<div class="cr-front-inner">
-<p class="cr-front-eyebrow">corres</p>
-<h1 class="cr-front-title">Bring a coded matrix. Get back the structure it supports.</h1>
-<p class="cr-front-sub">corres takes a matrix of documents scored against concepts and finds which concepts group together. If your matrix cannot support that analysis, it stops and tells you why.</p>
-<p><a class="cr-front-cta" href="/">What corres does and why ↗</a></p>
-</div>
+<main class="tr-main">
+
+<!-- Page 1 -->
+<section class="tr-page" id="p1" data-title="Welcome">
+  <p class="tr-eyebrow">corres</p>
+  <h1 class="tr-title">Correlating Resonance: see the frames in your coded corpus</h1>
+  <!-- AD plain-language review of 12 Nov (p1.lede, a claim, placed as written). The
+       method's one-sentence statement (v3.0 §14) is kept for the article export. -->
+  <p class="tr-lede" data-tip-id="p1.lede">You have coded a set of documents against a list of concepts. Correlating Resonance shows you which concepts tend to appear together, how firmly they hold together when the corpus is split in half, which concepts mark each group out, and who voices each group. It tells you what each result has earned the right to be called. It certifies nothing.</p>
+  <div class="tr-choice">
+    <button class="tr-btn tr-primary" data-go="p2">Bring your matrix</button><span data-tip-id="p1.start"></span>
+    <div class="tr-or">or try it on an example corpus</div>
+    <div id="tr-examples" class="tr-examples"></div>
+  </div>
+  <details class="tr-setting"><summary>Setting: where the app pauses for you</summary>
+    <p>In this version you can choose how far the app runs before it pauses. Later settings run the earlier checklist items in order, without pausing between them.</p>
+    <select id="tr-pointx">
+      <option value="first_stop">At your frames (default)</option>
+      <option value="after_1">After the chance check</option>
+      <option value="after_2">After comparing kinds of document</option>
+      <option value="after_3">After the standard reruns</option>
+      <option value="after_4">After the second grouping method</option>
+    </select>
+  </details>
+  <div class="tr-notes" data-page="page 1"></div>
 </section>
-<div class="workspace" id="cr-front-start">
-<div class="callout">
-<!-- Sighting brief 21 Oct §2 (2): index.html carries no sentence that
-     describes the method. Every node below is empty in the markup and filled
-     by fillPageText() from `page` in method_strings.js, so a method sentence
-     cannot reappear here without going through AD first. If the file is
-     absent the page says nothing about the method, which is the safe
-     direction -- silence is not an unsighted claim.
 
-     What was removed, so a later reader can tell this from a deletion: a
-     callout offering the researcher a choice of threshold ("or set your own
-     number"), which CR4-16 (3) and CR4-24 (a) rule out -- the rule is fixed
-     by the declared type and never offered; a "Minimum" paragraph that was
-     G3's and wrong for G4; and the 0-3 upload hint, which excluded counts,
-     percentages and presence. -->
-<strong id="cr-need-title"></strong><br/>
-<span id="cr-need"></span><br/>
-<span id="cr-values-mean"></span><br/>
-<span id="cr-normalise-choice"></span><br/>
-<span id="cr-scale-lead"></span>
-<table class="cr-scale">
-<tr><td><strong>0</strong></td><td>Absent</td><td>the concept does not appear</td></tr>
-<tr><td><strong>1</strong></td><td>Mentioned</td><td>brief reference only</td></tr>
-<tr><td><strong>2</strong></td><td>Important</td><td>discussed and emphasised</td></tr>
-<tr><td><strong>3</strong></td><td>Central</td><td>a core focus of the document</td></tr>
-</table>
-<span id="cr-minimum"></span>
-</div>
-<!-- ── Where the analysis runs ──────────────────────────────────────────
-     Was a Pyodide loading message announcing a 15-30 second wait for a local
-     Python environment. Nothing loads Pyodide on this page - there are no
-     references to pyodide.js or loadPyodide() anywhere - and the analysis runs
-     server-side over the API. Script replaced the text on load, so the false
-     version was visible only briefly in a browser but was what anything
-     reading the source received. Stated correctly in the markup instead. -->
-<!-- ── Operating notes, CD corres_beta_copy v0.1 Page 2 ────────────────────
-     PLACED: "No account, no key, no charge." and the load line, with CD's
-     15-30 second estimate removed as CD's flag 1 directs.
+<!-- Page 2 -->
+<section class="tr-page" id="p2" data-title="Bring your matrix">
+  <h2>Bring your matrix</h2>
+  <p data-tip-id="p2.intro">A table with one row per document and one column per concept, saved as a CSV file. Columns that describe each document (who wrote it, when, what kind of document it is) can sit in the same file. Your file stays on this computer.</p>
+  <form id="tr-upload" class="tr-upload">
+    <input type="file" id="tr-file" accept=".csv,text/csv" required/>
+    <label>A short name for this corpus (used in file names) <input type="text" id="tr-cid" value="my_corpus" pattern="[a-z0-9_]+"/></label>
+    <button class="tr-btn tr-primary" type="submit">Check my file</button>
+  </form>
+  <div class="tr-steptime" id="p2-time"></div>
+  <div class="tr-notes" data-page="page 2"></div>
+</section>
 
-     WITHHELD, not rewritten: "This analysis uses no language model and nothing
-     you upload leaves your browser except where the run requires it." CD hedged
-     that clause because CD did not know the answer and asked OD. The answer is
-     that the analysis is NOT client-side - twelve API call sites, no Pyodide
-     loader anywhere - so the matrix does leave the browser and goes to artie.
-     Shipping it as drafted would tell a researcher holding sensitive policy
-     material something untrue about where their data goes. Rewriting it is
-     CD's act, not this seat's, so the sentence is absent rather than altered. -->
-<div class="pyodide-status ready" id="pyodide-status">
-<span id="pyodide-msg">No account, no key, no charge. The environment takes a moment to load on first visit.</span>
-</div>
-<!-- ── Registration gate (CD v0.1, 23 Aug — GATE-01..05, placed verbatim) ──
-     Shown in place of step one where CORRES_CONFIG.registrationRequired is
-     true. No registration mechanism exists, so the flag is the condition:
-     true on a surface that must not run corres, false where it may. -->
-<div class="cr-gate" id="corres-gate" hidden>
-  <h2 class="cr-gate-title">Open to registered researchers</h2>
-  <p class="cr-gate-body">corres is in beta, and we are opening it to researchers a few at a time so that we can respond properly to what comes back.</p>
-  <p class="cr-gate-body">Register your interest and we will be in touch.</p>
-  <p><a class="cr-gate-action" href="/#contact" id="corres-gate-action">Register your interest</a></p>
-  <p class="cr-gate-sub">Already registered? Write to <a href="mailto:info@ebono.au">info@ebono.au</a> and we will sort it out.</p>
-</div>
-<!-- ── DTM upload ── -->
-<div class="section-head">Reviewed DTM</div>
-<!-- Beta upload notice. OD's decision, 26 October 2026, on AD's recommendation
-     in its handoff of that date §3 (4): beta is already open to anyone, so the
-     uploaded-data question bites here before it bites on edu. The notice stands
-     until the uploaded-data rule replaces it, or until Geoff rewords or strikes
-     it. OD evening-corrections brief §7, countersigned GE 20:17.
-     Existing classes only — no CSS was added. Moved on 27 October 2026 from
-     warning-unavailable (the neutral variant) to warning-fail, the strongest
-     of the three existing banner styles, on Geoff's ruling of 15:44 that day
-     (OD brief of 27 October, map ruled and beta notice, §2). Text unchanged. -->
-<div class="warning-banner warning-fail" id="cr-beta-upload-notice">
-Uploads are stored for development. Do not upload data you are not permitted to share.
-</div>
-<div class="upload-zone" id="dtm-zone">
-<input accept=".csv,text/csv,text/plain,application/csv,application/vnd.ms-excel" id="dtm-file" type="file"/>
-<div class="upload-icon">📊</div>
-<div class="upload-body">
-<strong>Drop reviewed DTM CSV here or click to browse</strong>
-<div class="upload-sub" id="cr-upload-hint"></div>
-<div class="upload-stats" id="dtm-stats"></div>
-</div>
-</div>
-<!-- R2, R3 and R5 moved into step 0's card on 22 Oct (AD screen review
-     item 3, sighting brief §2 (3)): the declarations belong inside step 0's
-     decision, not loose above the cards, and their wording is AD's. The card
-     renders them from `declarations`; corres_flow.js re-runs step 0 when the
-     researcher confirms, so A0 records what was actually declared. -->
-<div id="error-display"></div>
-<!-- ── The nine steps ──
-     Rewrite brief v1.1 §2: "The pattern is G3's; the plumbing is G4's."
-     The markup below is G3's `.step-card` -- header with `.step-num` and
-     `.step-name`, a status line, a `.step-card-body` -- repeated nine times
-     instead of three. What changed is behind it: the browser holds a run id
-     and the server holds the artefacts, so no card reads a matrix.
+<!-- Page 3 -->
+<section class="tr-page" id="p3" data-title="Check your matrix">
+  <h2>Check your file</h2>
+  <div class="tr-callout" id="p3-opening"></div>
+  <div id="p3-summary"></div>
+  <div id="p3-questions"></div>
+  <div id="p3-roles"></div>
+  <div class="tr-framing">
+    <h3>Two questions before we start</h3>
+    <fieldset><legend><span id="fq1"></span><span data-tip-id="p3.fq1"></span></legend>
+      <label><input type="radio" name="fq1" value="yes"/> Yes</label>
+      <label><input type="radio" name="fq1" value="no" checked/> No</label>
+    </fieldset>
+    <fieldset><legend>Document details you may want to discuss</legend>
+      <p><span id="fq2"></span><span data-tip-id="p3.fq2"></span></p>
+      <div id="fq2-list"></div>
+    </fieldset>
+  </div>
+  <button class="tr-btn tr-primary" id="p3-go">Confirm and run</button>
+  <div class="tr-steptime" id="p3-time"></div>
+  <div class="tr-notes" data-page="page 3"></div>
+</section>
 
-     Every card carries the same four parts, in the same order, because the
-     Researcher Pipeline Specification fixes them: what was done, the one
-     thing to look at, flags, the decision. corres_flow.js fills them from
-     `reports/{step}`; nothing here reads anything the routes do not serve.
+<!-- Page 4 -->
+<section class="tr-page" id="p4" data-title="First view and run">
+  <h2>First view, and the run</h2>
+  <div class="tr-fv">
+    <div class="tr-fv-label">First view. Descriptive. Not yet a frame.<span data-tip-id="p4.fv.label"></span></div>
+    <canvas id="fv-canvas" width="560" height="560"></canvas>
+    <p class="tr-small" id="fv-caption"></p>
+  </div>
+  <div id="p4-defaults"></div>
+  <ol class="tr-runlines" id="p4-lines"></ol>
+  <div class="tr-steptime" id="p4-time"></div>
+  <div class="tr-notes" data-page="page 4"></div>
+</section>
 
-     Stage 3 delivers screens 0-4. Cards 5-8 exist so the shape of the
-     analysis is visible from the first screen, and say plainly that they
-     arrive at stage 4 rather than appearing broken. -->
-<div class="cr-method-unsighted" id="method-unsighted" hidden>
-  <strong>Not yet sighted by AD.</strong>
-  The wording describing the method on this page is drawn from specification
-  draft 0.5 and the numbered CR4 decisions and has not been through AD.
-</div>
-<div class="cr-run-bar">
-  <span class="cr-run-label">Run</span>
-  <code id="run-id">—</code>
-  <a class="cr-btn ghost" id="run-export" href="#" hidden download>Download everything (.zip)</a>
-</div>
-<!-- ── Step 0 ── -->
-<div class="step-card" id="s0-card">
-<div class="step-card-header">
-<div class="step-card-title">
-<span class="step-num" id="s0-num">0</span>
-<span class="step-name" id="s0-name"></span>
-</div>
-<div class="cr-step-status" id="s0-status"></div>
-</div>
-<div class="step-card-body" id="s0-body"></div>
-</div>
-<!-- ── Step 1 ── -->
-<div class="step-card" id="s1-card">
-<div class="step-card-header">
-<div class="step-card-title">
-<span class="step-num" id="s1-num">1</span>
-<span class="step-name" id="s1-name"></span>
-</div>
-<div class="cr-step-status" id="s1-status"></div>
-</div>
-<div class="step-card-body" id="s1-body"></div>
-</div>
-<!-- ── Step 2 ── -->
-<div class="step-card" id="s2-card">
-<div class="step-card-header">
-<div class="step-card-title">
-<span class="step-num" id="s2-num">2</span>
-<span class="step-name" id="s2-name"></span>
-</div>
-<div class="cr-step-status" id="s2-status"></div>
-</div>
-<div class="step-card-body" id="s2-body"></div>
-</div>
-<!-- ── Step 3 ── -->
-<div class="step-card" id="s3-card">
-<div class="step-card-header">
-<div class="step-card-title">
-<span class="step-num" id="s3-num">3</span>
-<span class="step-name" id="s3-name"></span>
-</div>
-<div class="cr-step-status" id="s3-status"></div>
-</div>
-<div class="step-card-body" id="s3-body"></div>
-</div>
-<!-- ── Step 4 ── -->
-<div class="step-card" id="s4-card">
-<div class="step-card-header">
-<div class="step-card-title">
-<span class="step-num" id="s4-num">4</span>
-<span class="step-name" id="s4-name"></span>
-</div>
-<div class="cr-step-status" id="s4-status"></div>
-</div>
-<div class="step-card-body" id="s4-body"></div>
-</div>
-<!-- ── Step 5 ── -->
-<div class="step-card" id="s5-card">
-<div class="step-card-header">
-<div class="step-card-title">
-<span class="step-num" id="s5-num">5</span>
-<span class="step-name" id="s5-name"></span>
-</div>
-<div class="cr-step-status" id="s5-status"></div>
-</div>
-<div class="step-card-body" id="s5-body"></div>
-</div>
-<!-- ── Step 6 ── -->
-<div class="step-card" id="s6-card">
-<div class="step-card-header">
-<div class="step-card-title">
-<span class="step-num" id="s6-num">6</span>
-<span class="step-name" id="s6-name"></span>
-</div>
-<div class="cr-step-status" id="s6-status"></div>
-</div>
-<div class="step-card-body" id="s6-body"></div>
-</div>
-<!-- ── Step 7 ── -->
-<div class="step-card" id="s7-card">
-<div class="step-card-header">
-<div class="step-card-title">
-<span class="step-num" id="s7-num">7</span>
-<span class="step-name" id="s7-name"></span>
-</div>
-<div class="cr-step-status" id="s7-status"></div>
-</div>
-<div class="step-card-body" id="s7-body"></div>
-</div>
-<!-- ── Step 8 ── -->
-<div class="step-card" id="s8-card">
-<div class="step-card-header">
-<div class="step-card-title">
-<span class="step-num" id="s8-num">8</span>
-<span class="step-name" id="s8-name"></span>
-</div>
-<div class="cr-step-status" id="s8-status"></div>
-</div>
-<div class="step-card-body" id="s8-body"></div>
-</div>
-</div><!-- /.cr-front-inner — opened at the front page; the nine cards sit
-          inside it, as G3's three did -->
+<!-- Page 5 -->
+<section class="tr-page" id="p5" data-title="Your frames">
+  <h2>Your frames</h2>
+  <div id="p5-tier" class="tr-tier"></div>
+  <div class="tr-two">
+    <div><h3>Your frames</h3><div id="p5-table"></div></div>
+    <div><h3>Stability diagram</h3><canvas id="sd-canvas" width="420" height="420"></canvas>
+      <p class="tr-small" data-tip-id="p5.sd.caption">Dark blocks on the diagonal are concepts that fell together in most of the fifty splits. Fainter bands are pairs that sometimes did.</p></div>
+  </div>
+  <div id="p5-chosen"></div>
+  <div id="p5-where" class="tr-where"></div>
+  <button class="tr-btn tr-primary" data-go="p6">Firm up these results</button>
+  <button class="tr-btn" data-go="p7">Export</button>
+  <div class="tr-steptime" id="p5-time"></div>
+  <div class="tr-notes" data-page="page 5"></div>
+</section>
 
-<!-- The method's own words, in one file so AD sights one file and not the
-     page (Charter §2.3). Loaded before the flow, which reads it. -->
-<script src="method_strings.js?v=202610230030"></script>
-<script src="g4_api.js?v=202610230030"></script>
-<script src="corres_flow.js?v=202610230030"></script>
+<!-- Page 6 -->
+<section class="tr-page" id="p6" data-title="Firm up">
+  <h2>Firm up: the checklist<span data-tip-id="p6.title"></span></h2>
+  <div id="p6-running" class="tr-running" hidden></div>
+  <div id="p6-review" class="tr-review" hidden></div>
+  <ol id="p6-items" class="tr-items"></ol>
+  <div id="p6-variations"></div>
+  <div id="p6-bridging"></div>
+  <details class="tr-notin"><summary>Analyses not in this version</summary><ul id="p6-notin"></ul></details>
+  <div class="tr-steptime" id="p6-time"></div>
+  <div class="tr-notes" data-page="page 6"></div>
+</section>
+
+<!-- Page 7 -->
+<section class="tr-page" id="p7" data-title="Export">
+  <h2>Export</h2>
+  <div class="tr-two">
+    <div class="tr-basket"><h3>For your article</h3><p data-tip-id="p7.article.text">Where you stand: what was found, how firm each frame is, sentences you can use, and what each remaining checklist item would add. Then a plain account of the three records.</p>
+      <a class="tr-btn tr-primary" id="p7-article" target="_blank">Open</a></div>
+    <div class="tr-basket"><h3>For your reviewer</h3><p data-tip-id="p7.reviewer.text">The full report in the method's order, the figures, and the three records (what you decided, what was run, every setting and seed) as JSON, so a reviewer can retrace the analysis.</p>
+      <a class="tr-btn tr-primary" id="p7-reviewer">Download</a></div>
+  </div>
+  <div id="p7-limit"></div>
+  <div class="tr-notes" data-page="page 7"></div>
+</section>
+
+</main>
+<div class="tr-toast" id="tr-toast" hidden></div>
+<div class="tr-pop" id="tr-pop" role="tooltip" hidden></div>
+<script src="trial.js"></script>
 <script>
-  // G3's boot, unchanged.
-  document.addEventListener('DOMContentLoaded', async () => {
-    await loadFragment('edu-header', '/edu_header.html');
-    markActiveNav();
-    applyAppVisibility();
-    renderBuildVersion();
+  // requireSignIn false in this app's config runs the page with no sign-in
+  // (the switch, §3). Otherwise the shared panel shows S1 when signed out and
+  // the Terms when they are owed; there is no allowance here, so no banner.
+  document.addEventListener('DOMContentLoaded', () => {
+    const c = window.CORRES_CONFIG || {};
+    if (c.requireSignIn !== false && window.ArtieMetering) window.ArtieMetering.init({ appId: 'corres', banner: false });
   });
-
-  // ── Registration gate (CD v0.1 §1) ────────────────────────────────────
-  // CD's strings, placed verbatim; the wiring is not CD's. Carried forward
-  // from G3 unchanged except for the card ids, which are now the nine steps.
-  (function applyCorresGate() {
-    var cfg = window.CORRES_CONFIG || {};
-    if (!cfg.registrationRequired) return;
-    var gate = document.getElementById('corres-gate');
-    if (gate) gate.hidden = false;
-    var ids = ['dtm-zone', 'method-unsighted'];
-    for (var i = 0; i <= 8; i += 1) ids.push('s' + i + '-card');
-    ids.forEach(function (id) {
-      var el = document.getElementById(id);
-      if (el) el.hidden = true;
-    });
-    document.querySelectorAll('.section-head').forEach(function (el) {
-      if (el.textContent.trim() === 'Reviewed DTM') el.hidden = true;
-    });
-  })();
 </script>
-<!-- Navigation, CD corres_beta_copy v0.1 Page 2: exactly two destinations,
-     both on the root. Phase numbering removed - CD's draft carries none on
-     either page or in either title. The Home link pointed at index.html,
-     relative, which resolves to this page rather than the root. -->
-<nav class="cr-bottom-nav">
-<a class="cr-bottom-btn ghost" href="/">← corres home</a>
-<a class="cr-bottom-btn" href="/#register">Register your interest →</a>
-</nav>
-<footer class="edu-footer">
-<div class="footer-entity">
-<span>Ebono Intelligence Pty Ltd, trading as The Ebono Institute · <a href="https://ebono.au">ebono.au</a></span>
-<div class="footer-legal-links">
-<a href="https://ebono.au/terms">Terms</a>
-<a href="https://ebono.au/privacy">Privacy</a>
-<a href="https://ebono.au/support">Support</a>
-</div>
-</div>
-</footer>
 </body>
 </html>
