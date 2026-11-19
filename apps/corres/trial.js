@@ -174,8 +174,12 @@
   // --- page 1 ---------------------------------------------------------------------
   async function loadExamples() {
     try {
-      const ex = await call('GET', '/examples');
-      $('#tr-examples').innerHTML = ex.map((e) => `<button class="tr-btn" data-ex="${esc(e.id)}" ${e.available ? '' : 'disabled title="The file isn’t where the record says it is"'}>${esc(e.title)}</button>${e.id === 'marpor' ? tip('p1.example.marpor') : ''}`).join('');
+      // OD's merge brief of 19 Nov §4 (AD §3): only a corpus that is present
+      // on this host is offered; an absent one is simply absent, and the
+      // line above the buttons goes with the last of them.
+      const ex = (await call('GET', '/examples')).filter((e) => e.available);
+      $('#tr-examples').innerHTML = ex.map((e) => `<button class="tr-btn" data-ex="${esc(e.id)}">${esc(e.title)}</button>${e.id === 'marpor' ? tip('p1.example.marpor') : ''}`).join('');
+      const or = $('.tr-or'); if (or) or.hidden = !ex.length;
       $$('[data-ex]').forEach((b) => { b.onclick = () => startExample(b.dataset.ex); });
     } catch (e) {
       // Signed out: the shared panel asks the person to sign in; nothing to say here.
