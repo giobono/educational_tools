@@ -35,6 +35,10 @@
   const state = {
     appId: null, product: null, account: null, signedIn: false,
     projectId: null, panel: null, accountOpen: false, termsPromise: null, mount: null,
+    // init({ banner: false }): sign-in and the Terms only, no banner and no
+    // account panel, for a page with no allowance to report (CR3: OD's merge
+    // brief of 19 Nov 2026 §3).
+    banner: true,
   };
   try { state.projectId = sessionStorage.getItem('artie.projectId') || null; } catch (_) { /* private mode */ }
 
@@ -82,7 +86,9 @@
       if (header && header.parentNode) header.parentNode.insertBefore(el, header.nextSibling);
       else document.body.insertBefore(el, document.body.firstChild);
     }
-    el.innerHTML = '<div id="artie-banner"></div><div id="artie-account"></div><div id="artie-panel"></div>';
+    el.innerHTML = state.banner
+      ? '<div id="artie-banner"></div><div id="artie-account"></div><div id="artie-panel"></div>'
+      : '<div id="artie-panel"></div>';
     state.mount = el;
     return el;
   }
@@ -377,6 +383,7 @@
   async function init(opts) {
     state.appId = opts && opts.appId;
     state.product = (opts && opts.product) || state.appId;
+    state.banner = !(opts && opts.banner === false);
     mount();
     window.addEventListener('artie:signed-in', () => { refresh().catch(() => {}); });
     try { await refresh(); } catch (err) { console.warn('account:', err.message); }

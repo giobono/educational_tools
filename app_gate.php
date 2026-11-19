@@ -13,10 +13,13 @@
  * Turning an application on remains one edit to one config file, outside the
  * web root and outside git, exactly as before.
  */
-$app  = preg_replace('/[^a-z]/', '', $_GET['app'] ?? '');
+// The app id keeps its digits and underscores, so corres_v2 (the earlier
+// CorRes app, moved aside for CR3: OD's merge brief of 19 Nov 2026 §2.2)
+// survives the cleaning and reaches the allow-list.
+$app  = preg_replace('/[^a-z0-9_]/', '', $_GET['app'] ?? '');
 $page = preg_replace('/[^a-z0-9_.-]/', '', $_GET['page'] ?? 'index.html');
 
-$allowed = ['gioianie', 'sanzognie', 'corres', 'pluralitie'];
+$allowed = ['gioianie', 'sanzognie', 'corres', 'corres_v2', 'pluralitie'];
 if (!in_array($app, $allowed, true) || strpos($page, '..') !== false) {
     http_response_code(404);
     exit;
