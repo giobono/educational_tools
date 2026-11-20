@@ -120,3 +120,12 @@ table.tr-k td, table.tr-k th { border: 1px solid var(--rule, #ddd); padding: .15
 .tr-next { margin: 0; min-width: 7rem; }
 /* The hidden attribute wins over a class that sets display (the Confirm button on a stored result, Next on page 7). */
 [hidden] { display: none !important; }
+
+/* AD's rights brief of 20 Nov 2026: the statement on a sample's entry, and the one-line form on a result page. */
+.tr-rights { font-size: .85rem; color: var(--ink-mid, #444); max-width: 40rem; border-left: 3px solid var(--rule, #ccc); padding: .2rem .9rem; margin: .3rem 0 .6rem; }
+.tr-rights p { margin: .35rem 0; }
+.tr-rights a { color: var(--accent, #0a7ea4); word-break: break-all; }
+.tr-rights-line { flex-basis: 100%; background: #f6f3ea; border-left: 3px solid #b08900; padding: .4rem .9rem; font-size: .88rem;
+  font-family: var(--font-display, serif); }
+.tr-rights-line a { color: var(--accent, #0a7ea4); }
+.tr-rights-line .tr-rights { font-family: var(--font-body, 'Barlow', sans-serif); background: var(--paper, #fff); margin-top: .5rem; }

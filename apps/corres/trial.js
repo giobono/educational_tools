@@ -176,6 +176,20 @@
     box.hidden = false;
   }
 
+  // --- AD's rights brief of 20 Nov 2026: the sighted statements, as written -----
+  function rightsFull(r) {
+    return `<div class="tr-rights"><b>${esc(r.heading)}</b>${r.paragraphs.map((t) => `<p>${esc(t)}</p>`).join('')}<p><b>Please cite:</b> <i>${esc(r.cite)}</i> <a href="${esc(r.cite_url)}" target="_blank" rel="noopener">${esc(r.cite_url)}</a></p></div>`;
+  }
+  // The one-line form at the top of every page that shows a result from the
+  // sample; "Rights and citation" opens the full statement under it.
+  function renderRights() {
+    const box = $('#tr-rights'), r = run && run.rights;
+    if (!r) { box.hidden = true; box.innerHTML = ''; return; }
+    box.innerHTML = `${esc(r.short)} <a href="#" id="tr-rights-more">Rights and citation.</a><div id="tr-rights-full" hidden>${rightsFull(r)}</div>`;
+    $('#tr-rights-more').onclick = (e) => { e.preventDefault(); const f = $('#tr-rights-full'); f.hidden = !f.hidden; };
+    box.hidden = false;
+  }
+
   async function waitTask(taskId, onTick) {
     for (;;) {
       const t = await call('GET', `/tasks/${taskId}`);
@@ -233,7 +247,8 @@
       // exists for the version now serving, and a live run is offered beside it.
       $('#tr-examples').innerHTML = ex.map((e) => `<div class="tr-example"><button class="tr-btn" data-ex="${esc(e.id)}" data-mode="${e.stored ? 'stored' : 'live'}">${esc(e.title)}</button>`
         + (e.stored ? `<span class="tr-small">stored results, ${esc(localDate(e.stored.computed))} · <a href="#" data-ex="${esc(e.id)}" data-mode="live">run it now</a></span>` : '')
-        + (e.id === 'marpor' ? tip('p1.example.marpor') : '') + '</div>').join('');
+        + (e.id === 'marpor' ? tip('p1.example.marpor') : '')
+        + (e.rights ? rightsFull(e.rights) : '') + '</div>').join('');
       $('#tr-samples').hidden = !ex.length;
       $$('[data-ex]').forEach((b) => { b.onclick = (ev) => { ev.preventDefault(); startExample(b.dataset.ex, b.dataset.mode); }; });
     } catch (e) {
@@ -296,7 +311,7 @@
       + '<label><input type="checkbox" id="fq2-unsure"/> Not sure yet</label>';
     $('#p3-time').textContent = 'Checking the file took ' + fmtS(run.timings && run.timings.check);
     $('#p3-go').hidden = !!run.stored_example;
-    reached = Math.max(reached, 3); renderNotes(); renderStored(); show('p3');
+    reached = Math.max(reached, 3); renderNotes(); renderStored(); renderRights(); show('p3');
   }
   $('#p3-go').onclick = async () => {
     const answers = {};
@@ -388,7 +403,7 @@
     if (!run) return;
     try { frames = await call('GET', `/runs/${run.run_id}/frames`); } catch (e) { if (e.status === 404) return; throw e; }
     run = await call('GET', `/runs/${run.run_id}`);
-    renderFrames(); renderChecklist(); renderExport(); renderNotes(); renderStored();
+    renderFrames(); renderChecklist(); renderExport(); renderNotes(); renderStored(); renderRights();
     renderSteps(current()); renderNext(current());
   }
   function concepts(list, withTarget, withFailed) { return list.length ? list.map((c) => esc(c.concept) + (withTarget && c.towards ? ` <span class="tr-small">(towards ${esc(c.towards)})</span>` : '') + (withFailed && (c.failed_test_plain || c.failed_test) ? ` <span class="tr-small">(${esc(c.failed_test_plain || c.failed_test)})</span>` : '')).join(', ') : '<span class="tr-small">none</span>'; }
