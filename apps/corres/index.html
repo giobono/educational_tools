@@ -8,12 +8,18 @@
   CR3: implements CorRes methodology v3.0. Merges to develop under AD trial
   brief v1.2 (on OD's build route). It borrows the shared brand and common
   stylesheets so that it looks like the other apps.
+  AD's brief of 20 Nov 2026 (the researcher's experience, pages 1 to 6): the
+  welcome describes the tool and offers both ways in (§1); the details box on
+  page 3 is shown only when it has something to offer (§2); the first view has
+  a key beside it (§3); one progress indicator and one Next button sit in the
+  same place on every page, and the app never moves to another page on its
+  own (§4); a sample's stored result says what it is, on every page (§5).
 -->
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&amp;family=JetBrains+Mono:wght@400;500&amp;family=Barlow:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
 <link href="/ebono_brand.css" rel="stylesheet"/>
 <link href="/edu_common.css" rel="stylesheet"/>
-<link href="trial.css" rel="stylesheet"/>
+<link href="trial.css?v=202611201000" rel="stylesheet"/>
 <!-- The app flag and this app's config (apiBase, requireSignIn), as every app loads them. -->
 <script src="/apps-enabled.php"></script>
 <script src="config.php"></script>
@@ -27,13 +33,19 @@
 <script src="/apps/common/signin.js?v=202611192000"></script>
 <script src="/apps/common/metering.js?v=202611192000"></script>
 <link href="/apps/common/metering.css?v=202611192000" rel="stylesheet"/>
-<script src="glossary.js"></script>
+<script src="glossary.js?v=202611201000"></script>
 </head>
 <body>
 <header class="tr-head">
   <div class="tr-logo">Correlating Resonance</div>
   <nav class="tr-steps" id="tr-steps" aria-label="Pages"></nav>
   <div class="tr-clock" id="tr-clock" title="Time for this run so far"></div>
+  <!-- §4.1: the one progress indicator, always in this place on every page.
+       The step now running in plain words, the time so far, and the estimate
+       for this host (AD note of 20 Nov §2). -->
+  <div class="tr-progress" id="tr-progress" role="status" aria-live="polite" hidden></div>
+  <!-- §5.2: what a stored result is, on every page that shows one. -->
+  <div class="tr-stored" id="tr-stored" hidden></div>
 </header>
 <div id="artie-metering"></div>
 
@@ -43,13 +55,20 @@
 <section class="tr-page" id="p1" data-title="Welcome">
   <p class="tr-eyebrow">corres</p>
   <h1 class="tr-title">Correlating Resonance: see the frames in your coded corpus</h1>
-  <!-- AD plain-language review of 12 Nov (p1.lede, a claim, placed as written). The
-       method's one-sentence statement (v3.0 §14) is kept for the article export. -->
-  <p class="tr-lede" data-tip-id="p1.lede">You have coded a set of documents against a list of concepts. Correlating Resonance shows you which concepts tend to appear together, how firmly they hold together when the corpus is split in half, which concepts mark each group out, and who voices each group. It tells you what each result has earned the right to be called. It certifies nothing.</p>
+  <!-- §1: AD's sighted wording, placed as written. The earlier opening
+       ("You have coded…", p1.lede) is replaced; the method's one-sentence
+       statement (v3.0 §14) is kept for the article export. -->
+  <p class="tr-lede" data-tip-id="p1.lede">CorRes shows the frames in a coded corpus. It finds which of your concepts appear together more often than their frequencies predict, tests whether those groupings hold up when your documents are split in half, and shows who voices each one. It doesn't code text: it works on a file you've already coded, with one row per document and one column per concept.</p>
+  <p class="tr-lede">Start with your own coded file, or try one of our sample data sets to see how it works.</p>
   <div class="tr-choice">
-    <button class="tr-btn tr-primary" data-go="p2">Bring your matrix</button><span data-tip-id="p1.start"></span>
-    <div class="tr-or">or try it on an example corpus</div>
-    <div id="tr-examples" class="tr-examples"></div>
+    <div class="tr-way">
+      <h3>Upload your own file</h3>
+      <button class="tr-btn tr-primary" data-go="p2">Upload your own file</button><span data-tip-id="p1.start"></span>
+    </div>
+    <div class="tr-way" id="tr-samples" hidden>
+      <h3>The sample data sets</h3>
+      <div id="tr-examples" class="tr-examples"></div>
+    </div>
   </div>
   <details class="tr-setting"><summary>Setting: where the app pauses for you</summary>
     <p>In this version you can choose how far the app runs before it pauses. Later settings run the earlier checklist items in order, without pausing between them.</p>
@@ -90,7 +109,9 @@
       <label><input type="radio" name="fq1" value="yes"/> Yes</label>
       <label><input type="radio" name="fq1" value="no" checked/> No</label>
     </fieldset>
-    <fieldset><legend>Document details you may want to discuss</legend>
+    <!-- §2: shown only when the file has at least one category detail
+         (inventory 3.13); when there are none, nothing replaces it. -->
+    <fieldset id="fq2-box" hidden><legend>Document details you may want to discuss</legend>
       <p><span id="fq2"></span><span data-tip-id="p3.fq2"></span></p>
       <div id="fq2-list"></div>
     </fieldset>
@@ -104,9 +125,17 @@
 <section class="tr-page" id="p4" data-title="First view and run">
   <h2>First view, and the run</h2>
   <div class="tr-fv">
-    <div class="tr-fv-label">First view. Descriptive. Not yet a frame.<span data-tip-id="p4.fv.label"></span></div>
-    <canvas id="fv-canvas" width="560" height="560"></canvas>
-    <p class="tr-small" id="fv-caption"></p>
+    <div>
+      <div class="tr-fv-label">First view. Descriptive. Not yet a frame.<span data-tip-id="p4.fv.label"></span></div>
+      <canvas id="fv-canvas" width="560" height="560"></canvas>
+      <p class="tr-small" id="fv-caption"></p>
+    </div>
+    <!-- §3: the key beside the first view, AD's sighted wording as written. -->
+    <aside class="tr-key" id="fv-key">
+      <h3>How to read this picture</h3>
+      <p>Each row and each column is one of your concepts, in the same order, so the picture is mirrored along the diagonal. The square for A and B is the same as the square for B and A. The diagonal is blank, because a concept isn't compared with itself.</p>
+      <p>Each square shows <b>residual co-occurrence</b>: how much more, or less, often two concepts appear in the same document than their frequencies alone would predict. <b>Red</b> means together more than expected, <b>blue</b> less than expected, and <b>white</b> about as expected. The deeper the colour, the bigger the difference.</p>
+    </aside>
   </div>
   <div id="p4-defaults"></div>
   <ol class="tr-runlines" id="p4-lines"></ol>
@@ -125,8 +154,6 @@
   </div>
   <div id="p5-chosen"></div>
   <div id="p5-where" class="tr-where"></div>
-  <button class="tr-btn tr-primary" data-go="p6">Firm up these results</button>
-  <button class="tr-btn" data-go="p7">Export</button>
   <div class="tr-steptime" id="p5-time"></div>
   <div class="tr-notes" data-page="page 5"></div>
 </section>
@@ -134,7 +161,6 @@
 <!-- Page 6 -->
 <section class="tr-page" id="p6" data-title="Firm up">
   <h2>Firm up: the checklist<span data-tip-id="p6.title"></span></h2>
-  <div id="p6-running" class="tr-running" hidden></div>
   <div id="p6-review" class="tr-review" hidden></div>
   <ol id="p6-items" class="tr-items"></ol>
   <div id="p6-variations"></div>
@@ -158,9 +184,16 @@
 </section>
 
 </main>
+<!-- §4.2–4.3: when a run finishes the page stays where it is and says the work
+     is ready; Next sits here on every page, enabled when the next page can be
+     reached. -->
+<footer class="tr-foot">
+  <div class="tr-ready" id="tr-ready" role="status" aria-live="polite"></div>
+  <button class="tr-btn tr-primary tr-next" id="tr-next" hidden>Next</button>
+</footer>
 <div class="tr-toast" id="tr-toast" hidden></div>
 <div class="tr-pop" id="tr-pop" role="tooltip" hidden></div>
-<script src="trial.js"></script>
+<script src="trial.js?v=202611201000"></script>
 <script>
   // requireSignIn false in this app's config runs the page with no sign-in
   // (the switch, §3). Otherwise the shared panel shows S1 when signed out and

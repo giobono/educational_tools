@@ -88,3 +88,33 @@ table.tr-k td, table.tr-k th { border: 1px solid var(--rule, #ddd); padding: .15
   border-radius: 4px; box-shadow: 0 4px 14px rgba(0, 0, 0, .12); font-size: .86rem; line-height: 1.45;
   font-weight: 400; text-align: left; }
 .tr-pop a { display: block; margin-top: .35rem; color: var(--accent, #0a7ea4); }
+
+/* AD's brief of 20 Nov 2026: the researcher's experience on pages 1 to 6. */
+/* §1: two clear ways in. */
+.tr-choice { display: flex; gap: 2rem; flex-wrap: wrap; margin: 1.5rem 0 1rem; }
+.tr-way { border: 1px solid var(--rule, #ccc); border-radius: 4px; padding: .6rem 1.1rem 1rem; min-width: 16rem; flex: 1; max-width: 26rem; }
+.tr-way h3 { margin: .3rem 0 .6rem; }
+.tr-examples { display: flex; flex-direction: column; gap: .35rem; }
+.tr-example { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; }
+.tr-example .tr-btn { margin: .15rem 0; }
+/* §3: the key beside the first view. */
+.tr-fv { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(16rem, 1fr); gap: 1.5rem; align-items: start; }
+@media (max-width: 800px) { .tr-fv { grid-template-columns: 1fr; } }
+.tr-key { border-left: 3px solid var(--rule, #ccc); padding: .2rem 1rem; font-size: .92rem; color: var(--ink-mid, #444); }
+.tr-key h3 { margin: .3rem 0 .5rem; color: var(--ink, #1d1d1f); }
+.tr-key b { color: var(--ink, #1d1d1f); }
+/* §4.1: the one progress indicator, in the header on every page. */
+.tr-progress { flex-basis: 100%; background: #eef7fb; border: 1px solid var(--accent, #0a7ea4); border-radius: 4px;
+  padding: .45rem .9rem; font-size: .9rem; }
+.tr-progress-time { font-family: var(--font-mono, monospace); font-size: .8rem; color: var(--ink-mid, #555); margin-left: .4rem; }
+.tr-progress .tr-small { display: block; }
+/* §5.2: a stored result says what it is, on every page. */
+.tr-stored { flex-basis: 100%; background: #f6f3ea; border-left: 3px solid #b08900; padding: .4rem .9rem; font-size: .88rem;
+  font-family: var(--font-display, serif); }
+/* §4.2–4.3: the page stays; Next in the same place on every page. */
+.tr-main { padding-bottom: 6rem; }
+.tr-foot { position: fixed; right: 0; bottom: 0; left: 0; display: flex; justify-content: flex-end; align-items: center; gap: 1.2rem;
+  padding: .6rem 2rem; background: var(--paper, #fff); border-top: 1px solid var(--rule, #ddd); z-index: 6; }
+.tr-ready { font-family: var(--font-display, serif); font-size: 1rem; }
+.tr-ready:empty { display: none; }
+.tr-next { margin: 0; min-width: 7rem; }

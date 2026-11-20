@@ -19,6 +19,8 @@
   let frames = null;       // the frames view
   let started = null;      // when this run began, for the clock
   let reached = 1;         // the furthest page reached
+  let busy = null;         // what the one progress indicator shows (AD brief of 20 Nov §4.1)
+  let nextOverride = null; // where Next goes after a run that made a new run (a variation)
 
   // --- page 3 wording: trial brief v1.1 §3.1, placed as given ---------------
   const OPENING = 'Your file holds two kinds of information, and corres treats them differently. Concepts are what your documents say: the codes you applied. Your frames are built from these alone. Document details are facts about each document: who wrote it, when, what kind of document it is. They are never used to build the frames. Once the frames are found, they show who voices each frame, which is often the finding you’ll discuss in your article. Keeping the two apart matters: a label for the speaker treated as a concept can become a frame of its own. If your file has no document details, you’ll still get frames, but not who voices them.';
@@ -59,6 +61,7 @@
   // number, and a time the engine recorded in UTC shown in the researcher's own.
   const cnt = (k, w, p) => `${k} ${k === 1 ? w : (p || w + 's')}`;
   const localTime = (iso) => { const d = new Date(iso); return isNaN(d) ? String(iso) : d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }); };
+  const localDate = (iso) => { const d = new Date(iso); return isNaN(d) ? String(iso) : d.toLocaleDateString(undefined, { dateStyle: 'long' }); };
   const zone = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { return ''; } };
   const pop = () => $('#tr-pop');
   let pinned = null;
@@ -126,6 +129,53 @@
     const t = Math.round(s), h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), r = t % 60;
     return h ? `${h} h ${m} min` : `${m} min ${r} s`;
   };
+  // --- AD brief of 20 Nov §4: one progress indicator, same place on every page ---
+  // What runs now, in its plain words (inventory 4.3, 6.17, 6.18); the time so
+  // far; and the estimate, which is the real figure for this host or nothing.
+  function progressStart(title, estimate, note) {
+    busy = { title, t0: Date.now(), estimate: estimate == null ? null : +estimate, line: '', note: note || '' };
+    progressDraw(); $('#tr-progress').hidden = false;
+  }
+  function progressLine(line) { if (busy) { busy.line = line || ''; progressDraw(); } }
+  function progressDraw() {
+    if (!busy) return;
+    const so = (Date.now() - busy.t0) / 1000;
+    $('#tr-progress').innerHTML = `<b>Running: ${esc(busy.title)}</b>${busy.line ? `. ${esc(String(busy.line).replace(/\.$/, ''))}…` : ''}`
+      + `<span class="tr-progress-time">${fmtS(so)} so far${busy.estimate != null ? ` · about ${fmtS(busy.estimate)}` : ''}</span>`
+      + (busy.note ? `<span class="tr-small">${esc(busy.note)}</span>` : '');
+  }
+  function progressEnd() { busy = null; const p = $('#tr-progress'); p.hidden = true; p.innerHTML = ''; }
+  setInterval(progressDraw, 1000);
+  // §4.2–4.3: when a run finishes the page stays where it is and says the work
+  // is ready; Next sits in the same place on every page, enabled when the next
+  // page can be reached, and the app never moves on its own.
+  const NEXT = { p1: 'p2', p2: 'p3', p3: 'p4', p4: 'p5', p5: 'p6', p6: 'p7', p7: null };
+  // What the next page needs before Next will take you there: a checked file
+  // for page 3, a confirmed run for page 4, frames for pages 5 to 7.
+  function nextAllowed(id) {
+    if (id === 'p2') return true;
+    if (id === 'p3') return !!run;
+    if (id === 'p4') return !!run && reached >= 4;
+    return !!frames;
+  }
+  function renderNext(cur) {
+    const b = $('#tr-next'), n = nextOverride || NEXT[cur];
+    b.hidden = !n;
+    if (n) { b.disabled = !nextAllowed(n); b.onclick = () => { nextOverride = null; show(n); }; }
+  }
+  function ready(sentence) { $('#tr-ready').textContent = sentence || ''; }
+  const current = () => PAGES.find((p) => $('#' + p).classList.contains('on')) || 'p1';
+  // §5.2: what a stored result is, on every page that shows one. The estimate
+  // is this host's, for the four checks on a file of this size.
+  function renderStored() {
+    const box = $('#tr-stored'), se = run && run.stored_example;
+    if (!se) { box.hidden = true; box.textContent = ''; return; }
+    const est = run.estimates || {};
+    const checks = ['chance_check', 'standard_reruns', 'second_grouping', 'compare_types'].reduce((a, k) => a + (+est[k] || 0), 0);
+    box.textContent = `These are stored results for this sample, computed on ${localDate(se.computed)}. On your own file, the checks take about ${fmtS(checks)}.`;
+    box.hidden = false;
+  }
+
   async function waitTask(taskId, onTick) {
     for (;;) {
       const t = await call('GET', `/tasks/${taskId}`);
@@ -139,7 +189,8 @@
   function show(id) {
     const n = PAGES.indexOf(id) + 1; if (n > reached) reached = n;
     PAGES.forEach((p) => $('#' + p).classList.toggle('on', p === id));
-    renderSteps(id); window.scrollTo(0, 0);
+    renderSteps(id); renderNext(id); ready(''); window.scrollTo(0, 0);
+    if (id === 'p4' && run && run.first_view && !busy) drawPage4().catch((e) => fail(e));
     if (id === 'p5' || id === 'p6' || id === 'p7') refreshFrames().catch((e) => fail(e));
   }
   function renderSteps(cur) {
@@ -178,9 +229,13 @@
       // on this host is offered; an absent one is simply absent, and the
       // line above the buttons goes with the last of them.
       const ex = (await call('GET', '/examples')).filter((e) => e.available);
-      $('#tr-examples').innerHTML = ex.map((e) => `<button class="tr-btn" data-ex="${esc(e.id)}">${esc(e.title)}</button>${e.id === 'marpor' ? tip('p1.example.marpor') : ''}`).join('');
-      const or = $('.tr-or'); if (or) or.hidden = !ex.length;
-      $$('[data-ex]').forEach((b) => { b.onclick = () => startExample(b.dataset.ex); });
+      // AD brief of 20 Nov §5: the stored result is the default where one
+      // exists for the version now serving, and a live run is offered beside it.
+      $('#tr-examples').innerHTML = ex.map((e) => `<div class="tr-example"><button class="tr-btn" data-ex="${esc(e.id)}" data-mode="${e.stored ? 'stored' : 'live'}">${esc(e.title)}</button>`
+        + (e.stored ? `<span class="tr-small">stored results, ${esc(localDate(e.stored.computed))} · <a href="#" data-ex="${esc(e.id)}" data-mode="live">run it now</a></span>` : '')
+        + (e.id === 'marpor' ? tip('p1.example.marpor') : '') + '</div>').join('');
+      $('#tr-samples').hidden = !ex.length;
+      $$('[data-ex]').forEach((b) => { b.onclick = (ev) => { ev.preventDefault(); startExample(b.dataset.ex, b.dataset.mode); }; });
     } catch (e) {
       // Signed out: the shared panel asks the person to sign in; nothing to say here.
       if (e.status === 401 || e.status === 403) { $('#tr-examples').textContent = ''; return; }
@@ -189,9 +244,16 @@
       $('#tr-examples').textContent = 'The analysis engine isn’t answering. Try again in a few minutes.';
     }
   }
-  async function startExample(id) {
-    try { const t0 = performance.now(); run = await call('POST', `/runs/example/${id}`); started = Date.now(); afterCheck((performance.now() - t0) / 1000); }
-    catch (e) { fail(e); }
+  async function startExample(id, mode) {
+    try {
+      const t0 = performance.now();
+      run = await call('POST', mode === 'stored' ? `/runs/example/${id}/stored` : `/runs/example/${id}`);
+      started = Date.now(); frames = null;
+      // A stored result is complete: every page can be reached, and the
+      // review still happens in order (§5.4), so it opens at page 3.
+      if (run.stored_example) reached = Math.max(reached, 5);
+      afterCheck((performance.now() - t0) / 1000);
+    } catch (e) { fail(e); }
   }
 
   // --- page 2 ---------------------------------------------------------------------
@@ -225,11 +287,16 @@
     const roles = c.roles;
     $('#p3-roles').innerHTML = `<details><summary>Every column and what we think it is (change any)</summary><div class="tr-roles">${Object.keys(roles).map((col) => `<label>${esc(col)} <select data-col="${esc(col)}">${['concept', 'covariate', 'label', 'id', 'exclude'].map((r) => `<option value="${r}" ${roles[col] === r ? 'selected' : ''}>${{ concept: 'concept', covariate: 'document detail', label: 'label (shown, not analysed)', id: 'document identifier', exclude: 'remove' }[r]}</option>`).join('')}</select></label>`).join('')}</div></details>`;
     $('#fq1').textContent = FQ1; $('#fq2').textContent = FQ2;
+    // AD brief of 20 Nov §2: the box (inventory 3.13) is shown only when the
+    // file has at least one category detail; when there are none, nothing
+    // replaces it.
     const cats = c.category_details || [];
-    $('#fq2-list').innerHTML = (cats.length ? cats.map((d) => `<label><input type="checkbox" class="fq2" value="${esc(d)}"/> ${esc(d)}</label>`).join('') : '<p class="tr-small">No document details of the kind we can compare (categories) were found.</p>')
+    $('#fq2-box').hidden = !cats.length;
+    $('#fq2-list').innerHTML = cats.map((d) => `<label><input type="checkbox" class="fq2" value="${esc(d)}"/> ${esc(d)}</label>`).join('')
       + '<label><input type="checkbox" id="fq2-unsure"/> Not sure yet</label>';
     $('#p3-time').textContent = 'Checking the file took ' + fmtS(run.timings && run.timings.check);
-    reached = Math.max(reached, 3); renderNotes(); show('p3');
+    $('#p3-go').hidden = !!run.stored_example;
+    reached = Math.max(reached, 3); renderNotes(); renderStored(); show('p3');
   }
   $('#p3-go').onclick = async () => {
     const answers = {};
@@ -263,23 +330,41 @@
       labels.forEach((l, i) => ctx.fillText(l.slice(0, 26), pad - 4, top + i * cell + cell * 0.8));
     }
   }
+  const STEP_LINES = [['declare', 'Reading how your file is set up'], ['binarise', 'Deciding what counts as \'present\''], ['admit', 'Setting aside documents and concepts that can\'t say anything about co-occurrence'], ['first_view', 'Drawing the first view'],
+    ['associate', 'Measuring how far concepts appear together beyond what their frequencies predict'], ['stability', 'Splitting the corpus in half, many times, to find the groups that keep reappearing'], ['covariates', 'Relating each frame to the document details, to see who voices it'], ['structure', 'Reading the inside of each frame: which concepts mark it out, which sit between frames'], ['pairs', 'Recording any specific pairs you asked about']];
+  let fvDrawnFor = null;
+  // The first view and the step lines, from the run's state: drawn as a live
+  // run proceeds, and again whole when a stored result is opened at page 4.
+  async function drawPage4() {
+    if (run.first_view && fvDrawnFor !== run.run_id) {
+      const fv = await call('GET', `/runs/${run.run_id}/first-view`);
+      fvDrawnFor = run.run_id;
+      heat($('#fv-canvas'), fv.concepts, fv.residuals, true);
+      // AD brief of 20 Nov §3: the view is seriated (engine `_seriate`, the
+      // leading eigenvectors of the residual matrix), so the clause about
+      // placement is true of what is shown and stays until AD words it.
+      $('#fv-caption').innerHTML = esc(`${fv.documents_admitted} documents and ${fv.concepts_admitted} concepts in play. Concepts that appear together more often than their frequencies predict are placed side by side: red means together more than expected, blue less. Drawn in ${fmtS(fv.seconds)}.`) + tip('p4.fv.caption');
+    }
+    const t = run.timings || {};
+    $('#p4-lines').innerHTML = STEP_LINES.filter(([k]) => t[k] != null).map(([k, l]) => `<li class="done">${esc(l)}: ${fmtS(t[k])}${tip('p4.line.' + k)}</li>`).join('')
+      + (run.running && run.running.line ? `<li>${esc(String(run.running.line).replace(/\.$/, ''))}…</li>` : '');
+    if (!busy && frames && frames.defaults) renderDefaults();
+  }
+  function renderDefaults() {
+    $('#p4-defaults').innerHTML = `<h3>What the app chose for you, and why${tip('p4.defaults.title')}</h3>` + frames.defaults.choices.map((c) => `<div class="tr-card"><b>${esc(c.fork)}</b>: ${esc(c.chosen)}.${c.reason ? ` <span class="tr-small">${esc(c.reason)}</span>` : ''}${c.id ? tip(c.id) : ''}</div>`).join('') + '<p class="tr-small">All five were chosen from the shape of your data before any result was seen.</p>';
+  }
   async function runMain(taskId) {
-    const lines = $('#p4-lines'); lines.innerHTML = ''; let fvShown = false; const t0 = Date.now();
+    $('#p4-lines').innerHTML = ''; $('#p4-defaults').innerHTML = ''; fvDrawnFor = null; const t0 = Date.now();
+    // §4.1: the estimate is this host's measured figure for a file of this
+    // size, or nothing until a main run has completed here.
+    progressStart('the main run', run.estimates && run.estimates.main_run);
     const done = await waitTask(taskId, async () => {
       run = await call('GET', `/runs/${run.run_id}`);
-      if (!fvShown && run.first_view) {
-        fvShown = true;
-        const fv = await call('GET', `/runs/${run.run_id}/first-view`);
-        heat($('#fv-canvas'), fv.concepts, fv.residuals, true);
-        $('#fv-caption').innerHTML = esc(`${fv.documents_admitted} documents and ${fv.concepts_admitted} concepts in play. Concepts that appear together more often than their frequencies predict are placed side by side: red means together more than expected, blue less. Drawn in ${fmtS(fv.seconds)}.`) + tip('p4.fv.caption');
-      }
-      const t = run.timings || {};
-      const step = [['declare', 'Reading how your file is set up'], ['binarise', 'Deciding what counts as \'present\''], ['admit', 'Setting aside documents and concepts that can\'t say anything about co-occurrence'], ['first_view', 'Drawing the first view'],
-        ['associate', 'Measuring how far concepts appear together beyond what their frequencies predict'], ['stability', 'Splitting the corpus in half, many times, to find the groups that keep reappearing'], ['covariates', 'Relating each frame to the document details, to see who voices it'], ['structure', 'Reading the inside of each frame: which concepts mark it out, which sit between frames'], ['pairs', 'Recording any specific pairs you asked about']];
-      lines.innerHTML = step.filter(([k]) => t[k] != null).map(([k, l]) => `<li class="done">${esc(l)}: ${fmtS(t[k])}${tip('p4.line.' + k)}</li>`).join('')
-        + (run.running && run.running.line ? `<li>${esc(String(run.running.line).replace(/\.$/, ''))}…</li>` : '');
+      progressLine(run.running && run.running.line);
+      await drawPage4();
       $('#p4-time').textContent = 'This page so far: ' + fmtS((Date.now() - t0) / 1000);
     });
+    progressEnd();
     // AD review of 12 Nov §5: a plain line, never G4's raw output; the
     // technical message is in the reviewer's report.
     // Trial brief v1.2 §2.2 (F4): the plain lines are sentences; the report
@@ -293,8 +378,9 @@
       toast(lead + plain + details); return;
     }
     await refreshFrames();
-    if (frames.defaults) $('#p4-defaults').innerHTML = `<h3>What the app chose for you, and why${tip('p4.defaults.title')}</h3>` + frames.defaults.choices.map((c) => `<div class="tr-card"><b>${esc(c.fork)}</b>: ${esc(c.chosen)}.${c.reason ? ` <span class="tr-small">${esc(c.reason)}</span>` : ''}${c.id ? tip(c.id) : ''}</div>`).join('') + '<p class="tr-small">All five were chosen from the shape of your data before any result was seen.</p>';
-    reached = Math.max(reached, 5); show('p5');
+    if (frames.defaults) renderDefaults();
+    // §4.2: the page stays where it is; the work is ready, and Next waits.
+    reached = Math.max(reached, 5); renderSteps(current()); renderNext(current()); ready('Your frames are ready');
   }
 
   // --- page 5 ---------------------------------------------------------------------
@@ -302,7 +388,8 @@
     if (!run) return;
     try { frames = await call('GET', `/runs/${run.run_id}/frames`); } catch (e) { if (e.status === 404) return; throw e; }
     run = await call('GET', `/runs/${run.run_id}`);
-    renderFrames(); renderChecklist(); renderExport(); renderNotes(); renderSteps(PAGES.find((p) => $('#' + p).classList.contains('on')));
+    renderFrames(); renderChecklist(); renderExport(); renderNotes(); renderStored();
+    renderSteps(current()); renderNext(current());
   }
   function concepts(list, withTarget, withFailed) { return list.length ? list.map((c) => esc(c.concept) + (withTarget && c.towards ? ` <span class="tr-small">(towards ${esc(c.towards)})</span>` : '') + (withFailed && (c.failed_test_plain || c.failed_test) ? ` <span class="tr-small">(${esc(c.failed_test_plain || c.failed_test)})</span>` : '')).join(', ') : '<span class="tr-small">none</span>'; }
   function renderFrames() {
@@ -391,16 +478,18 @@
   }
   async function runVariation(key) {
     liveItem = true; renderChecklist();
-    const box = $('#p6-running'); box.hidden = false; const t0 = Date.now();
     try {
       const out = await call('POST', `/runs/${run.run_id}/variations`, { change: key });
-      run = out.run;
+      run = out.run; frames = null; fvDrawnFor = null;
+      progressStart('the new run', run.estimates && run.estimates.main_run);
       await waitTask(out.task_id, async () => {
         const r = await call('GET', `/runs/${run.run_id}`);
-        box.innerHTML = `<b>Running: the new run</b>. ${esc(String(r.running ? r.running.line : 'Working').replace(/\.$/, ''))}. ${fmtS((Date.now() - t0) / 1000)} so far.`;
+        progressLine(r.running ? r.running.line : 'Working');
       });
     } catch (e) { fail(e); }
-    liveItem = false; box.hidden = true; await refreshFrames(); show('p5');
+    progressEnd(); liveItem = false; await refreshFrames();
+    // §4.2: the new run's frames are ready; Next goes to them, the page stays.
+    nextOverride = 'p5'; renderNext(current()); ready('Your frames are ready');
   }
   // Values a review line's hover refers to ({ref}, {s}): the chance check's own.
   function reviewVars(res) {
@@ -410,16 +499,16 @@
   }
   async function runItem(key) {
     liveItem = true; renderChecklist();
-    const box = $('#p6-running'); box.hidden = false; const t0 = Date.now();
+    const item = frames.checklist.find((i) => i.key === key) || { title: key }; const t0 = Date.now();
+    progressStart(item.title, item.estimate_seconds, 'Nothing else starts while this runs. You can rename frames, browse the table and read the shared concepts.');
     try {
       const t = await call('POST', `/runs/${run.run_id}/checklist`, { item: key });
       await waitTask(t.task_id, async () => {
         const r = await call('GET', `/runs/${run.run_id}`);
-        const line = r.running ? r.running.line : 'Working';
-        box.innerHTML = `<b>Running: ${esc(frames.checklist.find((i) => i.key === key).title)}</b>. ${esc(String(line).replace(/\.$/, ''))}. ${fmtS((Date.now() - t0) / 1000)} so far.<br><span class="tr-small">Nothing else starts while this runs. You can rename frames, browse the table and read the shared concepts.</span>`;
+        progressLine(r.running ? r.running.line : 'Working');
       });
     } catch (e) { fail(e); }
-    liveItem = false; box.hidden = true; await refreshFrames();
+    progressEnd(); liveItem = false; await refreshFrames();
     $('#p6-time').textContent = `The last item took ${fmtS((Date.now() - t0) / 1000)}`;
   }
   // The stored value is the method's word; the label is AD's plain one (12 Nov).
