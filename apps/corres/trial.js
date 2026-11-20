@@ -251,7 +251,7 @@
       started = Date.now(); frames = null;
       // A stored result is complete: every page can be reached, and the
       // review still happens in order (§5.4), so it opens at page 3.
-      if (run.stored_example) reached = Math.max(reached, 5);
+      if (run.stored_example) { reached = Math.max(reached, 5); await refreshFrames(); }
       afterCheck((performance.now() - t0) / 1000);
     } catch (e) { fail(e); }
   }

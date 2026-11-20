@@ -118,3 +118,5 @@ table.tr-k td, table.tr-k th { border: 1px solid var(--rule, #ddd); padding: .15
 .tr-ready { font-family: var(--font-display, serif); font-size: 1rem; }
 .tr-ready:empty { display: none; }
 .tr-next { margin: 0; min-width: 7rem; }
+/* The hidden attribute wins over a class that sets display (the Confirm button on a stored result, Next on page 7). */
+[hidden] { display: none !important; }
