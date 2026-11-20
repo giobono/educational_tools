@@ -13,7 +13,10 @@
 //                    live     'https://api.ebono.net'
 //   appActive      the per-environment on/off switch, read by app_gate.php
 //                  and apps-enabled.php as for every app
-//   requireSignIn  the page's half of the sign-in switch (§3). true: the
+//   // sampleLiveRuns: offer "run it now" beside a sample's stored result.
+  // Off for the launch (CD brief of 20 Nov 2026 §3.2); CD turns it on per surface.
+  sampleLiveRuns: false,
+  requireSignIn  the page's half of the sign-in switch (§3). true: the
 //                  page signs people in through /apps/common/signin.js and
 //                  sends the token on every call; the API's half is
 //                  ARTIE_CORRES_REQUIRE_SIGNIN. With both false, CR3 runs

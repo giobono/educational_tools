@@ -244,9 +244,14 @@
       // line above the buttons goes with the last of them.
       const ex = (await call('GET', '/examples')).filter((e) => e.available);
       // AD brief of 20 Nov §5: the stored result is the default where one
-      // exists for the version now serving, and a live run is offered beside it.
+      // exists for the version now serving. The live run beside it is one
+      // setting (CD brief of 20 Nov §3.2, D15): off for the launch, and turned
+      // back on per surface with `sampleLiveRuns: true` in the app's
+      // config.js once the load is known. A researcher's own file always
+      // runs live.
+      const liveRuns = C.sampleLiveRuns === true;
       $('#tr-examples').innerHTML = ex.map((e) => `<div class="tr-example"><button class="tr-btn" data-ex="${esc(e.id)}" data-mode="${e.stored ? 'stored' : 'live'}">${esc(e.title)}</button>`
-        + (e.stored ? `<span class="tr-small">stored results, ${esc(localDate(e.stored.computed))} · <a href="#" data-ex="${esc(e.id)}" data-mode="live">run it now</a></span>` : '')
+        + (e.stored ? `<span class="tr-small">stored results, ${esc(localDate(e.stored.computed))}${liveRuns ? ` · <a href="#" data-ex="${esc(e.id)}" data-mode="live">run it now</a>` : ''}</span>` : '')
         + (e.id === 'marpor' ? tip('p1.example.marpor') : '')
         + (e.rights ? rightsFull(e.rights) : '') + '</div>').join('');
       $('#tr-samples').hidden = !ex.length;
