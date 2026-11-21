@@ -1,0 +1,48 @@
+/* edu_home.css — the edu home page as CD's launch copy of 20 Nov 2026 has it
+   (OD's brief of 21 Nov §2). Only what the shared stylesheets lack: a headline
+   that is a sentence, not a title; lists; and the method line. Everything else
+   is edu_hero.css (the dark band) and edu_common.css (the light sections). */
+
+/* The headline is Annexe v2.1 §1's strongest line, a full sentence, so it is
+   set smaller than the one-phrase title the hero was drawn for. */
+.hero-title.home-title {
+  font-size: clamp(1.9rem, 4.2vw, 3.1rem);
+  line-height: 1.15;
+  margin-bottom: 1.5rem;
+  max-width: 46rem;
+}
+
+/* Lists in the light sections: the body face and measure of .fp-body. */
+.home-list {
+  font-family: var(--ebono-font-body); font-weight: 400;
+  font-size: 1.05rem; line-height: 1.7;
+  color: var(--ink-mid); max-width: 42rem;
+  margin: 0 0 1rem; padding-left: 1.25rem;
+}
+.home-list li { margin-bottom: 0.7rem; }
+.home-list li::marker { color: var(--accent); }
+.home-list strong { color: var(--ink); font-weight: 600; }
+
+/* Links in the light sections. */
+.fp-body a, .home-list a {
+  color: var(--accent); text-decoration: none;
+  border-bottom: 1px solid var(--accent-light);
+}
+.fp-body a:hover, .home-list a:hover { color: var(--ink); border-color: var(--ink); }
+
+/* The citation form, set apart as a line to copy. */
+.home-cite {
+  font-family: var(--ebono-font-display); font-style: italic;
+  font-size: 1.1rem; line-height: 1.6; color: var(--ink);
+  max-width: 42rem; margin: 0 0 1rem;
+  padding: 0.9rem 1.1rem; border-left: 3px solid var(--accent);
+  background: var(--paper-mid);
+}
+
+@media (max-width: 900px) {
+  .fp-paired { grid-template-columns: 1fr; gap: 0; }
+}
+
+/* Air between the dark band and the first light section (the hero is the
+   page's first section, so .fp-section:first-of-type's margin does not apply). */
+.hero + .fp-section { margin-top: 3.5rem; }
