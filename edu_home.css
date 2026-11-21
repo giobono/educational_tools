@@ -46,3 +46,9 @@
 /* Air between the dark band and the first light section (the hero is the
    page's first section, so .fp-section:first-of-type's margin does not apply). */
 .hero + .fp-section { margin-top: 3.5rem; }
+
+/* CD's note 3: gioianie, sanzognie and pluralitie are not on this page. The
+   shared header's phase strip links to them wherever their switch is on
+   (beta has gioianie on), so on this page alone the strip is not shown; the
+   brand, the title and Home stay. One line to reverse. */
+.cr-phases .main-nav { display: none; }
