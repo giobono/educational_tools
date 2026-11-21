@@ -24,6 +24,11 @@
   # link in Louis's pack still lands. corres_v2 is the earlier app, moved aside.
   RewriteRule ^apps/corres_trial/?(.*)$ /apps/corres/$1 [R=301,L]
   RewriteRule ^apps/(gioianie|sanzognie|corres|corres_v2|pluralitie)/([A-Za-z0-9_.-]+\.html)$ app_gate.php?app=$1&page=$2 [L,QSA]
+  # A directory under /apps/ asked for without its trailing slash answers 301 to the
+  # slash form, before the app gate below can serve it at the slashless address, where
+  # the page's relative files would not load (OD brief of 21 Nov 2026).
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^apps/([a-z0-9_]+)$ /apps/$1/ [R=301,L]
   RewriteRule ^apps/(gioianie|sanzognie|corres|corres_v2|pluralitie)/?$ app_gate.php?app=$1&page=index.html [L,QSA]
 </IfModule>
 
