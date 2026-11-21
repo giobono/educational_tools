@@ -116,7 +116,7 @@
   // sends the person to sign in; S10–S15 by code); the page's toast otherwise.
   function fail(e) {
     if (SIGN_IN && window.ArtieMetering && window.ArtieMetering.handled(e)) return;
-    fail(e);
+    toast(e && e.message ? e.message : String(e));
   }
   function toast(msg) { const t = $('#tr-toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; }, 6000); }
   // Trial brief v1.2 §2.2 (F10): whole seconds from a minute up, so neither
@@ -542,10 +542,49 @@
   }
 
   // --- page 7 ---------------------------------------------------------------------
+  // The two baskets fetch with the sign-in token, as every other call on the
+  // page does, and hand the browser the response. A plain link or a new window
+  // carries no token, so the engine answered `unauthenticated` to a signed-in
+  // researcher at step 7 (AD handoff to OD of 20 Nov §3; OD brief of 21 Nov §1).
+  async function fetchExport(path) {
+    const headers = { 'X-Request-Id': crypto.randomUUID() };
+    if (SIGN_IN && typeof window.getToken === 'function') {
+      const tok = await window.getToken();
+      if (tok) headers['Authorization'] = `Bearer ${tok}`;
+    }
+    const r = await fetch(API + path, { headers });
+    if (!r.ok) {
+      let d = null; try { d = (await r.json()).detail; } catch (e) { /* not JSON */ }
+      const msg = typeof d === 'string' ? d : (d && d.message) || `Something went wrong (${r.status}). Try again; if it repeats, note it here.`;
+      const err = new Error(msg); err.status = r.status; err.detail = d; err.code = d && typeof d === 'object' ? d.code : null; throw err;
+    }
+    return r;
+  }
+  const exportName = (r, fallback) => { const m = /filename="?([^";]+)"?/.exec(r.headers.get('Content-Disposition') || ''); return m ? m[1] : fallback; };
   function renderExport() {
     if (!run) return;
-    $('#p7-article').href = `${API}/runs/${run.run_id}/export/article?tz=${encodeURIComponent(zone())}`;
-    $('#p7-reviewer').href = `${API}/runs/${run.run_id}/export/reviewer`;
+    const article = $('#p7-article'), reviewer = $('#p7-reviewer');
+    article.href = '#'; reviewer.href = '#';
+    article.onclick = async (e) => {
+      e.preventDefault();
+      // The window opens on the click itself, so a popup blocker allows it; the
+      // report is shown in it once fetched, from the page's own copy.
+      const w = window.open('', '_blank');
+      try {
+        const r = await fetchExport(`/runs/${run.run_id}/export/article?tz=${encodeURIComponent(zone())}`);
+        const url = URL.createObjectURL(await r.blob());
+        if (w) w.location = url; else window.location = url;
+      } catch (err) { if (w) w.close(); fail(err); }
+    };
+    reviewer.onclick = async (e) => {
+      e.preventDefault();
+      try {
+        const r = await fetchExport(`/runs/${run.run_id}/export/reviewer`);
+        const url = URL.createObjectURL(await r.blob());
+        const a = document.createElement('a'); a.href = url; a.download = exportName(r, `corres_${run.run_id}.zip`); a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      } catch (err) { fail(err); }
+    };
     $('#p7-limit').innerHTML = frames && !frames.where_you_stand.meets_reporting_minimum
       ? `<p class="tr-tier">A report taken now is marked interim, because the chance check hasn't run.${tip('p7.limit')}</p>` : '';
   }
