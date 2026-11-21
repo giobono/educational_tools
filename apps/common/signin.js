@@ -51,8 +51,18 @@
   // hash, so the supplier returns the browser to exactly this page and the
   // token is held in this page's memory from then on. Each page that signs
   // people in is therefore a registered callback address at the supplier.
+  //
+  // Without a trailing slash, deliberately (21 Nov 2026). The supplier's
+  // library strips a trailing slash from the address it sends with the
+  // sign-in request, but sends this value as given when it exchanges the
+  // code; the two must match exactly or the exchange is refused with
+  // invalid_grant. While /apps/corres answered 200, the browser came back
+  // to the slashless page and the two happened to agree. The 301 to the
+  // slash form (OD's brief of 21 Nov) broke that agreement, and every
+  // sign-in looped. Both spellings are registered at the supplier; the
+  // address bar keeps the slash form (below).
   function here() {
-    return window.location.origin + window.location.pathname;
+    return (window.location.origin + window.location.pathname).replace(/\/$/, '');
   }
 
   function client() {
@@ -73,7 +83,7 @@
         on_redirect_callback: () => {
           // Back from the supplier with a code: the library has exchanged it.
           // Drop the ?code=&state= from the address bar without reloading.
-          window.history.replaceState({}, document.title, here());
+          window.history.replaceState({}, document.title, window.location.origin + window.location.pathname);
           window.dispatchEvent(new CustomEvent('artie:signed-in'));
         },
       });
