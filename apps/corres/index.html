@@ -74,7 +74,9 @@
       <div id="tr-examples" class="tr-examples"></div>
     </div>
   </div>
-  <details class="tr-setting"><summary>Setting: where the app pauses for you</summary>
+  <!-- AD's note of 23 Nov 2026 §2: at launch every upload stops at its frames, so
+       the setting that runs checklist items without pausing is not offered. -->
+  <details class="tr-setting" hidden><summary>Setting: where the app pauses for you</summary>
     <p>In this version you can choose how far the app runs before it pauses. Later settings run the earlier checklist items in order, without pausing between them.</p>
     <select id="tr-pointx">
       <option value="first_stop">At your frames (default)</option>
@@ -166,6 +168,8 @@
 <section class="tr-page" id="p6" data-title="Firm up">
   <h2>Firm up: the checklist<span data-tip-id="p6.title"></span></h2>
   <div id="p6-review" class="tr-review" hidden></div>
+  <!-- AD's note of 23 Nov 2026 §2: for a researcher's own file, the offer of the checks in place of the checklist. -->
+  <div id="p6-ask" class="tr-ask" hidden></div>
   <ol id="p6-items" class="tr-items"></ol>
   <div id="p6-variations"></div>
   <div id="p6-bridging"></div>
@@ -197,7 +201,7 @@
 </footer>
 <div class="tr-toast" id="tr-toast" hidden></div>
 <div class="tr-pop" id="tr-pop" role="tooltip" hidden></div>
-<script src="trial.js?v=202611212100"></script>
+<script src="trial.js?v=202611231900"></script>
 <script>
   // requireSignIn false in this app's config runs the page with no sign-in
   // (the switch, §3). Otherwise the shared panel shows S1 when signed out and

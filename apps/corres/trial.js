@@ -152,6 +152,10 @@
   const NEXT = { p1: 'p2', p2: 'p3', p3: 'p4', p4: 'p5', p5: 'p6', p6: 'p7', p7: null };
   // What the next page needs before Next will take you there: a checked file
   // for page 3, a confirmed run for page 4, frames for pages 5 to 7.
+  // AD's note of 23 Nov 2026 §2: a researcher's own file, as against a sample
+  // (a sample's run carries its test corpus).
+  const isUpload = () => !!run && !run.corpus;
+  const SUPPORT_EMAIL = 'info@ebono.au';
   function nextAllowed(id) {
     if (id === 'p2') return true;
     if (id === 'p3') return !!run;
@@ -170,15 +174,15 @@
   function renderStored() {
     const box = $('#tr-stored'), se = run && run.stored_example;
     if (!se) { box.hidden = true; box.textContent = ''; return; }
-    const est = run.estimates || {};
-    const checks = ['chance_check', 'standard_reruns', 'second_grouping', 'compare_types'].reduce((a, k) => a + (+est[k] || 0), 0);
-    box.textContent = `These are stored results for this sample, computed on ${localDate(se.computed)}. On your own file, the checks take about ${fmtS(checks)}.`;
+    // AD's note of 23 Nov 2026 §2: the old ending ("the checks take about
+    // {estimate}") rested on main-run timings and could understate a day's work.
+    box.textContent = `These are stored results for this sample, computed on ${localDate(se.computed)}. For your own file, we can run these checks and email you the results.`;
     box.hidden = false;
   }
 
   // --- AD's rights brief of 20 Nov 2026: the sighted statements, as written -----
   function rightsFull(r) {
-    return `<div class="tr-rights"><b>${esc(r.heading)}</b>${r.paragraphs.map((t) => `<p>${esc(t)}</p>`).join('')}<p><b>Please cite:</b> <i>${esc(r.cite)}</i> <a href="${esc(r.cite_url)}" target="_blank" rel="noopener">${esc(r.cite_url)}</a></p></div>`;
+    return `<div class="tr-rights"><b>${esc(r.heading)}</b>${r.paragraphs.map((t) => `<p>${esc(t)}</p>`).join('')}<p><b>${esc(r.cite_label || 'Please cite')}:</b> <i>${esc(r.cite)}</i> <a href="${esc(r.cite_url)}" target="_blank" rel="noopener">${esc(r.cite_url)}</a></p></div>`;
   }
   // The one-line form at the top of every page that shows a result from the
   // sample; "Rights and citation" opens the full statement under it.
@@ -417,7 +421,9 @@
     // Trial brief v1.2 §2.1 (F5): the frames' own tiers, listed when they differ.
     const tiers = f.frames.map((fr) => fr.tier);
     $('#p5-tier').innerHTML = (!tiers.length || tiers.every((t) => t === 'descriptive'))
-      ? 'These frames are <b>descriptive</b> so far: true of this corpus, not yet tested against chance. The chance check is the first item on the Firm up page.' + tip('p5.tier.descriptive')
+      ? (isUpload()
+        ? 'These frames are <b>descriptive</b> so far: true of this corpus, not yet tested against chance. The checks that test them take time to run. If you\'d like them, ask, and we\'ll run them and email you the results.'
+        : 'These frames are <b>descriptive</b> so far: true of this corpus, not yet tested against chance. The chance check is the first item on the Firm up page.' + tip('p5.tier.descriptive'))
       : tiers.every((t) => t === tiers[0])
         ? `How firm these frames are: <b>${esc(tiers[0])}</b>.` + tip('p5.tier.other')
         : `How firm these frames are: ${f.frames.map((fr) => `${esc(fr.name)} <b>${esc(fr.tier)}</b>`).join(', ')}.` + tip('p5.tier.other');
@@ -455,7 +461,7 @@
       ${w.meets_reporting_minimum ? '' : `<p class="tr-small">Taken before the chance check: not yet enough to report from.${tip('p5.where.before')}</p>`}
       <ul>${w.how_firm.map((x) => `<li>${esc(x.sentence)}${x.academic ? rawTip(x.academic + (x.read_more_url ? '' : '\n\n' + x.read_more), x.read_more_url) : tip('p5.where.firm.' + x.tier)}</li>`).join('')}</ul>
       <p class="draft">Sentences you can use (draft wording):</p><ul>${w.sentences_you_can_use.map((s) => `<li>${esc(s.sentence)}</li>`).join('')}</ul>
-      <p>${w.checklist_unticked.length ? 'Still to do: ' + w.checklist_unticked.map((m) => `☐ ${esc(m.item)}`).join(' · ') : 'Every checklist item has been run.'}</p>`;
+      <p>${isUpload() ? 'Still to do: ☐ The checks against chance (on request)' : w.checklist_unticked.length ? 'Still to do: ' + w.checklist_unticked.map((m) => `☐ ${esc(m.item)}`).join(' · ') : 'Every checklist item has been run.'}</p>`;
     const t = run.timings || {};
     $('#p5-time').textContent = 'The main run took ' + fmtS(['associate', 'stability', 'covariates', 'structure', 'pairs'].reduce((a, k) => a + (+t[k] || 0), 0));
   }
@@ -464,6 +470,8 @@
   let liveItem = false;
   function renderChecklist() {
     const f = frames; if (!f) return;
+    if (isUpload()) { renderAskForChecks(); return; }
+    $('#p6-ask').hidden = true; $('#p6-items').hidden = false;
     const review = f.checklist.find((i) => i.state === 'done' && !i.acknowledged);
     const rv = $('#p6-review');
     if (review && review.review) {
@@ -483,6 +491,19 @@
     $$('[data-bridge]').forEach((b) => { b.onclick = showBridging; });
     $('#p6-notin').innerHTML = f.not_in_trial.map((x) => `<li>${esc(x)}: not in this version</li>`).join('');
     renderVariations();
+  }
+  // AD's note of 23 Nov 2026 §2: at launch a researcher's own file runs to its
+  // frames, and the checks are run by the fleet on request. The button opens an
+  // email to the address the edu pages publish, its subject naming the run.
+  function renderAskForChecks() {
+    $('#p6-review').hidden = true; $('#p6-items').hidden = true; $('#p6-items').innerHTML = '';
+    $('#p6-variations').innerHTML = ''; $('#p6-bridging').innerHTML = '';
+    const subject = encodeURIComponent(`CorRes checks for run ${run.run_id}`);
+    const box = $('#p6-ask');
+    box.innerHTML = `<p>The checks that test your frames, against chance, under other settings and with a second grouping method, can take from an hour to a day to run on a corpus this size. Ask, and we'll run them for you and email you the results, with the records your reviewer will want.</p>
+      <a class="tr-btn tr-primary" href="mailto:${SUPPORT_EMAIL}?subject=${subject}">Ask for the checks</a>`;
+    box.hidden = false;
+    $('#p6-notin').innerHTML = frames.not_in_trial.map((x) => `<li>${esc(x)}: not in this version</li>`).join('');
   }
   // Page 6: settings the researcher can change after the first stop (AD note of 16 Nov §1.2).
   function renderVariations() {
