@@ -1,4 +1,4 @@
 # The specification's downloads: Word served as Word, Markdown as UTF-8 text
 # (the host's default was text/plain for both).
 AddType application/vnd.openxmlformats-officedocument.wordprocessingml.document .docx
-AddCharset utf-8 .md
+AddType "text/plain; charset=utf-8" .md
