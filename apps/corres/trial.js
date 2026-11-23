@@ -149,7 +149,13 @@
   // §4.2–4.3: when a run finishes the page stays where it is and says the work
   // is ready; Next sits in the same place on every page, enabled when the next
   // page can be reached, and the app never moves on its own.
-  const NEXT = { p1: 'p2', p2: 'p3', p3: 'p4', p4: 'p5', p5: 'p6', p6: 'p7', p7: null };
+  // AD brief of 24 Nov 2026 §1: page 6 is skipped for everyone at launch. Its
+  // run buttons are live on a stored sample, and the page's checks are set out
+  // on page 5's tiers and in page 7's reviewer report. Next on page 5 goes to
+  // page 7; the step bar leaves page 6 out; a jump to page 6 lands on page 5.
+  // Reversed by putting 'p6' back in NEXT and emptying SKIPPED.
+  const SKIPPED = new Set(['p6']);
+  const NEXT = { p1: 'p2', p2: 'p3', p3: 'p4', p4: 'p5', p5: 'p7', p6: 'p7', p7: null };
   // What the next page needs before Next will take you there: a checked file
   // for page 3, a confirmed run for page 4, frames for pages 5 to 7.
   // AD's note of 23 Nov 2026 §2: a researcher's own file, as against a sample
@@ -205,6 +211,7 @@
 
   // --- navigation and the clock ------------------------------------------------
   function show(id) {
+    if (SKIPPED.has(id)) id = 'p5';
     const n = PAGES.indexOf(id) + 1; if (n > reached) reached = n;
     PAGES.forEach((p) => $('#' + p).classList.toggle('on', p === id));
     renderSteps(id); renderNext(id); ready(''); window.scrollTo(0, 0);
@@ -213,9 +220,12 @@
   }
   function renderSteps(cur) {
     const nav = $('#tr-steps'); nav.innerHTML = '';
+    let shown = 0;
     PAGES.forEach((p, i) => {
+      if (SKIPPED.has(p)) return;
+      shown += 1;
       const b = document.createElement('button');
-      b.textContent = `${i + 1} ${$('#' + p).dataset.title}`; b.className = p === cur ? 'on' : '';
+      b.textContent = `${shown} ${$('#' + p).dataset.title}`; b.className = p === cur ? 'on' : '';
       b.disabled = i + 1 > reached || (i >= 3 && !run) || (i >= 4 && !frames);
       b.onclick = () => show(p); nav.appendChild(b);
     });
@@ -379,9 +389,10 @@
   }
   async function runMain(taskId) {
     $('#p4-lines').innerHTML = ''; $('#p4-defaults').innerHTML = ''; fvDrawnFor = null; const t0 = Date.now();
-    // §4.1: the estimate is this host's measured figure for a file of this
-    // size, or nothing until a main run has completed here.
-    progressStart('the main run', run.estimates && run.estimates.main_run);
+    // AD brief of 24 Nov 2026 §3: the step and the time so far only. The
+    // estimate (37 s shown, 1 min 38 s taken on the walk-through) returns when
+    // it has been measured against real runs on the serving host and AD rules.
+    progressStart('the main run', null);
     const done = await waitTask(taskId, async () => {
       run = await call('GET', `/runs/${run.run_id}`);
       progressLine(run.running && run.running.line);
@@ -462,8 +473,54 @@
       <ul>${w.how_firm.map((x) => `<li>${esc(x.sentence)}${x.academic ? rawTip(x.academic + (x.read_more_url ? '' : '\n\n' + x.read_more), x.read_more_url) : tip('p5.where.firm.' + x.tier)}</li>`).join('')}</ul>
       <p class="draft">Sentences you can use (draft wording):</p><ul>${w.sentences_you_can_use.map((s) => `<li>${esc(s.sentence)}</li>`).join('')}</ul>
       <p>${isUpload() ? 'Still to do: ☐ The checks against chance (on request)' : w.checklist_unticked.length ? 'Still to do: ' + w.checklist_unticked.map((m) => `☐ ${esc(m.item)}`).join(' · ') : 'Every checklist item has been run.'}</p>`;
+    renderAskP5();
     const t = run.timings || {};
     $('#p5-time').textContent = 'The main run took ' + fmtS(['associate', 'stability', 'covariates', 'structure', 'pairs'].reduce((a, k) => a + (+t[k] || 0), 0));
+  }
+
+  // --- page 5: Ask for the checks (AD brief of 24 Nov 2026 §2) -------------------
+  // For a researcher's own file only. The request is recorded against the run
+  // as a note under its own page key, so the fleet lists requests from the
+  // runs' records; no engine change. Nothing is emailed at the click, so the
+  // page says the request is recorded, never sent. A second click on the same
+  // run records nothing new.
+  const ASK_KEY = 'checks_request';
+  const asked = () => ((run && run.notes) || []).some((n) => n.page === ASK_KEY);
+  // The sign-in email, from the platform's account route; null if the page
+  // cannot read it, and the sentence then names no address.
+  async function signedInEmail() {
+    try {
+      if (!SIGN_IN || typeof window.getToken !== 'function') return null;
+      const tok = await window.getToken(); if (!tok) return null;
+      const r = await fetch(`${C.apiBase || ''}/v1/account`, { headers: { Authorization: `Bearer ${tok}` } });
+      if (!r.ok) return null;
+      const j = await r.json();
+      return (j && j.person && j.person.email) || null;
+    } catch (e) { return null; }
+  }
+  function askedSentence(box, email) {
+    box.innerHTML = `<p class="tr-asked">Your request is recorded. We'll run the checks for this file and email the results to ${email ? esc(email) : 'the email you signed in with'}.</p>`;
+  }
+  async function renderAskP5() {
+    const box = $('#p5-ask'); if (!box) return;
+    if (!isUpload()) { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    if (asked()) { askedSentence(box, await signedInEmail()); return; }
+    box.innerHTML = '<button class="tr-btn tr-primary" id="p5-ask-btn">Ask for the checks</button>';
+    const btn = $('#p5-ask-btn');
+    btn.onclick = async () => {
+      btn.disabled = true;
+      try {
+        const email = await signedInEmail();
+        run = await call('GET', `/runs/${run.run_id}`);
+        if (!asked()) {
+          await call('POST', `/runs/${run.run_id}/notes`, { page: ASK_KEY,
+            text: `Checks requested for run ${run.run_id} (${run.corpus_id || 'uploaded file'}) by ${email || 'the signed-in person; the page could not read the email'}.` });
+          run = await call('GET', `/runs/${run.run_id}`);
+        }
+        askedSentence(box, email);
+      } catch (e) { btn.disabled = false; fail(e); }
+    };
   }
 
   // --- page 6 ---------------------------------------------------------------------
@@ -522,7 +579,7 @@
     try {
       const out = await call('POST', `/runs/${run.run_id}/variations`, { change: key });
       run = out.run; frames = null; fvDrawnFor = null;
-      progressStart('the new run', run.estimates && run.estimates.main_run);
+      progressStart('the new run', null); // AD brief of 24 Nov §3
       await waitTask(out.task_id, async () => {
         const r = await call('GET', `/runs/${run.run_id}`);
         progressLine(r.running ? r.running.line : 'Working');
