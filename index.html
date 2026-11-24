@@ -1,120 +1,125 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>corres — Correlating Resonance · The Ebono Institute</title>
+<title>ArtieEd · Correlating Resonance · The Ebono Institute</title>
 <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
 <meta name="theme-color" content="#05070a">
-<meta name="description" content="corres finds the structure in a coded corpus: which concepts travel together, which bridge between groups, and where your material divides. Free during beta.">
+<!-- The description is the first of CD's sighted sentences, not a new one. -->
+<meta name="description" content="CorRes shows the frames in a coded corpus. It finds which of your concepts appear together more often than their frequencies predict, tests whether those groupings hold up when your documents are split in half, and shows who voices each one.">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,380;0,9..144,480;0,9..144,600;1,9..144,500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
 <script src="/apps-enabled.php"></script>
-<script src="/edu_common.js?v=202608231842"></script>
+<script src="/edu_common.js?v=202611192000"></script>
 <link href="/ebono_brand.css?v=202608231842" rel="stylesheet"/>
 <link href="/edu_hero.css?v=202608231842" rel="stylesheet"/>
 <link href="/edu_common.css?v=202608231842" rel="stylesheet"/>
+<link href="/edu_home.css?v=202611211930" rel="stylesheet"/>
 </head>
 <body>
 <div id="edu-header" class="cr-nav"></div>
- <!-- ── Root page copy, CD corres_beta_root_copy v0.2 of 23 August ─────────
-     Placed verbatim. Supersedes v0.1 for this surface only; v0.1's application
-     page still stands. DRAFT, unsighted — and the page is already live carrying
-     earlier versions of most of these strings, so this is a revision of
-     published copy and the sighting request to AD is against the live state. -->
+<!-- ── The edu home page for the CR3 launch: CD's copy of 20 November 2026,
+     ebono_research/26_20_CR3/briefs/2026-11-20_copy_cd_edu_launch_page_v1_0.md,
+     placed word for word (OD's brief to D1Dev of 21 Nov §2; built on the Mac at
+     the human half's direction, D2Dev's note of 21 Nov). Every sentence about
+     the method or the tool is text AD has sighted; the source of each is in
+     CD's copy. No sentence is added: where the layout seemed to want one, the
+     space is left empty (CD's note 2). Not on this page, by CD's note 3: the
+     other apps, any figure about our corpora, and the free-tier words. -->
 <section class="hero">
 <div class="hero-body">
-<div class="hero-eyebrow">Correlating Resonance</div>
-<h1 class="hero-title">The shape of meaning</h1>
-<p class="hero-description">corres shows which concepts travel together, and which pull apart. We do the maths. You interpret the results.</p>
-<a class="hero-cta" href="/apps/corres/">Load your matrix<span class="hero-cta-arrow">→</span></a>
+<div class="hero-eyebrow">ArtieEd · Correlating Resonance</div>
+<h1 class="hero-title home-title">CorRes shows the frames in your coded corpus, and tells you plainly how far they've been tested.</h1>
+<p class="hero-description">CorRes shows the frames in a coded corpus. It finds which of your concepts appear together more often than their frequencies predict, tests whether those groupings hold up when your documents are split in half, and shows who voices each one. It doesn't code text: it works on a file you've already coded, with one row per document and one column per concept.</p>
+<p class="hero-description">Start with your own coded file, or try one of our sample data sets to see how it works.</p>
+<!-- The button leads to sign-in (S1), then to page 1 of the app (CD's note 1). -->
+<a class="hero-cta" href="/apps/corres/">Open CorRes<span class="hero-cta-arrow">→</span></a>
 </div>
 </section>
 
 <section class="fp-section">
-<h2 class="fp-heading">How Correlating Resonance reads a corpus</h2>
-<p class="fp-body">corres works on departures from independence, not on counts. Two concepts that both appear everywhere will co-occur constantly, and that tells you nothing. corres looks for the pairs that appear together more often, or less often, than chance predicts. That is the difference between finding structure and rediscovering which of your codes are common.</p>
+<h2 class="fp-heading">What it does</h2>
+<ul class="home-list">
+<li><strong>It removes frequency before it looks for structure.</strong> Common concepts appear with everything, so the method never uses raw co-occurrence. It measures how far each pair departs from what their frequencies alone would produce.</li>
+<li><strong>It tests whether a grouping is real.</strong> It splits the corpus into random halves, many times, and asks whether the grouping reappears.</li>
+<li><strong>It shows the chance line beside every key result</strong>: on the sample data now, and on your own file when we run the checks for you. That is what a corpus with the same concept frequencies and no real pattern produces, computed from the data itself.</li>
+<li><strong>When a result falls short of its chance line, it says so, and carries on.</strong></li>
+<li><strong>It keeps the record.</strong> A decision log, a run history and a parameter record travel with the research, so a reviewer can see every judgement, every run and every setting.</li>
+<li><strong>The tool computes; you interpret.</strong> What a frame means is the researcher's reading, recorded as such.</li>
+</ul>
 </section>
 
-<section class="fp-section">
-<h2 class="fp-heading">It will tell you when the answer is no</h2>
-<p class="fp-body">Before corres interprets anything, it runs two tests on your corpus. The first asks whether there is enough departure from chance in your matrix to be worth analysing at all. The second resamples your documents, reruns the analysis on each half, and checks whether the same groups come back. If either test fails, corres stops and tells you which one and why — with every concept and document it set aside, itemised.</p>
-<p class="fp-body">Two of the corpora we most wanted to use have been declined by our own method — one for strength, one for stability.</p>
-<!-- The comma below is CD's and is deliberate: it separates subject from
-     predicate, which is irregular, and is kept because the line is spoken
-     aloud at Brisbane and the pause is the point. Not a typo to tidy. -->
-<p class="fp-body">A method that cannot say no, cannot warn you. Knowing that before you build on it is the point.</p>
-</section>
-
-<!-- Paired band: complementary, and the pairing is the point. Stacks in the
-     order given at narrow widths, per CD's note. -->
 <section class="fp-section fp-paired">
 <div>
-<h2 class="fp-heading">What you get</h2>
-<p class="fp-body">Groups that survived the stability test. A role for every concept — which ones characterise a group, which ones bridge between groups, which ones sit apart. And the parameters and conditions each result was produced under, so the run can be reproduced.</p>
+<h2 class="fp-heading">What you need</h2>
+<ul class="home-list">
+<li>One file: a row per document and a column per concept.</li>
+<li>An email address, to sign in. There is no charge.</li>
+</ul>
 </div>
 <div>
-<h2 class="fp-heading">What is yours</h2>
-<!-- "frames" is emphasis, not a link — CD's note. It rendered as a link on the
-     live page; the condition must not be separable from the word. -->
-<p class="fp-body">Our own papers read groups like these as <strong>frames</strong>. That is our interpretation, and it has not been tested against an external referent — so corres returns the structure and leaves the reading to you. That part of the work is yours.</p>
+<h2 class="fp-heading">The sample data sets</h2>
+<ul class="home-list">
+<li>Shown for research, behind sign-in. They can't be downloaded. Each shows its source and how to cite it.</li>
+<li>Stored results are labelled as stored, with the date they were computed.</li>
+</ul>
 </div>
 </section>
 
 <section class="fp-section">
-<h2 class="fp-heading">What it costs</h2>
-<!-- AD brief 23 Aug Item 2. The determinism claim is withdrawn: the pipeline
-     is stochastic by construction — 25 random splits by 2 halves, k-means on
-     each (spec §2.3) — and no RNG seed is declared or persisted, so two runs
-     are not guaranteed to agree. The retention clause is cut pending Item 1,
-     which is answered: the binarised matrix IS retained, and indefinitely,
-     because the declared seven-day purge is never called. -->
-<p class="fp-body">corres is free while it is in beta, and there is nothing to set up — no account, no key, no billing. Your matrix is analysed on our server by standard scientific Python libraries running a fixed procedure. No language model reads your material, and no part of the result is generated: every number comes from the same statistical code, applied the same way to every corpus. Each run reports the parameters and conditions it ran under.</p>
+<h2 class="fp-heading">The method</h2>
+<p class="fp-body"><strong>CorRes methodology v3.0</strong>, by Geoff Ebbs and Louis Sanzogni (2026).</p>
+<!-- CD's note 4: the method line is one setting, SPEC_PUBLISHED below. Until
+     the specification is published at its address the line reads "A working
+     draft, to be published"; once published, the link. It is published: the
+     page at /methods/corres/v3.0/ is on develop (D1Dev, 20 Nov) and reaches
+     edu in the same promotion as this page. -->
+<p class="fp-body" id="method-line">
+<span data-when="draft" hidden><em>A working draft, to be published.</em></span>
+<span data-when="published"><a href="/methods/corres/v3.0/">Read the specification</a></span>
+</p>
 </section>
 
-<section class="fp-section">
-<h2 class="fp-heading">Where this sits</h2>
-<p class="fp-body">corres is the first application built on the Correlating Resonance methodology. The stages upstream of it — building a typology from a corpus, and coding a full corpus against that typology — are ones we use internally to prepare our own corpora, and are in development.</p>
-<p class="fp-body">corres is in beta and under active development. Some thresholds are declared provisional and are under review; every run reports the conditions it ran under.</p>
+<section class="fp-section fp-paired">
+<div>
+<h2 class="fp-heading">Citing your analysis</h2>
+<p class="home-cite">Analysis performed with ArtieEd v2.0 (Ebono Intelligence, ebono.au), implementing CorRes methodology v3.0.</p>
+</div>
+<div>
+<h2 class="fp-heading">The earlier version</h2>
+<!-- CD's copy: only if /apps/corres_v2/ stays (AD close of 20 Nov evening,
+     decision 12: it stays, with CD's label). applyAppVisibility() removes
+     this link on any host where corres_v2 is switched off. -->
+<p class="fp-body"><a href="/apps/corres_v2/">The earlier version (methodology v2.5)</a></p>
+</div>
 </section>
 
-<section class="fp-section" id="register">
-<h2 class="fp-heading">Tell us what you think</h2>
-<p class="fp-body">corres is open and free during beta, and we would rather you ran your own material through it than took our word for any of this. We are most interested in the runs that fail. If corres declines your corpus, that is a result, and it is the one we most want to hear about — what you brought, what came back, and whether the diagnosis told you anything you could use.</p>
-<!-- AD brief 23 Aug Item 3: the Contact button is position:fixed at the
-     bottom-right of the viewport — neither nav nor footer — and is visible at
-     every scroll position, so "at the foot of the page" was wrong. Corrected
-     to match where it actually renders.
-
-     FLAG: this whole sentence is D2Dev's, not CD's. It was authored when the
-     unformatted feedback form was removed, and AD has now sighted it as though
-     it were CD copy. It should be replaced by a CD string. -->
-<p class="fp-body"><strong>Use the Contact button</strong> in the bottom corner of the page and tell us what happened. Name, email and what you are working on — that is all we need.</p>
-<p class="fp-body">We will use your address to reply to you and to tell you when we release the upstream stages. Nothing else.</p>
-</section>
-
-<!-- ── Footer ── -->
+<!-- ── Footer: Terms · Privacy · Support · ebono.au, as CD's copy has it ── -->
 <footer>
-
-<div class="footer-meta">corres · Correlating Resonance · An ArtIE application · The Ebono Institute</div>
+<div class="footer-meta">ArtieEd · Correlating Resonance · The Ebono Institute</div>
 <div class="footer-entity">
 <span>Ebono Intelligence Pty Ltd, trading as The Ebono Institute · <a href="https://ebono.au">ebono.au</a></span>
 <div class="footer-legal-links">
-<a href="https://ebono.au/terms">Terms</a>
-<a href="https://ebono.au/privacy">Privacy</a>
-<a href="https://ebono.au/support">Support</a>
+<a href="https://ebono.au/terms/">Terms</a>
+<a href="https://ebono.au/privacy/">Privacy</a>
+<a href="https://ebono.au/support/">Support</a>
+<a href="https://ebono.au/">ebono.au</a>
 </div>
 </div>
 </footer>
 <script>
+  // CD's note 4: the one setting for the method line.
+  const SPEC_PUBLISHED = true;
   document.addEventListener('DOMContentLoaded', async () => {
+    document.querySelectorAll('#method-line [data-when]').forEach((el) => {
+      el.hidden = (el.dataset.when === 'published') !== SPEC_PUBLISHED;
+    });
     await loadFragment('edu-header', '/edu_header.html');
     markActiveNav();
     applyAppVisibility();
     renderBuildVersion();
-
   });
 </script>
 </body>

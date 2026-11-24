@@ -1,19 +1,21 @@
 <?php
 /**
- * Aggregates all four apps' appActive flags into one shared object, for
+ * Aggregates every app's appActive flag into one shared object, for
  * pages that need to know about apps OTHER than their own — the root
  * homepage's phase-cards and the shared nav fragment (edu_header.html),
  * both of which link to every app, not just one.
  *
  * Each app's own config.js (sibling config/ directory, config/README.md)
  * remains the single source of truth for its own appActive flag; this
- * just reads all four rather than introducing a second, separately-
+ * just reads them all rather than introducing a second, separately-
  * maintained flag set that could drift from them.
  */
 header('Content-Type: application/javascript; charset=utf-8');
 header('Cache-Control: no-store');
 
-$apps = ['gioianie', 'sanzognie', 'corres', 'pluralitie'];
+// corres is CR3; corres_v2 is the earlier CorRes app, moved aside for it
+// (OD's merge brief of 19 Nov 2026 §2.2). Each has its own config folder.
+$apps = ['gioianie', 'sanzognie', 'corres', 'corres_v2', 'pluralitie'];
 $enabled = [];
 
 foreach ($apps as $app) {
