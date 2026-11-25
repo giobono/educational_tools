@@ -12,10 +12,11 @@
  *                            when signed out. Held in memory and refreshed by
  *                            the supplier's script; never written to storage.
  *   signIn(returnTo, hint) -> Promise<void>          redirects to the supplier's
- *                            sign-in page; on return the browser comes back to
- *                            the page it left (the page is its own redirect
- *                            address, so no in-page hop is needed). `hint` is
- *                            the email address, if the person typed one.
+ *                            sign-in page; the supplier returns to this host's
+ *                            one callback, /auth/callback.html, which sends the
+ *                            browser back to `returnTo` (checked by
+ *                            return_to.js). `hint` is the email address, if the
+ *                            person typed one.
  *   signOut()             -> Promise<void>          ends the session; returns
  *                            to the site root.
  *
@@ -47,22 +48,24 @@
     });
   }
 
-  // The page is its own redirect address: origin + pathname, no query or
-  // hash, so the supplier returns the browser to exactly this page and the
-  // token is held in this page's memory from then on. Each page that signs
-  // people in is therefore a registered callback address at the supplier.
-  //
-  // Without a trailing slash, deliberately (21 Nov 2026). The supplier's
-  // library strips a trailing slash from the address it sends with the
-  // sign-in request, but sends this value as given when it exchanges the
-  // code; the two must match exactly or the exchange is refused with
-  // invalid_grant. While /apps/corres answered 200, the browser came back
-  // to the slashless page and the two happened to agree. The 301 to the
-  // slash form (OD's brief of 21 Nov) broke that agreement, and every
-  // sign-in looped. Both spellings are registered at the supplier; the
-  // address bar keeps the slash form (below).
-  function here() {
-    return (window.location.origin + window.location.pathname).replace(/\/$/, '');
+  // One callback per host (OD brief to D1Dev of 25 Nov 2026, Part B). Until
+  // then every page was its own redirect address, in up to three spellings,
+  // each registered at the supplier: 26 entries for four apps, and a missing
+  // one a dead end. Now the supplier returns only to /auth/callback.html,
+  // which completes the exchange and sends the browser back to the page that
+  // started sign-in. The address is fixed and has no trailing slash, so the
+  // 21 Nov loop (the supplier strips a trailing slash from the address in
+  // the sign-in request but not in the exchange) cannot recur.
+  const CALLBACK_PATH = '/auth/callback.html';
+  const RETURN_KEY = 'artie.returnTo';
+
+  function goBack() {
+    let raw = null;
+    try { raw = sessionStorage.getItem(RETURN_KEY); sessionStorage.removeItem(RETURN_KEY); } catch (_) { /* private mode */ }
+    const safe = window.artieSafeReturn
+      ? window.artieSafeReturn(raw, window.location.origin)
+      : window.location.origin + '/';
+    window.location.replace(safe);
   }
 
   function client() {
@@ -77,13 +80,13 @@
         client_id: cfg.clientId,
         domain: cfg.domain,
         audience: cfg.audience,
-        redirect_uri: here(),
+        redirect_uri: window.location.origin + CALLBACK_PATH,
         logout_uri: window.location.origin + '/',
         is_dangerously_use_local_storage: false,
         on_redirect_callback: () => {
-          // Back from the supplier with a code: the library has exchanged it.
-          // Drop the ?code=&state= from the address bar without reloading.
-          window.history.replaceState({}, document.title, window.location.origin + window.location.pathname);
+          // Back from the supplier with a code, on the callback page: the
+          // library has exchanged it. Return to the page that started.
+          if (window.location.pathname === CALLBACK_PATH) { goBack(); return; }
           window.dispatchEvent(new CustomEvent('artie:signed-in'));
         },
       });
@@ -104,12 +107,20 @@
 
   window.signIn = async function signIn(returnTo, hint) {
     const k = await client();
-    // returnTo is recorded for a caller that wants it after the round trip;
-    // the redirect itself comes back to this page.
-    try { sessionStorage.setItem('artie.returnTo', returnTo || window.location.href); } catch (_) { /* private mode */ }
+    // The callback page reads this to send the browser back (Part B.2.1).
+    try { sessionStorage.setItem(RETURN_KEY, returnTo || window.location.href); } catch (_) { /* private mode */ }
     const options = {};
     if (hint) options.authUrlParams = { login_hint: hint };
     await k.login(options);
+  };
+
+  // Called by /auth/callback.html. Creating the client completes the code
+  // exchange and fires on_redirect_callback, which returns the browser. If
+  // there was no code (the page opened directly) or the exchange failed, the
+  // browser still goes back, signed out, rather than staying here.
+  window.artieCompleteSignIn = async function artieCompleteSignIn() {
+    try { await client(); } catch (err) { console.warn('sign-in:', err.message); }
+    if (window.location.pathname === CALLBACK_PATH) goBack();
   };
 
   window.signOut = async function signOut() {

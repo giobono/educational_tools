@@ -46,7 +46,7 @@ def test_the_allow_lists_and_the_rewrite_rules_know_both_apps():
     ht = text(".htaccess")
     assert re.search(r"RewriteRule \^apps/corres_trial/\?\(\.\*\)\$ /apps/corres/\$1 \[R=301,L\]", ht)
     assert ht.index("corres_trial") < ht.index("app_gate.php?app=$1"), "the 301 comes before the gate rules"
-    assert ht.count("(gioianie|sanzognie|corres|corres_v2|pluralitie)") == 2
+    assert ht.count("(gioianie|sanzognie|corres|corres_v2|pluralitie)") == 3  # + the index.html 301 (25 Nov, Part B.2.4)
 
 
 def test_corres_trial_is_named_nowhere_else():

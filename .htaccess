@@ -23,6 +23,11 @@
   # trial's old address answers with a 301 to the same path under it, so a
   # link in Louis's pack still lands. corres_v2 is the earlier app, moved aside.
   RewriteRule ^apps/corres_trial/?(.*)$ /apps/corres/$1 [R=301,L]
+  # One spelling per app page (OD brief to D1Dev of 25 Nov 2026, Part B.2.4):
+  # /apps/x/index.html answers 301 to /apps/x/, as /apps/x does below. Sign-in
+  # no longer returns to the page's own address (it returns to
+  # /auth/callback.html), so this cannot bring back the 21 Nov loop.
+  RewriteRule ^apps/(gioianie|sanzognie|corres|corres_v2|pluralitie)/index\.html$ /apps/$1/ [R=301,L]
   RewriteRule ^apps/(gioianie|sanzognie|corres|corres_v2|pluralitie)/([A-Za-z0-9_.-]+\.html)$ app_gate.php?app=$1&page=$2 [L,QSA]
   # A directory under /apps/ asked for without its trailing slash answers 301 to the
   # slash form, before the app gate below can serve it at the slashless address, where
