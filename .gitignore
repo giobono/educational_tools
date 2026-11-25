@@ -9,3 +9,8 @@ apps/corres/config.js
 # guards against someone dropping a working copy directly in here.
 mail-config.php
 _upload_check.html
+
+# Mac Finder metadata: never tracked (as in artie, ebono_governance,
+# ebono_research and griffithu_research_process). Every tracked file here
+# is a live URL, so this one matters more than most.
+.DS_Store
