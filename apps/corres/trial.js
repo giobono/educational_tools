@@ -278,7 +278,19 @@
       $('#tr-examples').textContent = 'The analysis engine isn’t answering. Try again in a few minutes.';
     }
   }
+  // OD brief to DnDev of 25 Nov 2026, §5A: from the click until the next page
+  // draws, the choice shows it is working (the controls disabled, the one
+  // progress indicator showing the sample's own title), so a second click is
+  // neither needed nor possible. Before, nothing changed until the page did.
+  let startingExample = false;
   async function startExample(id, mode) {
+    if (startingExample) return;
+    startingExample = true;
+    const controls = $$('[data-ex]');
+    controls.forEach((b) => { b.disabled = true; b.setAttribute('aria-disabled', 'true'); });
+    const btn = controls.find((b) => b.dataset.ex === id && b.tagName === 'BUTTON');
+    const title = btn ? btn.textContent : id;
+    progressStart(title, null);
     try {
       const t0 = performance.now();
       run = await call('POST', mode === 'stored' ? `/runs/example/${id}/stored` : `/runs/example/${id}`);
@@ -287,7 +299,11 @@
       // review still happens in order (§5.4), so it opens at page 3.
       if (run.stored_example) { reached = Math.max(reached, 5); await refreshFrames(); }
       afterCheck((performance.now() - t0) / 1000);
-    } catch (e) { fail(e); }
+    } catch (e) { fail(e); } finally {
+      if (busy && busy.title === title) progressEnd();
+      controls.forEach((b) => { b.disabled = false; b.removeAttribute('aria-disabled'); });
+      startingExample = false;
+    }
   }
 
   // --- page 2 ---------------------------------------------------------------------

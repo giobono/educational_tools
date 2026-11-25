@@ -17,6 +17,18 @@
 <link href="/edu_hero.css?v=202608231842" rel="stylesheet"/>
 <link href="/edu_common.css?v=202608231842" rel="stylesheet"/>
 <link href="/edu_home.css?v=202611211930" rel="stylesheet"/>
+<!-- Sign-out on the home page (OD brief to DnDev of 25 Nov 2026, §5B; CD's
+     line of the same brief: text may change on beta pending CD's discussion).
+     Shown only when signed in, and no S1 when signed out: the page's words
+     stay CD's launch copy. corres's config gives the API's address. -->
+<script src="/apps/corres/config.php"></script>
+<script src="/apps/common/config.php"></script>
+<script src="/apps/common/metering_strings.js?v=202611192000"></script>
+<script src="/apps/common/signin.js?v=202611251530"></script>
+<script src="/apps/common/metering.js?v=202611260830"></script>
+<link href="/apps/common/metering.css?v=202611260830" rel="stylesheet"/>
+<script>document.addEventListener('DOMContentLoaded', () => window.ArtieMetering
+  && window.ArtieMetering.init({ appId: 'corres', banner: false, accountBar: true, signInPanel: false }));</script>
 </head>
 <body>
 <div id="edu-header" class="cr-nav"></div>

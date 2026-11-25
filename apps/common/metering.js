@@ -39,6 +39,13 @@
     // account panel, for a page with no allowance to report (CR3: OD's merge
     // brief of 19 Nov 2026 §3).
     banner: true,
+    // init({ banner: false, accountBar: true }): no allowance banner, but who is
+    // signed in and a way to sign out (OD brief to DnDev of 25 Nov 2026, §5B):
+    // corres and the edu home page, which had no way out but a private window.
+    accountBar: false,
+    // init({ signInPanel: false }): S1 is not shown when signed out (the home
+    // page, whose words are CD's launch copy).
+    signInPanel: true,
   };
   try { state.projectId = sessionStorage.getItem('artie.projectId') || null; } catch (_) { /* private mode */ }
 
@@ -88,7 +95,7 @@
     }
     el.innerHTML = state.banner
       ? '<div id="artie-banner"></div><div id="artie-account"></div><div id="artie-panel"></div>'
-      : '<div id="artie-panel"></div>';
+      : (state.accountBar ? '<div id="artie-bar"></div>' : '') + '<div id="artie-panel"></div>';
     state.mount = el;
     return el;
   }
@@ -97,7 +104,14 @@
   async function token() {
     return (typeof window.getToken === 'function') ? await window.getToken() : null;
   }
-  function projects() { return (state.account && state.account.projects) || []; }
+  // Only the projects this app's calls may be charged to: the app's own, or a
+  // platform-wide (`artie`) one (OD brief to DnDev of 25 Nov 2026, §3). On
+  // 25 Nov sanzognie's calls were charged to a gioianie project chosen here.
+  const PLATFORM_PRODUCT = 'artie';
+  function projects() {
+    const all = (state.account && state.account.projects) || [];
+    return state.product ? all.filter(p => p.product === state.product || p.product === PLATFORM_PRODUCT) : all;
+  }
   function currentProject() {
     const ps = projects();
     return ps.find(p => p.id === state.projectId) || ps.find(p => p.product === state.product) || ps[0] || null;
@@ -162,9 +176,43 @@
     mount();
     renderBanner();
     renderAccount();
-    if (!state.signedIn) renderSignedOut();
+    renderBar();
+    if (!state.signedIn && state.signInPanel) renderSignedOut();
     else if (state.panel === 'signedout') clearPanel();
+    gate();
   }
+
+  // ── nothing is chosen before sign-in (OD brief to DnDev of 25 Nov, §5) ──
+  // Until sign-in completes, every file control on the page is disabled, a
+  // container marked `data-requires-signin` (a sample list, an upload
+  // choice) is inert, and a file dropped on the page is refused, so S1 is
+  // the one way on. Before, a researcher could choose files and was asked to
+  // sign in only at the upload, so the choosing was wasted.
+  const GATED = 'data-artie-gated';
+  function gate() {
+    const out = !state.signedIn;
+    document.querySelectorAll('input[type="file"]').forEach(el => {
+      if (out && !el.disabled) { el.disabled = true; el.setAttribute(GATED, ''); }
+      else if (!out && el.hasAttribute(GATED)) { el.disabled = false; el.removeAttribute(GATED); }
+    });
+    document.querySelectorAll('[data-requires-signin]').forEach(el => {
+      el.inert = out;
+      el.classList.toggle('artie-needs-signin', out);
+      if (out) el.setAttribute('aria-disabled', 'true'); else el.removeAttribute('aria-disabled');
+    });
+  }
+  function refuseDrop(e) {
+    if (state.signedIn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'none';
+  }
+  // Capture phase, so a page's own drop zone never sees the files.
+  window.addEventListener('dragover', refuseDrop, true);
+  window.addEventListener('drop', refuseDrop, true);
+  // Controls drawn after load (gioianie draws its file inputs) are gated too.
+  new MutationObserver(() => { if (!state.signedIn) gate(); })
+    .observe(document.documentElement, { childList: true, subtree: true });
 
   function vars(p) {
     return {
@@ -193,6 +241,21 @@
       </span></div>`;
     $('artie-account-btn').onclick = () => { state.accountOpen = !state.accountOpen; renderBanner(); renderAccount(); };
     $('artie-signout-btn').onclick = () => window.signOut();
+  }
+
+  // §5B. Who is signed in, and S16's sign-out, for a page with no banner. The
+  // email is the person's own, from /v1/account; no new words.
+  function renderBar() {
+    const el = $('artie-bar');
+    if (!el) return;
+    const email = state.account && state.account.person && state.account.person.email;
+    if (!state.signedIn || !email) { el.innerHTML = ''; return; }
+    el.innerHTML = `<div class="artie-banner artie-bar" role="status">
+      <span class="artie-technical">${esc(email)}</span>
+      <span class="artie-banner-controls">
+        <button type="button" id="artie-bar-signout">${esc(str('S16.signout'))}</button>
+      </span></div>`;
+    $('artie-bar-signout').onclick = () => window.signOut();
   }
 
   // S16. No ceiling or pool figure, and no provider tokens (CD seat file
@@ -299,6 +362,12 @@
       case 'email_unverified': line('S11', v); return true;
       case 'no_project': line('S12'); return true;
       case 'not_a_member': chooseProject(null); line('S13'); return true;
+      // A project kept from another app's page (OD brief of 25 Nov, §3): the
+      // choice is dropped and the server's own line is shown.
+      case 'project_product_mismatch':
+        chooseProject(null);
+        showPanel('mismatch', `<p class="cr-gate-body">${esc(err.message)}</p>`);
+        return true;
       case 'identity_unavailable': line('S14'); return true;      // the token may be fine: no sign-in redirect
       case 'terms_not_configured': line('S15'); return true;
       case 'model_not_available':
@@ -384,6 +453,8 @@
     state.appId = opts && opts.appId;
     state.product = (opts && opts.product) || state.appId;
     state.banner = !(opts && opts.banner === false);
+    state.accountBar = !state.banner && !!(opts && opts.accountBar);
+    state.signInPanel = !(opts && opts.signInPanel === false);
     mount();
     window.addEventListener('artie:signed-in', () => { refresh().catch(() => {}); });
     try { await refresh(); } catch (err) { console.warn('account:', err.message); }
