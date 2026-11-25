@@ -59,7 +59,15 @@
   const CALLBACK_PATH = '/auth/callback.html';
   const RETURN_KEY = 'artie.returnTo';
 
+  // Followed once only. Both the supplier's callback hook and
+  // artieCompleteSignIn() call this, one straight after the other; the first
+  // reads and removes the stored address, so a second call would find nothing
+  // and its replace() to the root, issued last, would win. That was the fault
+  // found on beta on 25 Nov: every sign-in returned to the home page.
+  let returned = false;
   function goBack() {
+    if (returned) return;
+    returned = true;
     let raw = null;
     try { raw = sessionStorage.getItem(RETURN_KEY); sessionStorage.removeItem(RETURN_KEY); } catch (_) { /* private mode */ }
     const safe = window.artieSafeReturn

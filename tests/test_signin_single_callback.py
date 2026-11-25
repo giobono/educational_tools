@@ -121,3 +121,43 @@ def test_the_callback_is_served_and_not_redirected():
             return None
     r = urllib.request.build_opener(NoRedirect).open(f"{SITE}/auth/callback.html")
     assert r.status == 200
+
+
+def test_the_callback_returns_once_to_the_stored_page(tmp_path):
+    """25 Nov on beta: every sign-in landed on the home page. The supplier's
+    hook and artieCompleteSignIn() both called goBack(); the second found the
+    stored address gone and its replace() to the root, issued last, won. This
+    runs the real signin.js against a stand-in supplier that fires its hook
+    during creation, as the real one does after the exchange, and lets the
+    pending promise jobs run before reading what was followed."""
+    stub = """
+var calls = [], store = {'artie.returnTo': '%(o)s/apps/sanzognie/'};
+var window = {
+  ARTIE_AUTH_CONFIG: {domain: 'd', clientId: 'c', audience: 'a'},
+  location: {origin: '%(o)s', pathname: '/auth/callback.html', href: '%(o)s/auth/callback.html?code=x',
+             replace: function (u) { calls.push(u); }},
+  createKindeClient: {default: function (o) { o.on_redirect_callback(); return {}; }},
+  dispatchEvent: function () {}
+};
+var sessionStorage = {getItem: function (k) { return k in store ? store[k] : null; },
+                      removeItem: function (k) { delete store[k]; }, setItem: function (k, v) { store[k] = v; }};
+var CustomEvent = function () {}, console = {warn: function () {}};
+""" % {"o": ORIGIN}
+    prog = (stub + RETURN_TO.read_text(encoding="utf-8") + SIGNIN.read_text(encoding="utf-8")
+            + "\nwindow.artieCompleteSignIn();\n")
+    if shutil.which("node"):
+        out = subprocess.run(["node", "-e", prog + "setTimeout(function () { process.stdout.write(JSON.stringify(calls)); }, 0);"],
+                             capture_output=True, text=True, check=True).stdout
+    elif shutil.which("osascript"):
+        # A JSContext runs pending promise jobs when an evaluation returns, so
+        # the second evaluation sees every replace() the first one caused.
+        src = tmp_path / "prog.js"
+        src.write_text(prog, encoding="utf-8")
+        jxa = ('ObjC.import("JavaScriptCore"); var ctx = $.JSContext.alloc.init;'
+               ' ctx.evaluateScript($.NSString.stringWithContentsOfFileEncodingError(%s, 4, null));'
+               ' ObjC.unwrap(ctx.evaluateScript("JSON.stringify(calls)").description);' % json.dumps(str(src)))
+        out = subprocess.run(["osascript", "-l", "JavaScript", "-e", jxa],
+                             capture_output=True, text=True, check=True).stdout
+    else:
+        pytest.skip("no JavaScript engine on this machine")
+    assert json.loads(out.strip()) == [ORIGIN + "/apps/sanzognie/"]
