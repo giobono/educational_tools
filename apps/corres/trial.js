@@ -659,6 +659,13 @@
     if (!run) return;
     const article = $('#p7-article'), reviewer = $('#p7-reviewer');
     article.href = '#'; reviewer.href = '#';
+    // The handoff to pluralitie: this analysis, by its reference, where
+    // pluralitie is switched on for this surface (apps-enabled.php).
+    const next = $('#p7-next');
+    if (next && window.APPS_ENABLED && window.APPS_ENABLED.pluralitie) {
+      $('#p7-pluralitie').href = `/apps/pluralitie/?run=${encodeURIComponent(run.run_id)}`;
+      next.hidden = false;
+    }
     article.onclick = async (e) => {
       e.preventDefault();
       // The window opens on the click itself, so a popup blocker allows it; the
