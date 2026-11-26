@@ -110,6 +110,10 @@ window.ARTIE_STRINGS = {
   },
   // S20 — the banner once the free allowance is used and bought use remains
   S20: { text: 'This month\'s free allowance is used. Bought use: {bought_pct}% remaining · lasts until {expiry_date}' },
+  // S21 — a task ended by a server restart (code interrupted_by_restart; OD's
+  // restart-sweep brief of 25 Nov 2026, §3.4). CD, given by Geoff in chat as
+  // CD's human half, 26 Nov 2026.
+  S21: { text: 'Changes to background processes require you to retry. We apologise for the inconvenience.' },
 
   // Text CD has not written. Marked so a reader sees it is not copy.
   UNFILLED: {
@@ -117,10 +121,6 @@ window.ARTIE_STRINGS = {
     // option A needs no such string; this exists so the setting can be
     // switched and seen (§5), and is listed in the return for CD.
     S4_ebonis: '[S4, Ebonis form — CD] {remaining} of {allowance} Ebonis left · resets {reset_date}',
-    // A task ended by a server restart (code interrupted_by_restart; OD's
-    // restart-sweep brief of 25 Nov 2026, §3.4). OD's proposed words, for CD
-    // to write; marked until CD does.
-    S21_interrupted: '[S21 — CD; OD proposes] This task was interrupted when the server restarted. Anything already finished is kept; please run it again.',
   },
 };
 

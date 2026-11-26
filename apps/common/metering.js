@@ -483,7 +483,7 @@
   // A task ended by a server restart (restart sweep §3.4): its own line, the
   // items already done kept, and its hold already released by the server.
   function interrupted(err) {
-    let html = `<p class="cr-gate-body">${esc(str('UNFILLED.S21_interrupted'))}</p>`;
+    let html = `<p class="cr-gate-body">${esc(str('S21.text'))}</p>`;
     if (err.task) html += `<p class="artie-partial"><a href="#" id="artie-partial-link">${esc(str('S7.partial_link'))}</a></p>`;
     showPanel('interrupted', html);
     partialLink(err);
