@@ -181,10 +181,11 @@ def test_a_task_interrupted_by_a_restart_shows_its_own_line_and_the_items_kept(t
             "task: { task_id: 't1', progress: { done: ['d1'] } } });")
     r = _page(tmp_path, _project(), then=then)
     t = _text(r["panel"])
-    assert "This task was interrupted when the server restarted." in t
+    # CD's words, given by Geoff in chat as CD's human half on 26 Nov 2026.
+    assert "Changes to background processes require you to retry. We apologise for the inconvenience." in t
     assert "Download a record of the task so far" in t
     s = STRINGS.read_text(encoding="utf-8")
-    assert "S21_interrupted" in s.split("UNFILLED: {")[1]     # CD writes the words; marked until then
+    assert "S21" not in s.split("UNFILLED: {")[1]             # written by CD, so no longer marked
 
 
 # ---- S19 when the purchase request fails (beta purchase of 26 Nov 2026) ----
