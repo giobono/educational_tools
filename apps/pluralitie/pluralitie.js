@@ -89,7 +89,7 @@
       <div class="pl-recap-head"><strong>${esc(ev.corpus)}</strong>
         <span class="pl-sample-sub">${src.kind === 'stored_sample' ? `stored CorRes result (${esc(src.description || '')})` : `CorRes analysis ${esc(ev.run_id)}`}</span></div>
       <div class="pl-stats">
-        <div class="pl-stat"><span class="pl-stat-val">${ev.documents}</span><span class="pl-stat-label">documents</span></div>
+        <div class="pl-stat"><span class="pl-stat-val">${ev.documents}</span><span class="pl-stat-label">documents analysed${ev.documents_excluded_by_corres ? ` (${ev.documents_excluded_by_corres} excluded by CorRes)` : ''}</span></div>
         <div class="pl-stat"><span class="pl-stat-val">${ev.concepts}</span><span class="pl-stat-label">concepts</span></div>
         <div class="pl-stat"><span class="pl-stat-val">${ev.frames.length}</span><span class="pl-stat-label">frames found by CorRes</span></div>
         <div class="pl-stat"><span class="pl-stat-val">${ev.unplaced.length}</span><span class="pl-stat-label">concepts in no frame</span></div>
