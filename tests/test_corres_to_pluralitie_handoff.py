@@ -1,8 +1,10 @@
 """
 The handoff from CorRes to pluralitie (proposed by D2Dev on 26 Nov 2026, in
-the return on OD's brief of that day, pluralitie on artie; held on its own
-branch until AD and CD rule): page 7 offers the next step, carrying the
-analysis by its reference, and only where pluralitie is switched on.
+the return on OD's brief of that day, pluralitie on artie; merged under OD's
+amendment 1 of 27 Nov 2026,
+`briefs/d2dev/2026-11-27_brief_od_d2dev_pluralitie_on_artie_beta_amendment_1_v1_0.md`):
+page 7 offers the next step, carrying the analysis by its reference, and only
+where pluralitie is switched on.
 """
 
 from tests.test_metering_fixes_after_test import ROOT
