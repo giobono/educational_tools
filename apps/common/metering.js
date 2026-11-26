@@ -461,12 +461,25 @@
     showPanel('stop', html);
     const add = topupsOn() ? $('artie-topup-btn') : null;
     if (add) add.onclick = () => openBuy();
+    partialLink(err);
+    refresh().catch(() => {});
+  }
+  // The task record, kept whatever ended the task, downloadable from the panel.
+  function partialLink(err) {
     const link = $('artie-partial-link');
     if (link) link.onclick = (e) => {
       e.preventDefault();
       const name = `results-so-far-${err.task.task_id || 'task'}.json`;
       if (window.downloadBlob) window.downloadBlob(name, JSON.stringify(err.task, null, 2), 'application/json');
     };
+  }
+  // A task ended by a server restart (restart sweep §3.4): its own line, the
+  // items already done kept, and its hold already released by the server.
+  function interrupted(err) {
+    let html = `<p class="cr-gate-body">${esc(str('UNFILLED.S21_interrupted'))}</p>`;
+    if (err.task) html += `<p class="artie-partial"><a href="#" id="artie-partial-link">${esc(str('S7.partial_link'))}</a></p>`;
+    showPanel('interrupted', html);
+    partialLink(err);
     refresh().catch(() => {});
   }
 
@@ -481,6 +494,7 @@
     const v = { email: state.account && state.account.person && state.account.person.email };
     switch (err.code) {
       case 'allowance_exhausted': stop(err); return true;
+      case 'interrupted_by_restart': interrupted(err); return true;
       case 'service_at_capacity':
         showPanel('capacity', `<h2 class="cr-gate-title">${esc(str('S9.heading'))}</h2><p class="cr-gate-body">${withLinks(str('S9.body'))}</p>`);
         return true;

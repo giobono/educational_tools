@@ -115,6 +115,10 @@ window.ARTIE_STRINGS = {
     // option A needs no such string; this exists so the setting can be
     // switched and seen (§5), and is listed in the return for CD.
     S4_ebonis: '[S4, Ebonis form — CD] {remaining} of {allowance} Ebonis left · resets {reset_date}',
+    // A task ended by a server restart (code interrupted_by_restart; OD's
+    // restart-sweep brief of 25 Nov 2026, §3.4). OD's proposed words, for CD
+    // to write; marked until CD does.
+    S21_interrupted: '[S21 — CD; OD proposes] This task was interrupted when the server restarted. Anything already finished is kept; please run it again.',
   },
 };
 
