@@ -70,3 +70,9 @@
 
 /* §5B: the slim bar on a page with no banner: who is signed in, and sign out. */
 .artie-bar { justify-content: flex-end; gap: 0.75rem; padding: 0.35rem 0.75rem; }
+
+/* The paid tier (26 Nov 2026): S18's run line and S19's packs. */
+.artie-run { margin: 0.25rem 0 0.5rem; font-size: 0.9rem; }
+.artie-run a { margin-left: 0.5rem; }
+.artie-packs { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 0.75rem 0; }
+.artie-pack { display: inline-flex; align-items: center; gap: 0.35rem; }

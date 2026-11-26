@@ -19,7 +19,16 @@
  *   {my_pct}         projects[].mine.used_pct (the person's own use of the
  *                    chosen project this period, computed by the API against
  *                    the member cap where one applies, else the allowance)
- *   {topup_aud}      not available until the paid half; the slot is hidden
+ *   {pack_aud}       the pack's A$ price, from /v1/account topups.packs
+ *   {bought_pct}     the project's active lots: remaining over bought, rounded
+ *   {expiry_date}    the latest expiry among the project's active lots, as
+ *                    "26 November 2027"
+ *
+ * The paid tier (OD's build brief to D2Dev of 26 Nov 2026, 1.3–1.4): S17 for
+ * a project with nothing this month, S18 naming the project a run charges,
+ * S20 on bought use, and S19 (the purchase screen) reachable from S7 and the
+ * account panel **only while /v1/account says top-ups are enabled**. R1:
+ * file controls are withheld while the project has nothing available.
  *
  * The banner reads /v1/account. The X-Allowance-* headers are also read when
  * a response carries them, but the five metered routes answer 202 before the
@@ -94,7 +103,7 @@
       else document.body.insertBefore(el, document.body.firstChild);
     }
     el.innerHTML = state.banner
-      ? '<div id="artie-banner"></div><div id="artie-account"></div><div id="artie-panel"></div>'
+      ? '<div id="artie-banner"></div><div id="artie-run"></div><div id="artie-account"></div><div id="artie-panel"></div>'
       : (state.accountBar ? '<div id="artie-bar"></div>' : '') + '<div id="artie-panel"></div>';
     state.mount = el;
     return el;
@@ -175,6 +184,7 @@
   function render() {
     mount();
     renderBanner();
+    renderRun();
     renderAccount();
     renderBar();
     if (!state.signedIn && state.signInPanel) renderSignedOut();
@@ -189,13 +199,22 @@
   // the one way on. Before, a researcher could choose files and was asked to
   // sign in only at the upload, so the choosing was wasted.
   const GATED = 'data-artie-gated';
+  // R1 (the paid tier, 1.4): on a metered page, a project with nothing
+  // available (no free allowance left, no bought use) withholds uploads too,
+  // so no one prepares a run that can only be stopped.
+  function nothingAvailable() {
+    if (!state.banner || !state.signedIn || !state.account) return false;
+    const p = currentProject();
+    return !!p && typeof p.remaining === 'number' && p.remaining <= 0;
+  }
   function gate() {
-    const out = !state.signedIn;
+    const out = !state.signedIn || nothingAvailable();
     document.querySelectorAll('input[type="file"]').forEach(el => {
       if (out && !el.disabled) { el.disabled = true; el.setAttribute(GATED, ''); }
       else if (!out && el.hasAttribute(GATED)) { el.disabled = false; el.removeAttribute(GATED); }
     });
     document.querySelectorAll('[data-requires-signin]').forEach(el => {
+      const out = !state.signedIn;                   // a sample needs sign-in, not allowance
       el.inert = out;
       el.classList.toggle('artie-needs-signin', out);
       if (out) el.setAttribute('aria-disabled', 'true'); else el.removeAttribute('aria-disabled');
@@ -211,7 +230,7 @@
   window.addEventListener('dragover', refuseDrop, true);
   window.addEventListener('drop', refuseDrop, true);
   // Controls drawn after load (gioianie draws its file inputs) are gated too.
-  new MutationObserver(() => { if (!state.signedIn) gate(); })
+  new MutationObserver(() => { if (!state.signedIn || nothingAvailable()) gate(); })
     .observe(document.documentElement, { childList: true, subtree: true });
 
   function vars(p) {
@@ -223,7 +242,28 @@
       allowance: p.allowance != null ? Number(p.allowance).toFixed(0) : '—',
     };
   }
+  function longDate(iso) {
+    const d = iso ? new Date(iso) : null;
+    if (!d || isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Australia/Brisbane' });
+  }
+  function activeLots(p) { return (p.lots || []).filter(l => l.status === 'active'); }
+  function bought(p) {
+    const lots = activeLots(p);
+    const total = lots.reduce((a, l) => a + (l.ebonis || 0), 0);
+    const left = lots.reduce((a, l) => a + (l.remaining || 0), 0);
+    const last = lots.map(l => l.expires_at).sort().pop();
+    return { bought_pct: total ? Math.round(left / total * 100) : 0, expiry_date: longDate(last) };
+  }
+  function bannerKind(p) {
+    const has = (p.bought_remaining || 0) > 0;
+    if (!has && !(p.allowance > 0)) return 'S17';
+    if (has && (p.used_pct || 0) >= 100) return 'S20';
+    return null;
+  }
   function bannerText(p) {
+    const kind = bannerKind(p);
+    if (kind === 'S20') return fmt(str('S20.text'), bought(p));
     if ((cfg().allowanceDisplay || 'percent') === 'ebonis') return fmt(str('UNFILLED.S4_ebonis'), vars(p));
     const key = p.warning >= 95 ? 'S6' : p.warning >= 80 ? 'S5' : 'S4';
     return fmt(str(key + '.text'), vars(p));
@@ -233,14 +273,95 @@
     if (!el) return;
     const p = currentProject();
     if (!state.signedIn || !p) { el.innerHTML = ''; return; }
+    const text = bannerKind(p) === 'S17' ? withLinks(str('S17.text')) : esc(bannerText(p));
     el.innerHTML = `<div class="artie-banner" data-warning="${p.warning || ''}" role="status">
-      <span>${esc(bannerText(p))}</span>
+      <span>${text}</span>
       <span class="artie-banner-controls">
         <button type="button" id="artie-account-btn" aria-expanded="${state.accountOpen}">${esc(str('S16.title'))}</button>
         <button type="button" id="artie-signout-btn">${esc(str('S16.signout'))}</button>
       </span></div>`;
     $('artie-account-btn').onclick = () => { state.accountOpen = !state.accountOpen; renderBanner(); renderAccount(); };
     $('artie-signout-btn').onclick = () => window.signOut();
+  }
+
+  // S18. Before every run: the project it charges, and a way to change it,
+  // which opens the account panel's project list.
+  function renderRun() {
+    const el = $('artie-run');
+    if (!el) return;
+    const p = currentProject();
+    if (!state.signedIn || !p) { el.innerHTML = ''; return; }
+    el.innerHTML = `<p class="artie-run" role="note">${esc(fmt(str('S18.text'), { project: p.name }))}
+      <a href="#" id="artie-change-project">${esc(str('S18.change_project'))}</a></p>`;
+    $('artie-change-project').onclick = (e) => { e.preventDefault(); state.accountOpen = true; renderBanner(); renderAccount(); };
+  }
+
+  // ── top-ups (S19): only while /v1/account says they are enabled ──────────
+  function topupsOn() { return !!(state.account && state.account.topups && state.account.topups.enabled); }
+  function packs() { return (state.account && state.account.topups && state.account.topups.packs) || []; }
+  function openBuy() {
+    const p = currentProject();
+    if (!topupsOn() || !p) return false;
+    const opts = packs().map((k, i) => `<label class="artie-pack"><input type="radio" name="artie-pack" value="${esc(k.name)}" ${i === 0 ? 'checked' : ''}>
+      <span>${esc(fmt(str('S19.pack'), { pack_aud: k.aud }))}</span></label>`).join('');
+    showPanel('buy', `<h2 class="cr-gate-title">${esc(str('S19.heading'))}</h2>
+      <p class="cr-gate-body">${esc(fmt(str('S19.body'), { project: p.name }))}</p>
+      <div class="artie-packs">${opts}</div>
+      <button type="button" class="cr-gate-action" id="artie-buy-btn">${esc(str('S19.button'))}</button>`);
+    $('artie-buy-btn').onclick = () => {
+      const chosen = document.querySelector && document.querySelector('input[name="artie-pack"]:checked');
+      buy(chosen ? chosen.value : (packs()[0] || {}).name).catch(err => { if (!handled(err)) console.error(err); });
+    };
+    return true;
+  }
+  // The page sends a pack name and where to come back to; the server sets the
+  // price and the project's membership is its check (spec §4.2).
+  async function buy(name) {
+    const p = currentProject();
+    const pack = packs().find(k => k.name === name);
+    if (!topupsOn() || !p || !pack) return;
+    const t = await token();
+    const back = String(window.location.href || '').split('?')[0].split('#')[0];
+    const res = await fetch(`${apiBase()}/v1/projects/${encodeURIComponent(p.id)}/topups`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+      body: JSON.stringify({ pack: pack.name, return_url: back }),
+    });
+    if (!res.ok) throw await parseError(res);
+    const out = await res.json();
+    try { sessionStorage.setItem('artie.topup', JSON.stringify({ project: p.id, aud: pack.aud })); } catch (_) { /* private mode */ }
+    window.location.assign(out.url);
+  }
+  // The return from Stripe credits nothing (spec §4.3): S19's *done* is shown
+  // only once the server says the lot exists, asked a few times while the
+  // webhook arrives.
+  function query(name) {
+    const m = new RegExp('[?&]' + name + '=([^&#]*)').exec(String(window.location.search || ''));
+    return m ? decodeURIComponent(m[1]) : null;
+  }
+  async function afterReturn() {
+    const outcome = query('topup');
+    if (!outcome || !state.signedIn) return;
+    if (outcome === 'cancelled') { showPanel('buy', `<p class="cr-gate-body">${esc(str('S19.cancelled'))}</p>`); return; }
+    const session = query('session_id');
+    let kept = {};
+    try { kept = JSON.parse(sessionStorage.getItem('artie.topup') || '{}') || {}; } catch (_) { /* private mode */ }
+    const p = projects().find(x => x.id === kept.project) || currentProject();
+    if (outcome !== 'done' || !session || !p) return;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const t = await token();
+      const res = await fetch(`${apiBase()}/v1/projects/${encodeURIComponent(p.id)}/topups/${encodeURIComponent(session)}`,
+                              { headers: { Authorization: `Bearer ${t}` } });
+      const body = res.ok ? await res.json() : {};
+      if (body.credited) {
+        try { sessionStorage.removeItem('artie.topup'); } catch (_) { /* private mode */ }
+        showPanel('buy', `<p class="cr-gate-body">${esc(fmt(str('S19.done'), { pack_aud: kept.aud || '', project: p.name }))}</p>`);
+        refresh().catch(() => {});
+        return;
+      }
+      if (typeof setTimeout !== 'function') return;
+      await new Promise(r => setTimeout(r, 2000));
+    }
   }
 
   // §5B. Who is signed in, and S16's sign-out, for a page with no banner. The
@@ -283,8 +404,11 @@
       <div class="artie-technical">${esc((a.person && a.person.email) || '')}</div>
       <h4>${esc(str('S16.projects'))}</h4><ul>${lines}</ul>
       ${cur ? `<p class="artie-my-use">${esc(fmt(str('S16.my_use'), { my_pct: myPct, project: cur.name }))}</p>` : ''}
+      ${cur && topupsOn() ? `<button type="button" class="cr-gate-action" id="artie-account-topup">${esc(str('S7.topup_button'))}</button>` : ''}
     </section>`;
-    el.querySelectorAll('input[name="artie-project"]').forEach(r => { r.onchange = () => chooseProject(r.value); });
+    if (el.querySelectorAll) el.querySelectorAll('input[name="artie-project"]').forEach(r => { r.onchange = () => chooseProject(r.value); });
+    const add = cur && topupsOn() ? $('artie-account-topup') : null;
+    if (add) add.onclick = () => openBuy();
   }
 
   function showPanel(kind, html) {
@@ -323,18 +447,20 @@
   function stop(err) {
     const member = err.scope === 'member';
     const p = currentProject() || {};
-    const v = { reset_date: resetDate(p.resets_on), topup_aud: '{topup_aud}' };
+    const v = { reset_date: resetDate(p.resets_on) };
     const s = member ? 'S8' : 'S7';
     let html = `<h2 class="cr-gate-title">${esc(str(s + '.heading'))}</h2>
       <p class="cr-gate-body">${withLinks(fmt(str(s + '.body'), v))}</p>`;
     if (!member) {
       if (err.task) html += `<p class="artie-partial"><a href="#" id="artie-partial-link">${esc(str('S7.partial_link'))}</a></p>`;
-      html += `<div class="artie-topup" hidden>
+      if (topupsOn()) html += `<div class="artie-topup">
         <p class="cr-gate-body">${esc(fmt(str('S7.topup'), v))}</p>
-        <button type="button" class="cr-gate-action" disabled>${esc(str('S7.topup_button'))}</button></div>`;
+        <button type="button" class="cr-gate-action" id="artie-topup-btn">${esc(str('S7.topup_button'))}</button></div>`;
       html += `<p class="cr-gate-sub">${withLinks(str('S7.team'))}</p>`;
     }
     showPanel('stop', html);
+    const add = topupsOn() ? $('artie-topup-btn') : null;
+    if (add) add.onclick = () => openBuy();
     const link = $('artie-partial-link');
     if (link) link.onclick = (e) => {
       e.preventDefault();
@@ -458,7 +584,9 @@
     mount();
     window.addEventListener('artie:signed-in', () => { refresh().catch(() => {}); });
     try { await refresh(); } catch (err) { console.warn('account:', err.message); }
+    try { await afterReturn(); } catch (err) { console.warn('topup:', err.message); }
   }
 
-  window.ArtieMetering = { init, token, projectId, chooseProject, observeResponse, requireTerms, handled, refresh };
+  window.ArtieMetering = { init, token, projectId, chooseProject, observeResponse, requireTerms, handled, refresh,
+                           openBuy, buy };
 })();

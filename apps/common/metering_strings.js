@@ -16,8 +16,14 @@
  *             the banner, which only the 'ebonis' display setting needs.
  *
  * Placeholders: {pct} {reset_date} {terms_version} {email} {project} {my_pct}
- * {topup_aud}. Filled by apps/common/metering.js; what each is read from is
- * recorded in the phase 3 return.
+ * {pack_aud} {bought_pct} {expiry_date}. Filled by apps/common/metering.js;
+ * what each is read from is recorded in the phase 3 and B3 returns.
+ *
+ * S17–S20 and the changed S7 (the paid tier, 26 Nov 2026) are CD's, placed
+ * verbatim from CD's handoff to OD of 26 Nov
+ * (ebono_research/26_18_BIL/handoffs/2026-11-26_handoff_cd_od_paid_tier_answers_v1_0.md §3).
+ * {topup_aud} is no longer used. S19 and S7's top-up line show only while
+ * /v1/account says top-ups are enabled.
  *
  * These strings reach users only at free-tier go-live (CD's gate, seat file
  * §2); beta shows them to the trial users.
@@ -54,8 +60,8 @@ window.ARTIE_STRINGS = {
     heading:      'This month\'s allowance is used',
     body:         'Your project has used its full allowance for this month. New requests are paused until {reset_date}. Everything you\'ve already finished is safe.', // [AD] — retention sentence struck, OD notice of 19 Nov (CD decided, AD sighted)
     partial_link: 'Download a record of the task so far',                     // OD notice of 19 Nov: the download is the task record, not the coded documents
-    topup:        'Need more now? Add A${topup_aud} of use to this project.', // hidden until the paid half is live
-    topup_button: 'Add use',                                                  // hidden
+    topup:        'Need more now? Add use to this project, from A$10.',      // CD, 26 Nov; shown only while top-ups are enabled
+    topup_button: 'Add use',                                                  // opens S19
     team:         'Working with a team or an institution? Contact us.',
   },
   // S8 — the stop: the member's share is used (402 allowance_exhausted, scope member)
@@ -83,6 +89,25 @@ window.ARTIE_STRINGS = {
     my_use:       'Your use this month: {my_pct}% of {project}\'s allowance',
     signout:      'Sign out',
   },
+  // S17 — a project with no allowance this month and no bought use
+  // (replaces "100% of 0 used")
+  S17: { text: 'This project has no allowance this month. Contact us to get started.' },
+  // S18 — which project a run charges, shown before the run
+  S18: {
+    text:           'This run uses {project}\'s allowance.',
+    change_project: 'Change project',
+  },
+  // S19 — the purchase screen, from S7's Add use and the account panel
+  S19: {
+    heading:   'Add use to this project',
+    body:      'Choose a pack. It\'s added to {project} and used after this month\'s free allowance. Bought use lasts 12 months.',
+    pack:      'A${pack_aud} (including GST)',
+    button:    'Continue to payment',
+    done:      'Thank you. A${pack_aud} of use has been added to {project}.',
+    cancelled: 'No payment was taken.',
+  },
+  // S20 — the banner once the free allowance is used and bought use remains
+  S20: { text: 'This month\'s free allowance is used. Bought use: {bought_pct}% remaining · lasts until {expiry_date}' },
 
   // Text CD has not written. Marked so a reader sees it is not copy.
   UNFILLED: {
