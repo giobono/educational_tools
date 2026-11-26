@@ -4,20 +4,23 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<!-- pluralitie: frame naming.
+<!-- pluralitie: the frames, defined and discussed.
 
-     Written 27 Aug 2026, replacing an unedited clone of sanzognie's corpus
-     coding page that had been left in place while this app was deferred.
-     That clone carried no frame-naming code; the routines survive because
-     they were migrated to artie as apps/corres/workflows/name_frames.py
-     before the front end was overwritten, and this page calls them there
-     rather than reimplementing them.
+     Rewritten 26 Nov 2026 as the front of pluralitie on the artie platform
+     (OD's brief to D2Dev of 26 Nov 2026, pluralitie on artie on beta;
+     Geoff's instruction of the same evening). It picks up where CorRes 3
+     leaves off: it opens a finished CorRes run, shows what the run's
+     document-term matrix says about each frame, asks for a drafted
+     definition and discussion, and lets the researcher refine each frame in
+     conversation.
 
-     The seam is the same one corres holds to: the back end computes, this
-     page declares and displays. Nothing here names, groups, or scores
-     anything - it posts the artefact corres produced and renders what
-     comes back. -->
-<title>Correlating Resonance — Frame Naming</title>
+     The page that was here, which names the frames of an analysis file from
+     the earlier CorRes, is kept unchanged beside this one as
+     name_frames.html.
+
+     The seam holds: the back end counts and calls the model; this page
+     declares and displays. Nothing here names, groups or scores anything. -->
+<title>pluralitie — Define and discuss the frames</title>
 <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
@@ -27,341 +30,106 @@
 <script src="config.php"></script>
 <script src="/edu_common.js?v=202611190100"></script>
 <script>window.enforceAppActive();</script>
-<!-- Metering phase 3: sign-in, the Terms, the allowance banner and the stop
-     (OD brief v1.1 of 19 Nov 2026), for the one step here that calls a
-     model, corres's name_frames. The strings are CD's. The project is a
-     corres project, since the route is corres's. -->
+<!-- Sign-in, the Terms, the allowance banner and the stop, as on sanzognie:
+     the same metered route, the same single callback. The strings are CD's. -->
 <script src="/apps/common/config.php"></script>
 <script src="/apps/common/metering_strings.js?v=202611261900"></script>
 <script src="/apps/common/signin.js?v=202611251530"></script>
 <script src="/apps/common/metering.js?v=202611261900"></script>
-<script>document.addEventListener('DOMContentLoaded', () => window.ArtieMetering.init({ appId: 'pluralitie', product: 'corres' }));</script>
+<script>document.addEventListener('DOMContentLoaded', () => window.ArtieMetering.init({ appId: 'pluralitie' }));</script>
 <link href="/apps/common/metering.css?v=202611261900" rel="stylesheet"/>
 <link href="/ebono_brand.css?v=202608231842" rel="stylesheet"/>
 <link href="/edu_common.css?v=202608231842" rel="stylesheet"/>
-<link href="pluralitie.css?v=202608271405" rel="stylesheet"/></head>
+<link href="pluralitie.css?v=202611262100" rel="stylesheet"/></head>
 <body>
 <div id="edu-header" class="cr-nav"></div>
 <div id="artie-metering"></div>
 
-<div class="cr-gate" id="pluralitie-gate" hidden>
-<h2 class="cr-gate-title">Open to registered researchers</h2>
-<p class="cr-gate-body">pluralitie is in beta, and we are opening it to researchers a few at a time so that we can respond properly to what comes back.</p>
-<p class="cr-gate-body">Register your interest and we will be in touch.</p>
-<p><a class="cr-gate-action" href="/#contact">Register your interest</a></p>
-<p class="cr-gate-sub">Already registered? Write to <a href="mailto:info@ebono.au">info@ebono.au</a> and we will sort it out.</p>
-</div>
-
 <section class="cr-front-hero">
-<p class="cr-front-eyebrow">Correlating Resonance</p>
-<h1 class="cr-front-title">Name the frames</h1>
-<p class="cr-front-standfirst">Bring a finished corres analysis. This page proposes a working name and a description for each group of concepts, and shows you the documents that sit most squarely inside it. What it proposes is a starting point for your reading, not a finding.</p>
-<p><a class="cr-front-cta" href="/apps/corres/">Run an analysis in corres first ↗</a></p>
+<p class="cr-front-eyebrow">Correlating Resonance · pluralitie</p>
+<h1 class="cr-front-title">Define and discuss the frames</h1>
+<p class="cr-front-standfirst">CorRes found the frames in your corpus. Here you work out what each one means: see what the documents show about it, read a drafted definition, and refine it in conversation until it says what you have found.</p>
 </section>
 
 <div class="workspace">
 
-<div class="callout">
-<strong>What you need — the analysis file from corres</strong><br/>
-At the end of a corres run, use <em>Download analysis for frame naming</em>. That file carries the groups, the role and stability of every concept, and your own concept names. Nothing else is needed, and the original documents are not uploaded here.
-</div>
-
-<!-- ── Step 1: load ── -->
-<div class="step-card" id="card-load">
-<div class="step-card-header">
-<div class="step-card-title"><span class="step-num">1</span><span class="step-name">Load the analysis</span></div>
-</div>
-<div class="step-card-body">
-<div class="pl-drop" id="pl-drop">
-<div class="pl-drop-icon" id="pl-drop-icon">◇</div>
-<div class="pl-drop-body"><strong id="pl-drop-text">Drop the corres analysis file here or click to browse</strong>
-<span class="pl-drop-sub" id="pl-drop-sub">a .json file written by corres</span></div>
-</div>
-<input accept=".json,text/plain,application/json" id="pl-file" style="display:none;" type="file"/>
 <div class="error-box" id="pl-error" style="display:none;"></div>
-<div id="pl-summary" style="display:none;"></div>
-</div>
-</div>
 
-<!-- ── Step 2: name ── -->
-<div class="step-card" id="card-name" style="display:none;">
+<!-- ── Step 1: the analysis ── -->
+<div class="step-card" id="card-open">
 <div class="step-card-header">
-<div class="step-card-title"><span class="step-num">2</span><span class="step-name">Propose names</span></div>
+<div class="step-card-title"><span class="step-num">1</span><span class="step-name">The analysis from CorRes</span></div>
 </div>
 <div class="step-card-body">
-<p class="pl-lede">Each group is sent to a language model with its concepts, ranked by how often they appear across the corpus, and the model is asked for a short name and a description. The documents shown beside each frame are chosen by the server from your own matrix — the ones carrying the most of that group's concepts.</p>
-<div id="pl-caveat"></div>
-<button class="btn btn-primary" id="pl-run-btn">Propose names for the frames →</button>
-<div id="pl-running" style="display:none;">
-<p class="pl-running-text">Asking the model…</p>
+<div id="pl-choose">
+<p class="pl-lede">pluralitie works on a finished CorRes analysis. Nothing is uploaded again: it reads the analysis where CorRes left it.</p>
+<div id="pl-samples"></div>
+<div class="pl-open-own">
+<label class="pl-label" for="pl-run-id">Your own CorRes analysis</label>
+<div class="pl-row">
+<input class="pl-input" id="pl-run-id" placeholder="the run reference from CorRes" spellcheck="false" type="text"/>
+<button class="btn btn-outline" id="pl-open-run">Open</button>
 </div>
+</div>
+<p class="pl-aside">Have an analysis file from the earlier CorRes? <a href="name_frames.html">Name its frames here</a>.</p>
+</div>
+<div id="pl-recap" style="display:none;"></div>
 </div>
 </div>
 
-<!-- ── Step 3: results ── -->
+<!-- ── Step 2: what the documents show ── -->
+<div class="step-card" id="card-evidence" style="display:none;">
+<div class="step-card-header">
+<div class="step-card-title"><span class="step-num">2</span><span class="step-name">What the documents show</span></div>
+</div>
+<div class="step-card-body">
+<p class="pl-lede">Counted from your matrix, frame by frame: the concepts that mark each frame out, how many documents carry it, which concepts travel together, and where the frames meet. No model is involved in this step.</p>
+<div id="pl-evidence"></div>
+</div>
+</div>
+
+<!-- ── Step 3: definitions ── -->
+<div class="step-card" id="card-define" style="display:none;">
+<div class="step-card-header">
+<div class="step-card-title"><span class="step-num">3</span><span class="step-name">Draft the definitions</span></div>
+</div>
+<div class="step-card-body">
+<p class="pl-lede">A language model reads the counts above and drafts, for each frame, a working name, a definition, a discussion of the evidence, and questions to take to your documents. It has not read the documents: you have. Treat every draft as a starting point.</p>
+<button class="btn btn-primary" id="pl-define-btn">Draft a definition of each frame →</button>
+<p class="pl-running-text" id="pl-defining" style="display:none;">Reading the evidence and drafting…</p>
+</div>
+</div>
+
+<!-- ── Step 4: discuss and refine ── -->
 <div class="step-card" id="card-frames" style="display:none;">
 <div class="step-card-header">
-<div class="step-card-title"><span class="step-num">3</span><span class="step-name">Proposed frames</span></div>
+<div class="step-card-title"><span class="step-num">4</span><span class="step-name">Discuss and refine</span></div>
 </div>
 <div class="step-card-body">
+<p class="pl-lede">Take each frame in turn. Read the documents it suggests, then say what you found: agree, disagree, or ask. Where the conversation gives reason to change a definition, a revision is proposed and you decide. You can also rewrite any definition yourself.</p>
 <div id="pl-frames"></div>
-<div class="pl-actions" id="pl-actions" style="display:none;">
-<button class="btn btn-outline" id="pl-export-btn">↓ Download frames</button>
-<span class="pl-actions-note">Names and descriptions as proposed, with the concepts and documents each was drawn from.</span>
+</div>
+</div>
+
+<!-- ── Step 5: take it away ── -->
+<div class="step-card" id="card-export" style="display:none;">
+<div class="step-card-header">
+<div class="step-card-title"><span class="step-num">5</span><span class="step-name">Take it with you</span></div>
+</div>
+<div class="step-card-body">
+<p class="pl-lede">The report carries each frame's working definition, the evidence it rests on, the documents to read first, every earlier definition, and the whole conversation.</p>
+<div class="pl-actions" style="display:flex;">
+<button class="btn btn-outline" id="pl-export-btn">↓ Download the frames report</button>
+<span class="pl-actions-note">Markdown. Your work is also kept here: this page's address returns you to it.</span>
 </div>
 </div>
 </div>
+
+<p class="pl-runs-on" id="pl-runs-on"></p>
 
 </div>
 
 <div id="edu-footer"></div>
-
-<script>
-// ── State ───────────────────────────────────────────────────────────────
-// handoff: the file corres wrote. artefact: the TTMArtefact inside it,
-// posted back unchanged. framesResult: what name-frames returned.
-let handoff = null;
-let framesResult = null;
-
-const $ = id => document.getElementById(id);
-
-function showError(msg) {
-  const box = $('pl-error');
-  box.textContent = msg;
-  box.style.display = 'block';
-}
-function clearError() { $('pl-error').style.display = 'none'; }
-
-function escHtml(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, c => (
-    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-  ));
-}
-
-// ── Step 1: load the analysis ───────────────────────────────────────────
-const drop = $('pl-drop');
-drop.addEventListener('click', () => $('pl-file').click());
-$('pl-file').addEventListener('change', e => { if (e.target.files[0]) loadHandoff(e.target.files[0]); });
-drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
-drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
-drop.addEventListener('drop', e => {
-  e.preventDefault(); drop.classList.remove('drag-over');
-  if (e.dataTransfer.files[0]) loadHandoff(e.dataTransfer.files[0]);
-});
-
-async function loadHandoff(file) {
-  clearError();
-  try {
-    const parsed = JSON.parse(await file.text());
-    const artefact = parsed.artefact || parsed;
-    if (!artefact || typeof artefact !== 'object') throw new Error('not a corres analysis file');
-
-    const blocks = (artefact.consensus && artefact.consensus.blocks)
-                || (artefact.clustering && artefact.clustering.assignments);
-    if (!blocks || !Object.keys(blocks).length) {
-      throw new Error('this analysis has no concept groups in it — the corres run may not have reached the grouping stage');
-    }
-
-    handoff = {
-      artefact,
-      conceptTerms: parsed.concept_terms || {},
-      corpusId: parsed.corpus_id || artefact.corpus_id || null,
-      generatedAt: parsed.generated_at || artefact.generated_at || null,
-      blocks,
-    };
-
-    drop.classList.add('loaded');
-    $('pl-drop-icon').textContent = '✓';
-    $('pl-drop-text').textContent = file.name;
-    $('pl-drop-sub').textContent = handoff.generatedAt
-      ? `analysis of ${new Date(handoff.generatedAt).toLocaleString()}`
-      : 'loaded';
-
-    renderSummary();
-    renderCaveat();
-    $('card-name').style.display = '';
-    $('card-frames').style.display = 'none';
-    framesResult = null;
-  } catch (err) {
-    showError('Could not read that file: ' + err.message);
-  }
-}
-
-// Group membership, sizes, and how much of each group is actually certified.
-// Computed for display only - every value is read from the artefact, none
-// is derived here beyond counting.
-function groupView() {
-  const { artefact, blocks, conceptTerms } = handoff;
-  const roles = (artefact.roles && artefact.roles.roles) || {};
-  // The threshold is recorded with its provenance, not as a bare number:
-  // classify_roles writes roles.parameters.stability_threshold as
-  // {value, source}, where source is proposed, overridden or declared.
-  // Reading it as a plain field returns undefined and silently disables
-  // every certified/uncertified distinction on this page.
-  const tauParam = artefact.roles && artefact.roles.parameters
-    && artefact.roles.parameters.stability_threshold;
-  const tau = tauParam && typeof tauParam.value === 'number' ? tauParam.value : null;
-  const tauSource = tauParam ? tauParam.source : null;
-  const groups = {};
-  Object.keys(blocks).forEach(cid => {
-    const g = blocks[cid];
-    (groups[g] = groups[g] || []).push(cid);
-  });
-  Object.keys(groups).forEach(g => {
-    groups[g].sort((a, b) => (artefact.totals?.[b] || 0) - (artefact.totals?.[a] || 0));
-  });
-  return { groups, roles, tau, tauSource, conceptTerms };
-}
-
-function termOf(cid) {
-  return handoff.conceptTerms[String(cid)] || `concept ${cid}`;
-}
-
-function renderSummary() {
-  const { groups, roles, tau, tauSource } = groupView();
-  const keys = Object.keys(groups).sort((a, b) => Number(a) - Number(b));
-  const sizes = keys.map(g => groups[g].length);
-  const total = sizes.reduce((a, b) => a + b, 0);
-  const withRole = Object.keys(roles).filter(cid => roles[cid] && roles[cid].role !== null).length;
-
-  $('pl-summary').style.display = '';
-  $('pl-summary').innerHTML = `
-    <div class="pl-stats">
-      <div class="pl-stat"><span class="pl-stat-val">${keys.length}</span><span class="pl-stat-label">groups</span></div>
-      <div class="pl-stat"><span class="pl-stat-val">${total}</span><span class="pl-stat-label">concepts</span></div>
-      <div class="pl-stat"><span class="pl-stat-val">${sizes.join(' · ')}</span><span class="pl-stat-label">group sizes</span></div>
-      ${withRole ? `<div class="pl-stat"><span class="pl-stat-val">${withRole}</span><span class="pl-stat-label">concepts with a role</span></div>` : ''}
-      ${tau !== null ? `<div class="pl-stat"><span class="pl-stat-val">${tau}</span><span class="pl-stat-label">stability threshold (${escHtml(tauSource || 'unknown')})</span></div>` : ''}
-    </div>`;
-}
-
-// The one thing this page should say before anyone presses the button. A
-// group whose members largely failed the stability test is still a group,
-// and the model will still name it - fluently. Saying so here is cheaper
-// than explaining afterwards why a confident name was not a finding.
-function renderCaveat() {
-  const { groups, roles, tau } = groupView();
-  if (!tau || !Object.keys(roles).length) { $('pl-caveat').innerHTML = ''; return; }
-  const rows = Object.keys(groups).sort((a, b) => Number(a) - Number(b)).map(g => {
-    const members = groups[g];
-    const certified = members.filter(cid => {
-      const r = roles[cid];
-      return r && r.role !== null && typeof r.stability === 'number' && r.stability >= tau;
-    }).length;
-    return { g, n: members.length, certified };
-  });
-  const weak = rows.filter(r => r.certified < r.n / 2);
-  if (!weak.length) { $('pl-caveat').innerHTML = ''; return; }
-  const detail = weak.map(r => `group ${Number(r.g) + 1} (${r.certified} of ${r.n})`).join(', ');
-  $('pl-caveat').innerHTML = `<div class="pl-warn">
-    <strong>Fewer than half the concepts in ${weak.length === 1 ? 'one group' : `${weak.length} groups`} met the stability threshold.</strong>
-    ${escHtml(detail)}. A name will still be proposed, and it will read as confidently as any other. Stability is reported per concept below each frame so you can see which members the name is actually resting on.
-  </div>`;
-}
-
-// ── Step 2: call the server ─────────────────────────────────────────────
-$('pl-run-btn').addEventListener('click', runNaming);
-
-async function runNaming() {
-  clearError();
-  const btn = $('pl-run-btn');
-  btn.disabled = true;
-  $('pl-running').style.display = 'block';
-  try {
-    const created = await callAppAPI('corres', 'ttm/name-frames', {
-      ttm: handoff.artefact,
-      params: { concept_terms: handoff.conceptTerms },
-    });
-    const result = await pollTask('corres', created.task_id, { routeSegment: 'ttm' });
-    framesResult = result.frames || [];
-    renderFrames();
-    $('card-frames').style.display = '';
-    $('card-frames').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  } catch (err) {
-    if (window.ArtieMetering.handled(err)) {
-      // shown by metering.js: the stop, capacity or an account state
-    } else if (err.code) {
-      showError(`The server stopped: ${err.message}`);
-    } else {
-      showError('There is a connection issue preventing access to the back end code. Please try again later.');
-    }
-  } finally {
-    btn.disabled = false;
-    $('pl-running').style.display = 'none';
-  }
-}
-
-// ── Step 3: render ──────────────────────────────────────────────────────
-function renderFrames() {
-  const { groups, roles, tau } = groupView();
-  if (!framesResult || !framesResult.length) {
-    $('pl-frames').innerHTML = `<div class="pl-warn"><strong>No frames were returned.</strong> The run completed but proposed nothing, which is a result rather than an error. Nothing has been inferred here to fill the gap.</div>`;
-    return;
-  }
-
-  const html = framesResult.map(f => {
-    // name_frames numbers clusters from 1; the artefact keys them from 0.
-    const key = String(f.cluster - 1);
-    const members = groups[key] || [];
-    const chips = members.map(cid => {
-      const r = roles[cid] || {};
-      const stable = typeof r.stability === 'number';
-      const certified = stable && tau && r.role !== null && r.stability >= tau;
-      const detail = stable ? `Σ ${r.stability.toFixed(3)}${r.role ? ` · ${r.role}` : ''}` : 'no stability reported';
-      return `<span class="pl-chip ${certified ? 'pl-chip-cert' : 'pl-chip-uncert'}" title="${escHtml(detail)}">
-        ${escHtml(termOf(cid))}<span class="pl-chip-meta">${escHtml(stable ? r.stability.toFixed(2) : '—')}</span></span>`;
-    }).join('');
-
-    const docs = (f.representative_documents || []).map(d =>
-      `<li><span class="pl-doc-id">${escHtml(d.doc_id)}</span><span class="pl-doc-score">${d.score} of ${members.length} concepts</span></li>`
-    ).join('');
-
-    const certifiedCount = members.filter(cid => {
-      const r = roles[cid];
-      return r && r.role !== null && typeof r.stability === 'number' && tau && r.stability >= tau;
-    }).length;
-
-    return `<div class="pl-frame">
-      <div class="pl-frame-head">
-        <span class="pl-frame-num">Frame ${f.cluster}</span>
-        <h3 class="pl-frame-name">${escHtml(f.name)}</h3>
-      </div>
-      ${f.description ? `<p class="pl-frame-desc">${escHtml(f.description)}</p>` : ''}
-      <div class="pl-frame-sub">Concepts in this group — ${members.length}${tau ? `, of which ${certifiedCount} met the stability threshold` : ''}</div>
-      <div class="pl-chips">${chips}</div>
-      ${docs ? `<div class="pl-frame-sub">Documents carrying most of this group</div><ul class="pl-docs">${docs}</ul>` : ''}
-    </div>`;
-  }).join('');
-
-  $('pl-frames').innerHTML = `<div class="pl-proposed-note">Proposed by a language model from the concept names alone. It has not read your documents, and it does not know what your corpus is about. Treat every name as a first draft.</div>${html}`;
-  $('pl-actions').style.display = 'flex';
-}
-
-$('pl-export-btn').addEventListener('click', () => {
-  const { groups, roles } = groupView();
-  const out = framesResult.map(f => {
-    const members = groups[String(f.cluster - 1)] || [];
-    return {
-      frame: f.cluster,
-      name: f.name,
-      description: f.description,
-      concepts: members.map(cid => ({
-        concept_id: cid,
-        term: termOf(cid),
-        role: (roles[cid] || {}).role ?? null,
-        stability: (roles[cid] || {}).stability ?? null,
-      })),
-      representative_documents: f.representative_documents || [],
-    };
-  });
-  download(`CR_Frames_${today()}.json`, JSON.stringify({
-    source: 'pluralitie',
-    generated_at: new Date().toISOString(),
-    corpus_id: handoff.corpusId,
-    analysis_generated_at: handoff.generatedAt,
-    frames: out,
-  }, null, 1), 'application/json');
-});
-</script>
+<script src="pluralitie.js?v=202611262100"></script>
 </body>
 </html>
