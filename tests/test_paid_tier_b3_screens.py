@@ -172,3 +172,16 @@ def test_the_return_shows_done_only_once_the_lot_exists(tmp_path):
     assert "Thank you." not in _text(r["panel"] or "")
     r = _page(tmp_path, _project(), topups=True, search="?topup=cancelled")
     assert "No payment was taken." in _text(r["panel"])
+
+
+# ---- the restart sweep (OD's brief of 25 Nov 2026, §3.4) ------------------
+
+def test_a_task_interrupted_by_a_restart_shows_its_own_line_and_the_items_kept(tmp_path):
+    then = ("window.ArtieMetering.handled({ code: 'interrupted_by_restart', "
+            "task: { task_id: 't1', progress: { done: ['d1'] } } });")
+    r = _page(tmp_path, _project(), then=then)
+    t = _text(r["panel"])
+    assert "This task was interrupted when the server restarted." in t
+    assert "Download a record of the task so far" in t
+    s = STRINGS.read_text(encoding="utf-8")
+    assert "S21_interrupted" in s.split("UNFILLED: {")[1]     # CD writes the words; marked until then
