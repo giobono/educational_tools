@@ -310,7 +310,14 @@
       <button type="button" class="cr-gate-action" id="artie-buy-btn">${esc(str('S19.button'))}</button>`);
     $('artie-buy-btn').onclick = () => {
       const chosen = document.querySelector && document.querySelector('input[name="artie-pack"]:checked');
-      buy(chosen ? chosen.value : (packs()[0] || {}).name).catch(err => { if (!handled(err)) console.error(err); });
+      // A refusal the page already explains is shown as itself; anything else
+      // (a 500, an unreachable server) gets S19's failure line, so the button
+      // never looks dead (beta purchase, 26 Nov 2026).
+      return buy(chosen ? chosen.value : (packs()[0] || {}).name).catch(err => {
+        if (handled(err)) return;
+        console.error(err);
+        showPanel('buy', `<p class="cr-gate-body">${esc(str('S19.failed'))}</p>`);
+      });
     };
     return true;
   }

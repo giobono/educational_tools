@@ -105,6 +105,8 @@ window.ARTIE_STRINGS = {
     button:    'Continue to payment',
     done:      'Thank you. A${pack_aud} of use has been added to {project}.',
     cancelled: 'No payment was taken.',
+    // CD, given by Geoff in chat as CD's human half, 26 Nov 2026
+    failed:    'Your transaction has not been processed. Please try again later.',
   },
   // S20 — the banner once the free allowance is used and bought use remains
   S20: { text: 'This month\'s free allowance is used. Bought use: {bought_pct}% remaining · lasts until {expiry_date}' },

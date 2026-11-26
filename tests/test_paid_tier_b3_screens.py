@@ -185,3 +185,36 @@ def test_a_task_interrupted_by_a_restart_shows_its_own_line_and_the_items_kept(t
     assert "Download a record of the task so far" in t
     s = STRINGS.read_text(encoding="utf-8")
     assert "S21_interrupted" in s.split("UNFILLED: {")[1]     # CD writes the words; marked until then
+
+
+# ---- S19 when the purchase request fails (beta purchase of 26 Nov 2026) ----
+# On beta the first purchase met a 500 and the page showed nothing, so
+# *Continue to payment* looked dead. CD's line, given by Geoff in chat as CD's
+# human half on 26 Nov ("proessed" read as "processed").
+
+FAILED = "Your transaction has not been processed. Please try again later."
+
+
+def test_the_failure_line_is_cds_verbatim():
+    assert FAILED in STRINGS.read_text(encoding="utf-8")
+
+
+def _failing(kind):
+    fail = ("Promise.resolve({ ok: false, status: 500, statusText: 'Internal Server Error', "
+            "json: function () { return Promise.reject(new Error('not json')); } })"
+            if kind == "500" else "Promise.reject(new TypeError('Load failed'))")
+    return ("window.ArtieMetering.openBuy();"
+            f"fetch = function (url, opts) {{ return {fail}; }};"
+            "return document.getElementById('artie-buy-btn').onclick();")
+
+
+def test_a_failed_purchase_request_says_so(tmp_path):
+    r = _page(tmp_path, _project(), topups=True, then=_failing("500"))
+    assert FAILED in _text(r["panel"])
+    assert r["went"] is None
+
+
+def test_an_unreachable_server_says_so_too(tmp_path):
+    r = _page(tmp_path, _project(), topups=True, then=_failing("network"))
+    assert FAILED in _text(r["panel"])
+    assert r["went"] is None
