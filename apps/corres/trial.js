@@ -149,13 +149,18 @@
   // §4.2–4.3: when a run finishes the page stays where it is and says the work
   // is ready; Next sits in the same place on every page, enabled when the next
   // page can be reached, and the app never moves on its own.
-  // AD brief of 24 Nov 2026 §1: page 6 is skipped for everyone at launch. Its
-  // run buttons are live on a stored sample, and the page's checks are set out
-  // on page 5's tiers and in page 7's reviewer report. Next on page 5 goes to
-  // page 7; the step bar leaves page 6 out; a jump to page 6 lands on page 5.
-  // Reversed by putting 'p6' back in NEXT and emptying SKIPPED.
-  const SKIPPED = new Set(['p6']);
-  const NEXT = { p1: 'p2', p2: 'p3', p3: 'p4', p4: 'p5', p5: 'p7', p6: 'p7', p7: null };
+  // AD brief of 24 Nov 2026 §1 skipped page 6 for everyone at launch, because
+  // its run buttons were live on a stored sample. Lifted by AD for testing on
+  // 27 Nov 2026 (OD's amendment 1 to the pluralitie side-step brief, §2), on
+  // terms: page 6 is read-only. A sample shows its stored checklist results,
+  // reviewed card by card as before; a researcher's own file shows the Ask
+  // for the checks offer; and no Run again, no variation and no settings
+  // control can be reached, so nothing starts a computation from page 6.
+  // AD may keep, vary or reinstate the skip after the test: to reinstate it,
+  // SKIPPED = new Set(['p6']) and NEXT.p5 = 'p7'.
+  const SKIPPED = new Set();
+  const P6_READ_ONLY = true;
+  const NEXT = { p1: 'p2', p2: 'p3', p3: 'p4', p4: 'p5', p5: 'p6', p6: 'p7', p7: null };
   // What the next page needs before Next will take you there: a checked file
   // for page 3, a confirmed run for page 4, frames for pages 5 to 7.
   // AD's note of 23 Nov 2026 §2: a researcher's own file, as against a sample
@@ -564,7 +569,7 @@
       const can = i.available && !liveItem && !review && i.state !== 'running';
       return `<li class="tr-item"><div class="lab">${esc(i.label)}${tip('p6.item.label.' + i.label)}${i.state === 'done' ? ' · done in ' + fmtS(i.seconds) : ''}</div>
         <b>${esc(i.title)}</b>${tip('p6.item.' + i.key + '.title')}: ${esc(i.question)}<br><span class="tr-small">About ${fmtS(i.estimate_seconds)}${i.available ? '' : ' · available after the chance check'}${i.key === 'compare_types' ? ' · offered because ' + i.tracked.map((t) => `${esc(t.frame)} is strongly tied to ${esc(t.detail)}`).join('; ') : ''}</span><br>
-        ${i.key === 'bridging_readings' ? '<button class="tr-btn" data-bridge>Read the shared concepts</button>' : `<button class="tr-btn ${can ? 'tr-primary' : ''}" data-item="${i.key}" ${can ? '' : 'disabled'}>${i.state === 'done' ? 'Run again' : 'Run'}</button>`}
+        ${i.key === 'bridging_readings' ? '<button class="tr-btn" data-bridge>Read the shared concepts</button>' : (P6_READ_ONLY ? '' : `<button class="tr-btn ${can ? 'tr-primary' : ''}" data-item="${i.key}" ${can ? '' : 'disabled'}>${i.state === 'done' ? 'Run again' : 'Run'}</button>`)}
         ${i.state === 'failed' ? `<div class="tr-small">This item couldn't finish: ${esc(i.plain_error || 'it stopped')}</div>` : ''}</li>`;
     }).join('');
     $$('[data-item]').forEach((b) => { b.onclick = () => runItem(b.dataset.item); });
@@ -588,6 +593,8 @@
   // Page 6: settings the researcher can change after the first stop (AD note of 16 Nov §1.2).
   function renderVariations() {
     const f = frames, box = $('#p6-variations'); if (!box) return;
+    // Read-only (amendment 1 §2): no setting can be changed from here.
+    if (P6_READ_ONLY) { box.innerHTML = ''; return; }
     const list = f.variations || [];
     box.innerHTML = (list.length || f.variation) ? '<h3>Settings you can change</h3>'
       + list.map((v) => `<div class="tr-card"><b>${esc(v.label)}</b><br><span class="tr-small">This starts a new run, with its own chance check. Chosen now, after the first stop, its results are exploratory.</span><br>
@@ -598,6 +605,7 @@
     $$('[data-open-run]').forEach((a) => { a.onclick = async (e) => { e.preventDefault(); run = await call('GET', `/runs/${a.dataset.openRun}`); await refreshFrames(); show('p5'); }; });
   }
   async function runVariation(key) {
+    if (P6_READ_ONLY) return;
     liveItem = true; renderChecklist();
     try {
       const out = await call('POST', `/runs/${run.run_id}/variations`, { change: key });
@@ -619,6 +627,7 @@
     return { ref: f(res.strength.reference), s: f(res.spread) };
   }
   async function runItem(key) {
+    if (P6_READ_ONLY) return;
     liveItem = true; renderChecklist();
     const item = frames.checklist.find((i) => i.key === key) || { title: key }; const t0 = Date.now();
     progressStart(item.title, item.estimate_seconds, 'Nothing else starts while this runs. You can rename frames, browse the table and read the shared concepts.');
@@ -694,8 +703,7 @@
   fillTips(document); renderSteps('p1'); renderNotes(); loadExamples(); show('p1');
   // The route back from pluralitie (AD's dispatch of 27 Nov 2026 §1 item 1.2):
   // an address naming a run opens that run at the page asked for. It asks for
-  // page 6, the reviewer's checklist; while page 6 is skipped (above), show()
-  // lands it on page 5, and it reaches the checklist the day the skip is lifted.
+  // page 6, the reviewer's checklist, open again since 27 Nov 2026 (above).
   (async () => {
     const q = new URLSearchParams(window.location.search), id = q.get('run'), page = q.get('page');
     if (!id) return;

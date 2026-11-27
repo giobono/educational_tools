@@ -203,6 +203,48 @@ def test_corres_opens_a_run_named_in_its_address_at_the_page_asked_for():
     assert "new URLSearchParams(window.location.search)" in boot
     assert "call('GET', `/runs/${encodeURIComponent(" in boot
     assert "show(PAGES.includes(page) ? page : 'p5')" in boot
-    # Page 6 is skipped at launch (AD's brief of 24 Nov 2026 §1): a jump to it
-    # still lands on page 5. That ruling is not reversed here.
-    assert "const SKIPPED = new Set(['p6']);" in js
+
+
+# ---- OD's amendment 1 of 27 Nov 2026 --------------------------------------------
+# `briefs/d2dev/2026-11-27_brief_od_d2dev_pluralitie_side_step_amendment_1_v1_0.md`
+
+def _trial():
+    return (CORRES / "trial.js").read_text(encoding="utf-8")
+
+
+def test_page_6_is_open_again_and_follows_your_frames():
+    # §2 (AD, for testing): the skip of 24 Nov is lifted.
+    js = _trial()
+    assert "const SKIPPED = new Set();" in js
+    assert "p5: 'p6', p6: 'p7'" in js
+    assert "const P6_READ_ONLY = true;" in js
+
+
+def test_nothing_on_page_6_can_start_a_computation():
+    js = _trial()
+    checklist = js.split("function renderChecklist()")[1].split("function renderAskForChecks()")[0]
+    # No Run and no Run again button is drawn while the page is read-only.
+    assert "(P6_READ_ONLY ? '' :" in checklist
+    variations = js.split("function renderVariations()")[1].split("async function runVariation(")[0]
+    assert "if (P6_READ_ONLY)" in variations
+    assert variations.index("if (P6_READ_ONLY)") < variations.index("data-variation")
+    # And the two functions that start one refuse, should anything reach them.
+    for fn in ("async function runVariation(key) {", "async function runItem(key) {"):
+        assert js.split(fn)[1].lstrip().startswith("if (P6_READ_ONLY) return;"), fn
+
+
+def test_a_researchers_own_file_still_gets_the_ask_offer_on_page_6():
+    js = _trial()
+    assert "if (isUpload()) { renderAskForChecks(); return; }" in js
+    assert "Ask for the checks</a>" in js
+
+
+def test_pluralitie_opens_a_sample_as_the_researchers_own_copy():
+    # §1 row 2: through CorRes's existing copy route, so the copy has an owner,
+    # the stored run is never written to, and Back to CorRes lands on the copy.
+    js = _js()
+    assert "/v3/corres/runs/example/${encodeURIComponent(id)}/stored" in js
+    assert "openSession({ run_id: copy.run_id })" in js
+    assert "openSession({ sample:" not in js
+    # Read from the file only: the stand-in page has no buttons to press, so the
+    # press itself is for the look on beta.
