@@ -490,6 +490,13 @@
       <p class="draft">Sentences you can use (draft wording):</p><ul>${w.sentences_you_can_use.map((s) => `<li>${esc(s.sentence)}</li>`).join('')}</ul>
       <p>${isUpload() ? 'Still to do: ☐ The checks against chance (on request)' : w.checklist_unticked.length ? 'Still to do: ' + w.checklist_unticked.map((m) => `☐ ${esc(m.item)}`).join(' · ') : 'Every checklist item has been run.'}</p>`;
     renderAskP5();
+    // The side step to pluralitie: this analysis, by its reference, where
+    // pluralitie is switched on for this surface (apps-enabled.php).
+    const next = $('#p5-next');
+    if (next && window.APPS_ENABLED && window.APPS_ENABLED.pluralitie) {
+      $('#p5-pluralitie').href = `/apps/pluralitie/?run=${encodeURIComponent(run.run_id)}`;
+      next.hidden = false;
+    }
     const t = run.timings || {};
     $('#p5-time').textContent = 'The main run took ' + fmtS(['associate', 'stability', 'covariates', 'structure', 'pairs'].reduce((a, k) => a + (+t[k] || 0), 0));
   }
@@ -659,13 +666,6 @@
     if (!run) return;
     const article = $('#p7-article'), reviewer = $('#p7-reviewer');
     article.href = '#'; reviewer.href = '#';
-    // The handoff to pluralitie: this analysis, by its reference, where
-    // pluralitie is switched on for this surface (apps-enabled.php).
-    const next = $('#p7-next');
-    if (next && window.APPS_ENABLED && window.APPS_ENABLED.pluralitie) {
-      $('#p7-pluralitie').href = `/apps/pluralitie/?run=${encodeURIComponent(run.run_id)}`;
-      next.hidden = false;
-    }
     article.onclick = async (e) => {
       e.preventDefault();
       // The window opens on the click itself, so a popup blocker allows it; the
@@ -692,4 +692,19 @@
 
   // --- boot -------------------------------------------------------------------------
   fillTips(document); renderSteps('p1'); renderNotes(); loadExamples(); show('p1');
+  // The route back from pluralitie (AD's dispatch of 27 Nov 2026 §1 item 1.2):
+  // an address naming a run opens that run at the page asked for. It asks for
+  // page 6, the reviewer's checklist; while page 6 is skipped (above), show()
+  // lands it on page 5, and it reaches the checklist the day the skip is lifted.
+  (async () => {
+    const q = new URLSearchParams(window.location.search), id = q.get('run'), page = q.get('page');
+    if (!id) return;
+    try {
+      run = await call('GET', `/runs/${encodeURIComponent(id)}`);
+      await refreshFrames();
+      if (!frames) return;               // a run with no frames yet has no page to return to
+      reached = PAGES.length;
+      show(PAGES.includes(page) ? page : 'p5');
+    } catch (e) { fail(e); }
+  })();
 })();
