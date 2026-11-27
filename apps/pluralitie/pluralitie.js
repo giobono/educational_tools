@@ -53,9 +53,24 @@
           <button class="btn btn-primary" data-sample="${esc(s.id)}">Open this analysis →</button>
         </div>`).join('');
       $('pl-samples').querySelectorAll('button').forEach(b => {
-        b.onclick = () => openSession({ sample: b.dataset.sample });
+        b.onclick = () => openSample(b.dataset.sample);
       });
     } catch (err) { failed(err); }
+  }
+
+  // A sample opens as the researcher's own copy, made by CorRes's own copy
+  // route (OD's amendment 1 of 27 Nov 2026 §1 row 2). The copy has an owner,
+  // the stored run is never written to, and Back to CorRes lands on the copy.
+  async function openSample(id) {
+    if (busy) return; clearError();
+    let copy;
+    busy = true;
+    try {
+      copy = await (await _crRequest(
+        `${window.CORRES_CONFIG.apiBase}/v3/corres/runs/example/${encodeURIComponent(id)}/stored`,
+        { method: 'POST' })).json();
+    } catch (err) { failed(err); return; } finally { busy = false; }
+    return openSession({ run_id: copy.run_id });
   }
 
   async function openSession(body) {
@@ -202,9 +217,9 @@
     if (drafted) { $('pl-frames').innerHTML = ev.frames.map(frameCard).join(''); wire(); }
     // P10, the route back (AD's dispatch of 27 Nov 2026 §1 item 1.2): to this
     // run in CorRes, at the reviewer's checklist. Only a researcher's own run
-    // is opened there by its reference. A stored sample's run is the shared
-    // original, which CorRes must never write to, so from a sample the way
-    // back is CorRes's front, where the sample opens as the researcher's copy.
+    // is opened there by its reference; since amendment 1 that includes a
+    // sample, which opens here as the researcher's own copy. A session still
+    // on the shared stored run (opened before then) goes to CorRes's front.
     const src = session.source;
     $('pl-back-link').href = src.kind === 'corres_run'
       ? `/apps/corres/?run=${encodeURIComponent(src.run_id)}&page=p6` : '/apps/corres/';
