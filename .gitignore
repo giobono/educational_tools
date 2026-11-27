@@ -14,3 +14,7 @@ _upload_check.html
 # ebono_research and griffithu_research_process). Every tracked file here
 # is a live URL, so this one matters more than most.
 .DS_Store
+
+# Python's cache of the test files: made by running the suite, never tracked
+# (OD's close of 26-27 Nov 2026, v1.1, D8).
+tests/__pycache__/
