@@ -113,9 +113,10 @@ def test_the_page_loads_sign_in_and_metering_as_sanzognie_does_and_adds_no_callb
     assert "llm/messages" not in js and "anthropic" not in js.lower()   # no open route, no key, no direct call
 
 
-def test_the_earlier_page_is_kept_unchanged_in_what_it_does():
-    old = (APP / "name_frames.html").read_text(encoding="utf-8")
-    assert "callAppAPI('corres', 'ttm/name-frames'" in old
+def test_the_earlier_page_is_retired():
+    # Kept beside the new page on 26 Nov; retired by OD's brief of 27 Nov 2026
+    # §2.2 (promotion condition 5). tests/test_pluralitie_side_step.py.
+    assert not (APP / "name_frames.html").exists()
 
 
 def test_the_nav_links_to_pluralitie():
@@ -137,7 +138,7 @@ def test_arriving_from_corres_with_a_run_opens_it_at_once_and_no_model_is_called
     assert r["replaced"] == "?session=pls_0123456789abcdef"     # a reload returns to the same work
     assert "3325" in r["recap"] and "Frame A" in r["recap"] and "chance check" in r["recap"]
     t = _text(r["evidence"])
-    assert "Carried by 1200 documents, 36% of the corpus" in t and "together in 120 documents · 2.4× chance" in t
+    assert "Carried by 1200 documents, 36% of the corpus" in t and "together in 120 documents · 2.4 times more often than if independent" in t
     assert "same-sex_marriage1.0-881" in t and "In no frame: Other." in t
     assert "Capacity &lt;b&gt;" in r["evidence"]                  # what the server sent is escaped
     assert r["calls"] == [] and r["framesShown"] == "none"

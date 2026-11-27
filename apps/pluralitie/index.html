@@ -14,9 +14,10 @@
      definition and discussion, and lets the researcher refine each frame in
      conversation.
 
-     The page that was here, which names the frames of an analysis file from
-     the earlier CorRes, is kept unchanged beside this one as
-     name_frames.html.
+     The wording is CD's (CD's handoff to AD and OD of 27 Nov 2026, strings
+     P1 to P11 and P30), as AD sighted it the same day, built under OD's
+     brief of 27 Nov (pluralitie as CR3's side step). The static page kept
+     beside this one until then was retired by that brief (its §2.2).
 
      The seam holds: the back end counts and calls the model; this page
      declares and displays. Nothing here names, groups or scores anything. -->
@@ -40,7 +41,7 @@
 <link href="/apps/common/metering.css?v=202611261900" rel="stylesheet"/>
 <link href="/ebono_brand.css?v=202608231842" rel="stylesheet"/>
 <link href="/edu_common.css?v=202608231842" rel="stylesheet"/>
-<link href="pluralitie.css?v=202611262130" rel="stylesheet"/></head>
+<link href="pluralitie.css?v=202611271900" rel="stylesheet"/></head>
 <body>
 <div id="edu-header" class="cr-nav"></div>
 <div id="artie-metering"></div>
@@ -48,7 +49,7 @@
 <section class="cr-front-hero">
 <p class="cr-front-eyebrow">Correlating Resonance · pluralitie</p>
 <h1 class="cr-front-title">Define and discuss the frames</h1>
-<p class="cr-front-standfirst">CorRes found the frames in your corpus. Here you work out what each one means: see what the documents show about it, read a drafted definition, and refine it in conversation until it says what you have found.</p>
+<p class="cr-front-standfirst">CorRes found the frames in your corpus. Here you work out what sets each one apart, and where they pull against each other. See what the documents show, read a drafted definition, and refine it in conversation until it says what you found.</p>
 </section>
 
 <div class="workspace">
@@ -62,16 +63,15 @@
 </div>
 <div class="step-card-body">
 <div id="pl-choose">
-<p class="pl-lede">pluralitie works on a finished CorRes analysis. Nothing is uploaded again: it reads the analysis where CorRes left it.</p>
+<p class="pl-lede">pluralitie starts from a finished CorRes analysis. Nothing is uploaded again: it reads the analysis where CorRes left it.</p>
 <div id="pl-samples"></div>
 <div class="pl-open-own">
 <label class="pl-label" for="pl-run-id">Your own CorRes analysis</label>
 <div class="pl-row">
-<input class="pl-input" id="pl-run-id" placeholder="the run reference from CorRes" spellcheck="false" type="text"/>
+<input class="pl-input" id="pl-run-id" placeholder="the run reference CorRes gave you" spellcheck="false" type="text"/>
 <button class="btn btn-outline" id="pl-open-run">Open</button>
 </div>
 </div>
-<p class="pl-aside">Have an analysis file from the earlier CorRes? <a href="name_frames.html">Name its frames here</a>.</p>
 </div>
 <div id="pl-recap" style="display:none;"></div>
 </div>
@@ -83,7 +83,7 @@
 <div class="step-card-title"><span class="step-num">2</span><span class="step-name">What the documents show</span></div>
 </div>
 <div class="step-card-body">
-<p class="pl-lede">Counted from your matrix, frame by frame: the concepts that mark each frame out, how many documents carry it, which concepts travel together, and where the frames meet. No model is involved in this step.</p>
+<p class="pl-lede">Counted from your matrix, frame by frame: the concepts that set each frame apart, how many documents carry it, which concepts travel together, and where the frames meet. No model is used in this step. A concept appearing in a document is not that document's position on the issue.</p>
 <div id="pl-evidence"></div>
 </div>
 </div>
@@ -117,11 +117,17 @@
 <div class="step-card-title"><span class="step-num">5</span><span class="step-name">Take it with you</span></div>
 </div>
 <div class="step-card-body">
-<p class="pl-lede">The report carries each frame's working definition, the evidence it rests on, the documents to read first, every earlier definition, and the whole conversation.</p>
+<!-- PENDING CD (P9): AD sighted this line with a change ("until the reviewer's
+     checks have been run in CorRes") and returned it to CD. CD's current text
+     is built, as OD's brief of 27 Nov row 3 directs, until CD answers. -->
+<p class="pl-lede">The report carries each frame's working definition, the evidence it rests on, the documents to read first, every earlier definition and the whole conversation. The frames stay provisional until you run the reviewer's checks in CorRes.</p>
 <div class="pl-actions" style="display:flex;">
 <button class="btn btn-outline" id="pl-export-btn">↓ Download the frames report</button>
-<span class="pl-actions-note">Markdown. Your work is also kept here: this page's address returns you to it.</span>
+<span class="pl-actions-note">A Markdown file. Your work is also kept here: this page's address brings you back to it.</span>
 </div>
+<!-- P10: the route back to CorRes (AD's dispatch of 27 Nov 2026 §1 item 1.2).
+     The address is set by pluralitie.js from the analysis that is open. -->
+<p class="pl-lede pl-back">Next: back to CorRes for the reviewer's checks, which confirm, correct or withdraw each frame. <a id="pl-back-link" href="/apps/corres/">Back to CorRes →</a></p>
 </div>
 </div>
 
@@ -130,6 +136,6 @@
 </div>
 
 <div id="edu-footer"></div>
-<script src="pluralitie.js?v=202611262130"></script>
+<script src="pluralitie.js?v=202611271900"></script>
 </body>
 </html>

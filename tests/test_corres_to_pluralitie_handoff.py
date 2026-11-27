@@ -10,9 +10,12 @@ where pluralitie is switched on.
 from tests.test_metering_fixes_after_test import ROOT
 
 
-def test_page_7_offers_pluralitie_hidden_until_the_page_shows_it():
+def test_the_page_offers_pluralitie_hidden_until_the_page_shows_it():
+    # On page 7 under amendment 1 (27 Nov morning); moved to page 5, straight
+    # after Your frames, by OD's brief of 27 Nov evening (AD's dispatch §1
+    # item 1.2). tests/test_pluralitie_side_step.py holds the placement.
     page = (ROOT / "apps/corres/index.html").read_text(encoding="utf-8")
-    assert 'id="p7-next" hidden' in page and 'id="p7-pluralitie"' in page
+    assert 'id="p5-next" hidden' in page and 'id="p5-pluralitie"' in page
     assert "/apps-enabled.php" in page
 
 
