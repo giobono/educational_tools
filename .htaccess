@@ -1,3 +1,32 @@
+# ── beta asks crawlers to stay out ────────────────────────────────────────
+# SD's crawler ruling of 23 Oct 2026, §2.1 (beta.ebono.au: `Disallow: /`,
+# plus `noindex`), landed under SD's brief to D2Dev of 27 Nov 2026.
+#
+# One tree serves beta (develop) and edu (main), and the ruling gives each
+# host its own line, so both rules below are keyed to beta's host name. On
+# edu they do nothing, and a promotion does not change what edu serves.
+# There is deliberately no robots.txt in the tree: edu's line (gated tool
+# pages disallowed; the landing page at CD's call) is not written yet.
+#
+# The note further down, that robots.txt stays silent on the application
+# paths so that a crawler can read their noindex header, still describes edu.
+# On beta the ruling asks for both, so a crawler that obeys the Disallow
+# never fetches a page to read the header; the header is for one that does.
+#
+# robots.txt is a request to well-behaved crawlers, not a lock (ruling §2.2).
+
+<IfModule mod_setenvif.c>
+  SetEnvIfNoCase Host ^beta\.ebono\.au$ EDU_BETA_HOST
+</IfModule>
+<IfModule mod_headers.c>
+  Header always set X-Robots-Tag "noindex, nofollow" env=EDU_BETA_HOST
+</IfModule>
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTP_HOST} ^beta\.ebono\.au$ [NC]
+  RewriteRule ^robots\.txt$ robots_beta.txt [L]
+</IfModule>
+
 # ── Application pages route through the flag ──────────────────────────────
 # CD dispatch to OD, 23 August, items 2, 4 and 5.
 #
