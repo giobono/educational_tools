@@ -704,8 +704,10 @@
   // The route back from pluralitie (AD's dispatch of 27 Nov 2026 §1 item 1.2):
   // an address naming a run opens that run at the page asked for. It asks for
   // page 6, the reviewer's checklist, open again since 27 Nov 2026 (above).
+  // The page is named `step` in the address, never `page`: `page` is the app
+  // gate's own parameter, and an address carrying it answers 404 (28 Nov 2026).
   (async () => {
-    const q = new URLSearchParams(window.location.search), id = q.get('run'), page = q.get('page');
+    const q = new URLSearchParams(window.location.search), id = q.get('run'), page = q.get('step');
     if (!id) return;
     try {
       run = await call('GET', `/runs/${encodeURIComponent(id)}`);

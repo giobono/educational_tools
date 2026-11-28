@@ -222,7 +222,7 @@
     // on the shared stored run (opened before then) goes to CorRes's front.
     const src = session.source;
     $('pl-back-link').href = src.kind === 'corres_run'
-      ? `/apps/corres/?run=${encodeURIComponent(src.run_id)}&page=p6` : '/apps/corres/';
+      ? `/apps/corres/?run=${encodeURIComponent(src.run_id)}&step=p6` : '/apps/corres/';
     runsOn();
   }
 
