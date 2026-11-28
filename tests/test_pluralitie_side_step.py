@@ -176,7 +176,7 @@ def test_the_way_back_to_corres_is_offered_and_carries_the_researchers_own_run(t
     r = _page(tmp_path, own, search="?session=pls_0123456789abcdef",
               then="window.BACK = el('pl-back-link').href;")
     assert "'/apps/corres/?run=' + encodeURIComponent" in _js() or "/apps/corres/?run=${encodeURIComponent" in _js()
-    assert "&page=p6" in _js()
+    assert "&step=p6" in _js()
     # A stored sample's own run is never opened in CorRes, where it could be
     # written to: the way back goes to CorRes's front, where the sample opens
     # as the researcher's copy.
@@ -248,3 +248,17 @@ def test_pluralitie_opens_a_sample_as_the_researchers_own_copy():
     assert "openSession({ sample:" not in js
     # Read from the file only: the stand-in page has no buttons to press, so the
     # press itself is for the look on beta.
+
+
+# ---- the return address, corrected 28 Nov 2026 -----------------------------------
+# Geoff's look on beta, 28 Nov: Back to CorRes answered 404 with an empty body.
+# `.htaccess` routes an app page through `app_gate.php?app=…&page=index.html`
+# with QSA, so a `page=` in the page's own address replaces the gate's and it
+# looks for a file called `p6`. The name belongs to the gate: the page a run
+# opens at is carried as `step`.
+
+def test_no_address_into_an_app_carries_the_gates_own_parameter():
+    assert "$_GET['page']" in (ROOT / "app_gate.php").read_text(encoding="utf-8")
+    assert "&page=" not in _js() and "?page=" not in _js()
+    boot = _trial().split("// --- boot")[1]
+    assert "q.get('step')" in boot and "q.get('page')" not in boot
